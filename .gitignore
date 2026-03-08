@@ -1,0 +1,19 @@
+# Build output
+build/
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+*.iml
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# macOS
+.DS_Store

@@ -1,0 +1,232 @@
+[
+  {
+    "character_name": "Catrin",
+    "parts": {
+      "head": {
+        "image_path" : "head.png",
+        "hat": {
+          "item": "beanie",
+          "color": "charcoal",
+          "size": "medium",
+          "material": "wool"
+        },
+        "hair":
+        {
+          "colour": "brown",
+          "length": "shoulder length",
+          "style": "bob"
+        },
+        "eye_colour": "hazel",
+        "expression": "neutral",
+        "glasses": "yes"
+      },
+      "torso": {
+        "image_path": "body.png",
+        "shirt" : {
+          "color": "pink",
+          "size": "large",
+          "material": "soft"
+        }
+      },
+      "legs": {
+        "image_path": "legs.png",
+        "trousers" : {
+          "color": "pink",
+          "size": "big",
+          "material": "linen"
+        }
+      },
+      "feet": {
+        "image_path": "feet.png",
+        "shoes":{
+          "item": "shoes",
+          "color": "pink",
+          "size": "big",
+          "material": "leather"
+        }
+      }
+    }
+  },
+  {
+    "character_name": "Abi",
+    "parts": {
+      "head": {
+        "image_path": "head-1.png",
+        "hair": {
+          "colour": "yellow",
+          "length": "long",
+          "style": "pigtails"
+        },
+        "eye_colour": "hazel",
+        "expression": "neutral"
+      },
+      "torso": {
+        "image_path": "body-1.png",
+        "shirt": {
+          "color": "white",
+          "size": "small",
+          "buttons": 4,
+          "material": "soft"
+        },
+        "jumper": {
+          "color": "green",
+          "size": "one-size",
+          "material": "wool"
+        }
+      },
+      "legs": {
+        "image_path": "legs-1.png",
+        "trousers": {
+          "color": "blue",
+          "size": "big",
+          "material": "linen"
+        }
+      },
+      "feet": {
+        "image_path": "feet-1.png",
+        "shoes":{
+          "item": "shoes",
+          "color": "blue",
+          "size": "big",
+          "material": "leather"
+        } 
+      }
+    }
+  },
+  {
+    "character_name": "Chris",
+    "parts": {
+      "head": {
+        "image_path": "head-2.png",
+        "hat": {
+          "item": "hat",
+          "color": "yellow",
+          "size": "big",
+          "material": "straw"
+        },
+        "hair": { 
+            "colour": "red",
+            "length": "long",
+            "style": "curly"
+          },
+        "eye_colour": "brown",
+        "expression": "neutral"
+      },
+      "torso": {
+        "image_path": "body-2.png",
+        "shirt": {
+          "color": "blue",
+          "size": "large",
+          "material": "soft"
+        },
+        "tie": {
+          "color": "yellow",
+          "material": "silk"
+        }
+      },
+      "legs": {
+        "image_path": "legs-2.png",
+        "trousers": {
+          "color": "purple",
+          "size": "big",
+          "material": "linen"
+        },
+        "belt": {
+          "color": "red",
+          "size": "big",
+          "material": "leather"
+        }
+      },
+      "feet": {
+        "image_path": "feet-2.png",
+        "shoes": {
+          "color": "purple",
+          "size": "small",
+          "material": "leather"
+        }
+      }
+    }
+  },
+  {
+    "character_name": "Jo",
+    "parts": {
+      "head": {
+        "image_path": "head-3.png",
+        "hair": { 
+            "colour": "red",
+            "length": "short",
+            "style": "straight"
+          },
+        "eye_colour": "blue",
+        "expression": "neutral"
+      },
+      "torso": {
+        "image_path": "body-3.png",
+        "coat": {
+          "color": "orange",
+          "size": "big",
+          "material": "puffy"
+        }
+      },
+      "legs": {
+        "image_path": "legs-3.png",
+        "trousers": {
+          "color": "orange",
+          "size": "big",
+          "material": "linen"
+        },
+        "belt": {
+          "color": "orange",
+          "size": "big",
+          "material": "leather"
+        }
+      },
+      "feet": {
+        "image_path": "feet-3.png",
+        "shoes": {
+          "color": "orange",
+          "size": "small",
+          "material": "leather"
+        }
+      }
+    }
+  },
+  {
+    "character_name": "Robin",
+    "parts": {
+      "head": {
+        "image_path": "head-4.png",
+        "hair": { 
+            "colour": "brown",
+            "length": "short",
+            "style": "curly"
+          },
+        "eye_colour": "blue",
+        "expression": "smiling"   
+      },
+      "torso": {
+        "image_path": "body-4.png",
+        "shirt": {
+          "color": "green",
+          "material": "cotton"
+        }
+      },
+      "legs": {
+        "image_path": "legs-4.png",
+        "trousers": {
+          "color": "green",
+          "size": "big",
+          "material": "linen"
+        }
+      },
+      "feet": {
+        "image_path": "feet-4.png",
+        "shoes": {
+          "color": "green",
+          "size": "big",
+          "material": "rubber"
+        }
+      }
+    }
+  }
+]

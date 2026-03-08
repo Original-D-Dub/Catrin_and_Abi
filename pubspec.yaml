@@ -1,0 +1,114 @@
+name: catrin_abi_bsl
+description: "BSL Learning Game for Children - Learn British Sign Language with Catrin & Abi"
+publish_to: 'none'
+
+version: 1.0.0+2
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  provider: ^6.1.1
+
+  # Animations
+  confetti: ^0.8.0
+  flip_card: ^0.7.0
+
+  # Local storage for preferences
+  shared_preferences: ^2.2.2
+
+  # SVG rendering
+  flutter_svg: ^2.0.10
+
+  # Game engine for Letter Quest RPG game
+  flame: ^1.23.0
+  flame_audio: ^2.10.4
+
+  # Text-to-speech for Letter Bingo game
+  flutter_tts: ^4.2.0
+
+  # Camera access for Camera Vowels game
+  camera: ^0.11.0
+
+  # MediaPipe 21-point hand landmark detection (Android)
+  hand_landmarker: ^2.1.2
+
+  # Rive animation runtime (files to be provided separately)
+  rive: ^0.13.7
+
+  # Runtime camera permission prompts
+  permission_handler: ^11.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    # Logos
+    - assets/logos/english/
+    - assets/logos/welsh/
+
+    # Characters
+    - assets/characters/
+    - assets/characters/abi/
+    - assets/characters/catrin/
+    - assets/characters/pero/
+
+    # BSL Alphabet (for card game)
+    - assets/bsl_alphabet/
+
+    # Backgrounds
+    - assets/backgrounds/
+
+    # Home screen game tile images
+    - assets/images/home_screen/
+
+    # Game-specific assets
+    - assets/games/bubble_pop/
+    - assets/games/ear_game/
+    - assets/games/colouring/
+    - assets/games/card_matching/
+    - assets/games/vowel_hand/
+    - assets/games/letter_quest/
+    - assets/games/bsl_camera_vowels/
+
+    # BSL number signs (for maths game)
+    - assets/bsl_numbers/
+
+    # Letter Quest RPG game audio
+    - assets/audio/letter_quest/
+
+    # Bubble Pop game audio
+    - assets/audio/bubble_pop/
+
+    # Letter Quest assets
+    - assets/images/Tree2.png
+
+    # Word thumbnails for vowel words game (3-letter CVC words)
+    - assets/images/word_thumbnails/a/
+    - assets/images/word_thumbnails/e/
+    - assets/images/word_thumbnails/i/
+    - assets/images/word_thumbnails/o/
+    - assets/images/word_thumbnails/u/
+
+    # Character Identification game data
+    - assets/data/
+    - assets/images/character_parts/
+    - assets/images/colours_BSL/
+
+  fonts:
+    - family: ComicRelief
+      fonts:
+        - asset: assets/fonts/ComicRelief-Regular.ttf
+        - asset: assets/fonts/ComicRelief-Bold.ttf
+          weight: 700
