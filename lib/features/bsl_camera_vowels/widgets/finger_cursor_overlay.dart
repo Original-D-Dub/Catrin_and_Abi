@@ -13,10 +13,10 @@ import '../../../core/constants/asset_paths.dart';
 /// When [rivFilePath] is provided the widget shows a Rive animation;
 /// otherwise it falls back to the SVG asset.
 ///
-/// ## Rive spec (for when .riv files are created)
+/// ## Rive spec
 /// - Artboard: `"RightFinger"`
 /// - Animation: `"Idle"` (looping idle animation)
-class FingerCursorOverlay extends StatelessWidget {
+class FingerCursorOverlay extends StatefulWidget {
   const FingerCursorOverlay({
     super.key,
     required this.containerSize,
@@ -30,8 +30,7 @@ class FingerCursorOverlay extends StatelessWidget {
   /// when no right hand is detected.
   final Offset? cursorPosition;
 
-  /// Optional path to a .riv file, e.g.
-  /// `'assets/games/bsl_camera_vowels/finger_cursor.riv'`
+  /// Optional path to a .riv file, e.g. `'assets/pointer.riv'`
   final String? rivFilePath;
 
   /// Cursor rendered width in logical pixels.
@@ -46,32 +45,65 @@ class FingerCursorOverlay extends StatelessWidget {
   static const double _tipOffsetY = _cursorHeight * 0.03;
 
   @override
-  Widget build(BuildContext context) {
-    if (cursorPosition == null) return const SizedBox.shrink();
+  State<FingerCursorOverlay> createState() => _FingerCursorOverlayState();
+}
 
-    final screenX = cursorPosition!.dx * containerSize.width;
-    final screenY = cursorPosition!.dy * containerSize.height;
+class _FingerCursorOverlayState extends State<FingerCursorOverlay> {
+  FileLoader? _fileLoader;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.rivFilePath != null) {
+      _fileLoader = FileLoader.fromAsset(
+        widget.rivFilePath!,
+        riveFactory: Factory.flutter,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _fileLoader?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.cursorPosition == null) return const SizedBox.shrink();
+
+    final screenX = widget.cursorPosition!.dx * widget.containerSize.width;
+    final screenY = widget.cursorPosition!.dy * widget.containerSize.height;
+    final fileLoader = _fileLoader;
 
     return Positioned(
-      left: screenX - _tipOffsetX,
-      top: screenY - _tipOffsetY,
+      left: screenX - FingerCursorOverlay._tipOffsetX,
+      top: screenY - FingerCursorOverlay._tipOffsetY,
       child: IgnorePointer(
         child: SizedBox(
-          width: _cursorWidth,
-          height: _cursorHeight,
-          child: rivFilePath != null
-              ? RiveAnimation.asset(
-                  rivFilePath!,
-                  artboard: 'RightFinger',
-                  animations: const ['Idle'],
-                  fit: BoxFit.contain,
+          width: FingerCursorOverlay._cursorWidth,
+          height: FingerCursorOverlay._cursorHeight,
+          child: fileLoader != null
+              ? RiveWidgetBuilder(
+                  fileLoader: fileLoader,
+                  artboardSelector: ArtboardSelector.byName('RightFinger'),
+                  builder: (context, state) => switch (state) {
+                    RiveLoading() => const SizedBox.shrink(),
+                    RiveFailed() => _svgFallback(),
+                    RiveLoaded() => RiveWidget(
+                        controller: state.controller,
+                        fit: Fit.contain,
+                      ),
+                  },
                 )
-              : SvgPicture.asset(
-                  AssetPaths.vowelHandPointer,
-                  fit: BoxFit.contain,
-                ),
+              : _svgFallback(),
         ),
       ),
     );
   }
+
+  Widget _svgFallback() => SvgPicture.asset(
+        AssetPaths.vowelHandPointer,
+        fit: BoxFit.contain,
+      );
 }

@@ -128,12 +128,12 @@ class HomeScreen extends StatelessWidget {
               imagePath: 'assets/images/home_screen/who-am-i.jpg',
               onTap: () => _navigateToCharacterId(context),
             ),
-            // if (!kIsWeb)
-            //   GameTile(
-            //     title: 'Camera Vowels',
-            //     imagePath: 'assets/images/home_screen/bsl-vowels.jpg',
-            //     onTap: () => _navigateToCameraVowels(context),
-            //   ),
+            if (!kIsWeb)
+              GameTile(
+                title: 'Camera Vowels',
+                imagePath: 'assets/images/home_screen/bsl-vowels.jpg',
+                onTap: () => _navigateToCameraVowels(context),
+              ),
           ];
 
         // Add logo to fill the last row if it's not complete
@@ -202,7 +202,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   /// Navigates to the BSL camera vowels game.
-  //TODO void _navigateToCameraVowels(BuildContext context) {
-  //   Navigator.pushNamed(context, AppRoutes.cameraVowels);
-  // }
+  void _navigateToCameraVowels(BuildContext context) {
+    Navigator.pushNamed(context, AppRoutes.cameraVowels);
+  }
 }

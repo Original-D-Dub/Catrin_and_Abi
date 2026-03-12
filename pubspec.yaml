@@ -40,10 +40,10 @@ dependencies:
   hand_landmarker: ^2.1.2
 
   # Rive animation runtime (files to be provided separately)
-  rive: ^0.13.7
+  rive: ^0.14.4
 
   # Runtime camera permission prompts
-  permission_handler: ^11.0.0
+  permission_handler: ^12.0.1
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +72,10 @@ flutter:
 
     # Home screen game tile images
     - assets/images/home_screen/
+
+    # Rive animation assets
+    - assets/hand_palm.riv
+    - assets/pointer.riv
 
     # Game-specific assets
     - assets/games/bubble_pop/

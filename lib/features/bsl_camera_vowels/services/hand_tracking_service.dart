@@ -1,11 +1,9 @@
 import 'package:flutter/foundation.dart';
 
-//TODO import '../models/hand_landmark_data.dart';
-// On web: resolves to the typedef stub (no hand_landmarker compilation).
-// On mobile/desktop: resolves to the real Android implementation.
-//T)DO import 'android_hand_tracking_service.dart'
-//     if (dart.library.html) 'android_hand_tracking_service_web.dart';
-// import 'stub_hand_tracking_service.dart';
+import '../models/hand_landmark_data.dart';
+import 'android_hand_tracking_service.dart';
+import 'ios_hand_tracking_service.dart';
+import 'stub_hand_tracking_service.dart';
 
 /// Abstract interface for real-time hand landmark detection.
 ///
@@ -22,7 +20,7 @@ abstract class HandTrackingService {
   ///
   /// Each event is a list of 0–2 [HandLandmarkData] objects.
   /// An empty list means no hands were detected in that frame.
-  // TODO(handtracking) Stream<List<HandLandmarkData>> get landmarkStream;
+  Stream<List<HandLandmarkData>> get landmarkStream;
 
   /// Begins camera capture and model inference.
   ///
@@ -36,9 +34,19 @@ abstract class HandTrackingService {
   void dispose();
 
   /// Returns the correct implementation for the current platform.
-  // TODO (handtracking)
-    // TODO(ios): Replace with a MediaPipe platform-channel implementation
-    // once the iOS native bridge is available.
-  //TODO(handtracking)   return StubHandTrackingService();
-  // }
+  ///
+  /// - Android → [AndroidHandTrackingService] (MediaPipe via JNI)
+  /// - iOS     → [IosHandTrackingService] (Apple Vision framework)
+  /// - web/desktop → [StubHandTrackingService] (no-op)
+  factory HandTrackingService.create() {
+    if (!kIsWeb) {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        return AndroidHandTrackingService();
+      }
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        return IosHandTrackingService();
+      }
+    }
+    return StubHandTrackingService();
+  }
 }

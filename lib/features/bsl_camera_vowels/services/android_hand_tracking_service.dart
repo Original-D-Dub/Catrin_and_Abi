@@ -1,84 +1,124 @@
-// import 'dart:async';
+import 'dart:async';
 
-// import 'package:flutter/foundation.dart';
-// import 'package:flutter/painting.dart';
-// import 'package:hand_landmarker/hand_landmarker.dart';
+import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
+import 'package:hand_landmarker/hand_landmarker.dart';
 
-// import '../models/hand_landmark_data.dart';
-// import 'hand_tracking_service.dart';
+import '../models/hand_landmark_data.dart';
+import 'hand_tracking_service.dart';
 
-// /// Android implementation of [HandTrackingService] using the
-// /// [hand_landmarker] package (MediaPipe Hand Landmarker task).
-// ///
-// /// Detects up to 2 hands per frame and emits [HandLandmarkData] objects
-// /// with 21 normalised landmarks each.
-// ///
-// /// The front camera is used so the player can hold their hands in front
-// /// of the device. MediaPipe reports handedness from the image perspective
-// /// (mirrored), so we flip the [isLeftHand] flag to match the player's
-// /// actual left/right hands.
-// class AndroidHandTrackingService implements HandTrackingService {
-//   HandLandmarker? _landmarker;
-//   final _controller = StreamController<List<HandLandmarkData>>.broadcast();
+/// Android implementation of [HandTrackingService] using the
+/// [hand_landmarker] package (MediaPipe Hand Landmarker task via JNI).
+///
+/// Opens the front camera invisibly (no preview), streams YUV frames into
+/// [HandLandmarkerPlugin.detect], and emits [HandLandmarkData] objects with
+/// 21 normalised landmarks each.
+///
+/// Handedness is estimated geometrically from the cross-product of
+/// wrist→index-MCP and wrist→pinky-MCP vectors, since [hand_landmarker]
+/// 2.1.x does not expose a handedness classifier. The estimate is reliable
+/// when the palm faces the camera; it may need tuning if edge cases arise.
+class AndroidHandTrackingService implements HandTrackingService {
+  HandLandmarkerPlugin? _plugin;
+  CameraController? _cameraController;
+  final _controller = StreamController<List<HandLandmarkData>>.broadcast();
+  bool _isProcessing = false;
 
-//   @override
-//   Stream<List<HandLandmarkData>> get landmarkStream => _controller.stream;
+  @override
+  Stream<List<HandLandmarkData>> get landmarkStream => _controller.stream;
 
-//   @override
-//   Future<void> start() async {
-//     try {
-//       _landmarker = await HandLandmarker.create(
-//         numHands: 2,
-//         minHandDetectionConfidence: 0.5,
-//         minHandPresenceConfidence: 0.5,
-//         minTrackingConfidence: 0.5,
-//       );
+  @override
+  Future<void> start() async {
+    try {
+      // Initialise the MediaPipe hand-landmarker (synchronous JNI call).
+      _plugin = HandLandmarkerPlugin.create(
+        numHands: 2,
+        minHandDetectionConfidence: 0.5
+      );
 
-//       _landmarker!.resultStream.listen(_onResult);
-//       await _landmarker!.startCamera(cameraFacing: CameraFacing.front);
-//     } catch (e) {
-//       debugPrint('AndroidHandTrackingService.start failed: $e');
-//     }
-//   }
+      // Locate the front-facing camera.
+       final cameras = await availableCameras();
+       final frontCamera = cameras.firstWhere(
+         (c) => c.lensDirection == CameraLensDirection.front,
+         orElse: () => cameras.first,
+       );
+  
+       // YUV 4:2:0 is required by hand_landmarker's detect() method.
+        _cameraController = CameraController(
+         frontCamera,
+         ResolutionPreset.medium,
+         enableAudio: false,
+         imageFormatGroup: ImageFormatGroup.yuv420,
+       );
+       await _cameraController!.initialize();
+       await _cameraController!.startImageStream(_processFrame);
+    } catch (e) {
+      debugPrint('AndroidHandTrackingService.start failed: $e');
+    }
+  }
 
-//   void _onResult(HandLandmarkerResult result) {
-//     if (_controller.isClosed) return;
+  void _processFrame(CameraImage image) {
+     if (_isProcessing || _plugin == null || _controller.isClosed) return;
+     _isProcessing = true;
 
-//     final hands = <HandLandmarkData>[];
+    try {
+       final sensorOrientation =
+           _cameraController?.description.sensorOrientation ?? 270;
+       final rawHands = _plugin!.detect(image, sensorOrientation);
+ 
+      final hands = rawHands
+          .where((h) => h.landmarks.length == 21)
+          .map((h) {
+            final landmarks = h.landmarks
+                .map((lm) => Offset(lm.x, lm.y))
+                .toList(growable: false);
+            return HandLandmarkData(
+              landmarks: landmarks,
+              isLeftHand: _isPlayerLeftHand(landmarks),
+            );
+          })
+          .toList();
+ 
+      _controller.add(hands);
+    } catch (e) {
+      debugPrint('AndroidHandTrackingService._processFrame error: $e');
+    } finally {
+      _isProcessing = false;
+}
+    }
 
-//     for (int i = 0; i < result.landmarks.length; i++) {
-//       final rawLandmarks = result.landmarks[i];
-//       if (rawLandmarks.length != 21) continue;
+  /// Estimates whether [lm] belongs to the player's left hand.
+  ///
+  /// Uses the 2-D cross product of the wrist→index-MCP (lm[5]) and
+  /// wrist→pinky-MCP (lm[17]) vectors. In image coordinates (y increases
+  /// downward) with a mirrored front camera, a positive cross product
+  /// corresponds to the player's left hand when the palm faces the camera.
+  bool _isPlayerLeftHand(List<Offset> lm) {
+    final wrist = lm[0];
+    final indexMcp = lm[5];
+    final pinkyMcp = lm[17];
+    final cross =
+        (indexMcp.dx - wrist.dx) * (pinkyMcp.dy - wrist.dy) -
+        (indexMcp.dy - wrist.dy) * (pinkyMcp.dx - wrist.dx);
+    return cross > 0;
+  }
 
-//       // MediaPipe reports handedness from the image perspective.
-//       // When using the front camera the image is mirrored, so we invert
-//       // the label to get the player's actual hand side.
-//       final label = result.handedness.length > i
-//           ? result.handedness[i].first.categoryName
-//           : 'Left';
-//       final isPlayerLeftHand = label == 'Right'; // inverted for front camera
+  @override
+  Future<void> stop() async {
+    try {
+      await _cameraController?.stopImageStream();
+    } catch (e) {
+      debugPrint('AndroidHandTrackingService.stop error: $e');
+    }
+  }
 
-//       final landmarks = rawLandmarks
-//           .map((lm) => Offset(lm.x, lm.y))
-//           .toList(growable: false);
-
-//       hands.add(HandLandmarkData(
-//         landmarks: landmarks,
-//         isLeftHand: isPlayerLeftHand,
-//       ));
-//     }
-
-//     _controller.add(hands);
-//   }
-
-//   @override
-//   Future<void> stop() async {
-//     await _landmarker?.stopCamera();
-//   }
-
-//   @override
-//   void dispose() {
-//     _landmarker?.dispose();
-//     _controller.close();
-//   }
-// }
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    _cameraController = null;
+    _plugin?.dispose();
+    _plugin = null;
+    _controller.close();
+  }
+}

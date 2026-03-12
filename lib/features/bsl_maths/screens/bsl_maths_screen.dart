@@ -45,9 +45,10 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
   /// TTS instructions per level number
   static const Map<int, String> _levelInstructions = {
     1: 'Use the keyboard to answer the sums',
-    2: 'Type your answer. Then press the equals to see if you are right',
-    3: "What's the number that will make this sum correct",
-    4: 'How many can you get right in a minute? One point for a right answer and lose one point for a wrong answer.',
+    2: "What number do you need to add to make ten?",
+    3: 'Type your answer. Then press the equals to see if you are right',
+    4: "What's the number that will make this sum correct",
+    5: 'How many can you get right in a minute? One point for a right answer and lose one point for a wrong answer.',
   };
 
   @override
@@ -193,12 +194,13 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
     required BslMathsProvider provider,
     required BslMathsLevel level,
   }) {
-    // Assign colors to each level
+    // Assign colors to each level (one per level, cycles if more levels added)
     final levelColors = [
       AppColors.abiPink,
       AppColors.accentPurple,
       AppColors.accentLimeGreen,
       AppColors.accentOrange,
+      AppColors.accentNavyBlue,
     ];
     final color = levelColors[(level.number - 1) % levelColors.length];
 

@@ -59,11 +59,49 @@ class MathsQuestionGenerator {
   /// Maximum operand value (BSL number assets only exist for 0-10)
   static const int maxAllowedOperand = 10;
 
+  /// Generates a random addition question where the sum is always [target].
+  ///
+  /// Used by "Make 10" (Level 2) where every question has the form
+  /// `operand1 + ? = 10` and the player finds the missing operand.
+  ///
+  /// Parameters:
+  /// - [random]: The Random instance to use for generation
+  /// - [target]: The exact sum every question must equal (e.g. 10)
+  /// - [previousQuestion]: If provided, ensures the new question differs
+  ///
+  /// Returns a [MathsQuestion] where operand1 + operand2 == [target].
+  /// Both operands are capped at [maxAllowedOperand] to match BSL assets.
+  static MathsQuestion generateAdditionWithFixedTarget({
+    required Random random,
+    required int target,
+    MathsQuestion? previousQuestion,
+  }) {
+    // operand1 ranges 1 to target-1 so operand2 is also at least 1
+    final maxOp1 = (target - 1).clamp(minOperand, maxAllowedOperand);
+
+    while (true) {
+      final operand1 = random.nextInt(maxOp1) + minOperand;
+      final operand2 = target - operand1;
+
+      // Ensure operand2 is within valid BSL asset range
+      if (operand2 < minOperand || operand2 > maxAllowedOperand) continue;
+
+      final question = MathsQuestion(
+        operand1: operand1,
+        operand2: operand2,
+        answer: target,
+      );
+
+      // Ensure new question differs from the previous one
+      if (question != previousQuestion) return question;
+    }
+  } 
+
   /// Generates a random addition question.
   ///
   /// Parameters:
   /// - [random]: The Random instance to use for generation
-  /// - [maxAnswer]: Maximum allowed sum (10 for Level 1, 20 for Level 2)
+  /// - [maxAnswer]: Maximum allowed sum (10 for Level 1, 20 for Level 3)
   /// - [previousQuestion]: If provided, ensures the new question differs
   ///
   /// Returns a [MathsQuestion] where operand1 + operand2 <= [maxAnswer].

@@ -29,6 +29,10 @@ enum BslMathsGameState {
 /// - [name]: Display name for level selection
 /// - [maxAnswer]: Maximum sum allowed for questions
 /// - [isMissingOperand]: Whether to show "a + ? = c" format (find missing number)
+/// - [fixedTarget]: When set, every question's sum equals exactly this value.
+///   Used by "Make 10" (Level 2) where questions always have the form
+///   `operand1 + ? = 10`. Requires [isMissingOperand] to be true.
+/// - [isCompetition]: Whether this is a timed competition mode
 class BslMathsLevel {
   /// Level number (1-based)
   final int number;
@@ -47,6 +51,13 @@ class BslMathsLevel {
   /// and the player must find the answer.
   final bool isMissingOperand;
 
+  /// Optional fixed target sum for missing-operand levels.
+  ///
+  /// When non-null, every generated question has operand1 + operand2 == [fixedTarget]
+  /// exactly, so the displayed answer is always the same number.
+  /// Requires [isMissingOperand] == true.
+  final int? fixedTarget;
+
   /// Whether this level is a timed competition mode.
   ///
   /// When true, a 60-second countdown timer runs and wrong answers
@@ -58,21 +69,37 @@ class BslMathsLevel {
     required this.name,
     required this.maxAnswer,
     this.isMissingOperand = false,
+    this.fixedTarget,
     this.isCompetition = false,
   });
 
   /// All available levels
   static const List<BslMathsLevel> all = [
     BslMathsLevel(number: 1, name: 'Sums to 10', maxAnswer: 10),
-    BslMathsLevel(number: 2, name: 'Sums to 20', maxAnswer: 20),
+    
+    //Level 2:number bonds to 10 
+
     BslMathsLevel(
-      number: 3,
+      number: 2,
+      name: 'Make 10',
+      maxAnswer: 10,
+      isMissingOperand: true,
+      fixedTarget: 10
+    ),
+    // Level 3: answer any sum up to 20 (two-digit input)
+    BslMathsLevel(number: 3, name: 'Sums to 20', maxAnswer: 20),
+
+    // Level 4: find the missing operand (sum varies up to 10)
+    BslMathsLevel(
+      number: 4,
       name: 'Find the Missing Number',
       maxAnswer: 10,
       isMissingOperand: true,
     ),
+
+    // Level 5: timed competition (60 seconds, wrong answers deduct a point)
     BslMathsLevel(
-      number: 4,
+      number: 5,
       name: 'Competition',
       maxAnswer: 10,
       isCompetition: true,
@@ -243,10 +270,7 @@ class BslMathsProvider extends ChangeNotifier {
     _gameState = BslMathsGameState.playing;
     _feedbackTimer?.cancel();
     _competitionTimer?.cancel();
-    _currentQuestion = MathsQuestionGenerator.generateAddition(
-      random: _random,
-      maxAnswer: _currentLevel.maxAnswer,
-    );
+    _currentQuestion = _generateQuestion();
 
     // Start countdown timer for competition mode
     if (_currentLevel.isCompetition) {
@@ -379,13 +403,29 @@ class BslMathsProvider extends ChangeNotifier {
     );
   }
 
-  /// Generates the next question and resets input state.
-  void _nextQuestion() {
-    _currentQuestion = MathsQuestionGenerator.generateAddition(
+  /// Generates a question appropriate for the current level.
+  ///
+  /// Uses [MathsQuestionGenerator.generateAdditionWithFixedTarget] when the
+  /// level has a [BslMathsLevel.fixedTarget] (e.g. "Make 10"), otherwise
+  /// uses [MathsQuestionGenerator.generateAddition] for varying sums.
+  MathsQuestion _generateQuestion({MathsQuestion? previous}) {
+    if (_currentLevel.fixedTarget != null) {
+      return MathsQuestionGenerator.generateAdditionWithFixedTarget(
+        random: _random,
+        target: _currentLevel.fixedTarget!,
+        previousQuestion: previous,
+      );
+    }
+    return MathsQuestionGenerator.generateAddition(
       random: _random,
       maxAnswer: _currentLevel.maxAnswer,
-      previousQuestion: _currentQuestion,
+      previousQuestion: previous,
     );
+  }
+
+/// Generates the next question and resets input state.
+  void _nextQuestion() {
+   _currentQuestion = _generateQuestion(previous: _currentQuestion);
     _clearDigits();
     _isInputLocked = false;
     _gameState = BslMathsGameState.playing;

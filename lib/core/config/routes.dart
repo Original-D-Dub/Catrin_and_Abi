@@ -240,22 +240,22 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
-    //TODO(handtracking) case AppRoutes.cameraVowels:
-    //   // Camera Vowels uses device camera + MediaPipe — not available on web.
-    //   // Redirect to home if somehow reached on web.
-    //   if (kIsWeb) {
-    //     return MaterialPageRoute(
-    //       builder: (_) => const HomeScreen(),
-    //       settings: settings,
-    //     );
-    //   }
-    //   return MaterialPageRoute(
-    //     builder: (_) => ChangeNotifierProvider(
-    //       create: (_) => CameraVowelsProvider(),
-    //       child: const CameraVowelsScreen(),
-    //     ),
-    //     settings: settings,
-    //   );
+    case AppRoutes.cameraVowels:
+      // Camera Vowels uses device camera + MediaPipe — not available on web.
+      // Redirect to home if somehow reached on web.
+      if (kIsWeb) {
+        return MaterialPageRoute(
+          builder: (_) => const HomeScreen(),
+          settings: settings,
+        );
+      }
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => CameraVowelsProvider(),
+          child: const CameraVowelsScreen(),
+        ),
+        settings: settings,
+      );
 
     // Placeholder routes for future games
     case AppRoutes.earGame:

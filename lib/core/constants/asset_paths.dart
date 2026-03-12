@@ -164,6 +164,16 @@ class AssetPaths {
   ];
 
   // -------------------------
+  // Rive Animations
+  // -------------------------
+
+  /// Open palm hand Rive animation — used as the hand guide in Camera Vowels
+  static const String handPalmRiv = 'assets/hand_palm.riv';
+
+  /// Pointing finger Rive animation — used to select vowels on the Camera Vowels game
+  static const String pointerRiv = 'assets/pointer.riv';
+
+  // -------------------------
   // Vowel Hand Game Assets (BSL vowel learning)
   // -------------------------
 

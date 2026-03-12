@@ -10,8 +10,7 @@ import 'hand_tracking_service.dart';
 /// The landmark stream never emits — the game UI loads normally but no
 /// hand tracking occurs. Replace with a MediaPipe platform-channel
 /// implementation to enable iOS support.
-///
-/// TODO(ios): Implement iOS MediaPipe hand tracking via a platform channel.
+
 class StubHandTrackingService implements HandTrackingService {
   final _controller = StreamController<List<HandLandmarkData>>.broadcast();
 
