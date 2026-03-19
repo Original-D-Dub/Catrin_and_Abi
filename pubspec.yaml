@@ -76,6 +76,7 @@ flutter:
     # Rive animation assets
     - assets/hand_palm.riv
     - assets/pointer.riv
+    - assets/catrin_vector_outline 2sec wave.riv
 
     # Game-specific assets
     - assets/games/bubble_pop/

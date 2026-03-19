@@ -134,6 +134,12 @@ class HomeScreen extends StatelessWidget {
                 imagePath: 'assets/images/home_screen/bsl-vowels.jpg',
                 onTap: () => _navigateToCameraVowels(context),
               ),
+            if (!kIsWeb)
+              GameTile(
+                title: 'Wave Hello!',
+                imagePath: 'assets/images/home_screen/Hello.jpg',
+                onTap: () => Navigator.pushNamed(context, AppRoutes.waveHello),
+              ),
           ];
 
         // Add logo to fill the last row if it's not complete

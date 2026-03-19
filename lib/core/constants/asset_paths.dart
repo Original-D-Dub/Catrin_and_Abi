@@ -173,6 +173,10 @@ class AssetPaths {
   /// Pointing finger Rive animation — used to select vowels on the Camera Vowels game
   static const String pointerRiv = 'assets/pointer.riv';
 
+  /// Catrin vector outline Rive animation — used in the Wave Hello game
+  /// State machine: "State Machine 1"; trigger input: "wave"; duration: 2s
+  static const String catrinVectorOutlineRiv = 'assets/catrin_vector_outline 2sec wave.riv';
+
   // -------------------------
   // Vowel Hand Game Assets (BSL vowel learning)
   // -------------------------

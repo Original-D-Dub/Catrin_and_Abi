@@ -26,6 +26,8 @@ import '../../features/letter_bingo/screens/letter_bingo_screen.dart';
 import '../../features/letter_bingo/providers/letter_bingo_provider.dart';
 import '../../features/bsl_camera_vowels/screens/camera_vowels_screen.dart';
 import '../../features/bsl_camera_vowels/providers/camera_vowels_provider.dart';
+import '../../features/wave_hello/screens/wave_hello_screen.dart';
+import '../../features/wave_hello/providers/wave_hello_provider.dart';
 
 /// Named route constants for navigation throughout the app.
 ///
@@ -88,6 +90,9 @@ class AppRoutes {
 
   /// BSL Camera Vowels game (MediaPipe hand tracking)
   static const String cameraVowels = '/games/camera-vowels';
+
+  /// Wave Hello game (wave at camera, Catrin waves back)
+  static const String waveHello = '/games/wave-hello';
 
   /// Initial route when app launches
   static const String initial = splash;
@@ -253,6 +258,21 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (_) => ChangeNotifierProvider(
           create: (_) => CameraVowelsProvider(),
           child: const CameraVowelsScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.waveHello:
+      if (kIsWeb) {
+        return MaterialPageRoute(
+          builder: (_) => const HomeScreen(),
+          settings: settings,
+        );
+      }
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => WaveHelloProvider(),
+          child: const WaveHelloScreen(),
         ),
         settings: settings,
       );
