@@ -175,7 +175,7 @@ class AssetPaths {
 
   /// Catrin vector outline Rive animation — used in the Wave Hello game
   /// State machine: "State Machine 1"; trigger input: "wave"; duration: 2s
-  static const String catrinVectorOutlineRiv = 'assets/catrin_vector_outline 2sec wave.riv';
+  static const String catrinVectorOutlineRiv = 'assets/catrin-wave.riv';
 
   // -------------------------
   // Vowel Hand Game Assets (BSL vowel learning)

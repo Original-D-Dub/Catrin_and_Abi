@@ -313,6 +313,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                     ? false
                     : null,
             showZeroKey: provider.requiresTwoDigitInput,
+            showNumbers: !provider.isCompetitionLevel,
           ),
         ),
 

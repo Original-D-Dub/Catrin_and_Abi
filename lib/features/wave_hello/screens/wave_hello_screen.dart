@@ -32,6 +32,7 @@ class _WaveHelloScreenState extends State<WaveHelloScreen> {
   /// exactly once per new wave event from the provider.
   int _lastWaveCount = 0;
   bool _showHello = false;
+  bool _isAnimating = false;
 
   @override
   void initState() {
@@ -48,10 +49,12 @@ class _WaveHelloScreenState extends State<WaveHelloScreen> {
   }
 
   void _triggerWaveAnimation() {
+    if (_isAnimating) return;
+    _isAnimating = true;
     _waveTrigger?.fire();
     setState(() => _showHello = true);
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _showHello = false);
+      if (mounted) setState(() { _showHello = false; _isAnimating = false; });
     });
   }
 

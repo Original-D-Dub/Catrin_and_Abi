@@ -52,6 +52,9 @@ class BslKeyboard extends StatelessWidget {
   /// Whether to show Level 2 layout with 0 key
   final bool showZeroKey;
 
+  /// Whether to show the numeral label below each BSL sign
+  final bool showNumbers;
+
   const BslKeyboard({
     super.key,
     required this.onKeyPressed,
@@ -61,6 +64,7 @@ class BslKeyboard extends StatelessWidget {
     this.enteredAnswer,
     this.isCorrect,
     this.showZeroKey = false,
+    this.showNumbers = true,
   });
 
   /// Border width for unselected keys
@@ -268,16 +272,18 @@ class BslKeyboard extends StatelessWidget {
                     number: number,
                     size: svgSize,
                   ),
-                  const SizedBox(height: 2),
-                  // Numeral label below the sign
-                  Text(
-                    '$number',
-                    style: const TextStyle(
-                      fontSize: _numeralFontSize,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                  if (showNumbers) ...[
+                    const SizedBox(height: 2),
+                    // Numeral label below the sign
+                    Text(
+                      '$number',
+                      style: const TextStyle(
+                        fontSize: _numeralFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
