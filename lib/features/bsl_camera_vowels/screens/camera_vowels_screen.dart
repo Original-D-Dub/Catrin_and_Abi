@@ -3,6 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../shared/services/audio_service.dart';
+import '../../../shared/widgets/game_intro_countdown.dart';
+import '../../../shared/widgets/level_select_screen.dart';
+import '../../../shared/widgets/game_app_bar.dart';
+import '../../../shared/widgets/game_header_bar.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../providers/camera_vowels_provider.dart';
 import '../widgets/finger_cursor_overlay.dart';
@@ -19,8 +24,21 @@ import '../widgets/hand_guide_display.dart';
 /// Level 1 – Practice: all fingertips active, TTS fires on any touch.
 /// Level 2 – Challenge: a target vowel is shown; only the matching
 ///   fingertip scores a point.
-class CameraVowelsScreen extends StatelessWidget {
+class CameraVowelsScreen extends StatefulWidget {
   const CameraVowelsScreen({super.key});
+
+  @override
+  State<CameraVowelsScreen> createState() => _CameraVowelsScreenState();
+}
+
+class _CameraVowelsScreenState extends State<CameraVowelsScreen> {
+  bool _showingIntro = false;
+
+  @override
+  void dispose() {
+    AudioService.stopTts();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,24 +47,9 @@ class CameraVowelsScreen extends StatelessWidget {
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
-              ? AppBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  centerTitle: true,
-                  title: const Text(
-                    'Camera Vowels',
-                    style: TextStyle(
-                      fontFamily: 'ComicRelief',
-                      fontSize: AppSizes.fontSizeLarge,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.accentWhite,
-                    ),
-                  ),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        color: AppColors.accentWhite),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
+              ? GameAppBar(
+                  title: 'Camera Vowels',
+                  onBack: () => Navigator.of(context).pop(),
                 )
               : null,
           body: Container(
@@ -57,10 +60,21 @@ class CameraVowelsScreen extends StatelessWidget {
                 fit: BoxFit.cover,
               ),
             ),
-            child: SafeArea(
-              child: provider.showLevelSelect
-                  ? _buildLevelSelect(context, provider)
-                  : _buildGame(context, provider),
+            child: Stack(
+              children: [
+                SafeArea(
+                  child: provider.showLevelSelect
+                      ? _buildLevelSelect(context, provider)
+                      : _buildGame(context, provider),
+                ),
+                // Intro countdown — outside SafeArea, covers full screen
+                if (_showingIntro)
+                  GameIntroCountdown(
+                    gameId: 'camera_vowels',
+                    onComplete: () =>
+                        setState(() => _showingIntro = false),
+                  ),
+              ],
             ),
           ),
         );
@@ -72,71 +86,18 @@ class CameraVowelsScreen extends StatelessWidget {
 
   Widget _buildLevelSelect(
       BuildContext context, CameraVowelsProvider provider) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSizes.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Choose a Level',
-              style: TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: AppSizes.fontSizeTitle,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacingLarge),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: AppSizes.spacingMedium,
-              crossAxisSpacing: AppSizes.spacingMedium,
-              childAspectRatio: 1.3,
-              children: CameraVowelsLevel.all.map((level) {
-                final colors = [AppColors.abiPink, AppColors.accentPurple];
-                final color = colors[(level.number - 1) % colors.length];
-                return ElevatedButton(
-                  onPressed: () => provider.selectLevel(level.number),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: color,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(AppSizes.borderRadiusMedium),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Level ${level.number}',
-                        style: const TextStyle(
-                          fontFamily: 'ComicRelief',
-                          fontSize: AppSizes.fontSizeLarge,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.spacingXSmall),
-                      Text(
-                        level.name,
-                        style: const TextStyle(
-                          fontFamily: 'ComicRelief',
-                          fontSize: AppSizes.fontSizeBody,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
+    return LevelSelectScreen(
+      levels: CameraVowelsLevel.all.map((level) {
+        return LevelSelectItem(
+          number: level.number,
+          name: level.name,
+          color: levelColor(level.number - 1),
+          onTap: () {
+            provider.selectLevel(level.number);
+            setState(() => _showingIntro = true);
+          },
+        );
+      }).toList(),
     );
   }
 
@@ -152,7 +113,25 @@ class CameraVowelsScreen extends StatelessWidget {
         Column(
           children: [
             const SizedBox(height: 8),
-            _buildHeaderBar(provider),
+            GameHeaderBar(
+              onBack: () => provider.showLevelSelection(),
+              scoreValue: '${provider.score}',
+              levelNumber: provider.currentLevel.number,
+              centerContent: provider.currentLevel.name.isNotEmpty
+                  ? Center(
+                      child: Text(
+                        provider.currentLevel.name,
+                        style: const TextStyle(
+                          fontFamily: 'ComicRelief',
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : null,
+            ),
             const SizedBox(height: 12),
             Expanded(child: _buildGameArea(provider)),
             if (provider.currentLevel.number == 2 &&
@@ -162,15 +141,6 @@ class CameraVowelsScreen extends StatelessWidget {
           ],
         ),
 
-        // Back button overlay (top-left)
-        Positioned(
-          top: 4,
-          left: 4,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => provider.showLevelSelection(),
-          ),
-        ),
       ],
     );
   }
@@ -298,157 +268,4 @@ class CameraVowelsScreen extends StatelessWidget {
     );
   }
 
-  // ── Header bar (same style as BSL Maths) ─────────────────────────────────
-
-  Widget _buildHeaderBar(CameraVowelsProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16),
-      child: SizedBox(
-        height: 88,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Purple header rectangle
-            Positioned(
-              left: 40,
-              right: 0,
-              top: 8,
-              bottom: 8,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: AppColors.headerBackgroundLight,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: AppColors.headerBorderDark,
-                    width: 2,
-                  ),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.headerBackground,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.headerBorderDark,
-                      width: 2,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 48),
-
-                      // Level name (centre)
-                      if (provider.currentLevel.name.isNotEmpty)
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              provider.currentLevel.name,
-                              style: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        )
-                      else
-                        const Spacer(),
-
-                      // Level number (right)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 16),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Level',
-                              style: TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              '${provider.currentLevel.number}',
-                              style: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Score circle (overlapping left edge)
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Container(
-                  width: 104,
-                  height: 104,
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.headerBackgroundLight,
-                    border: Border.all(
-                      color: AppColors.headerBorderDark,
-                      width: 2,
-                    ),
-                  ),
-                  child: Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.headerBackground,
-                      border: Border.all(
-                        color: AppColors.headerBorderDark,
-                        width: 2,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Score',
-                          style: TextStyle(
-                            fontFamily: 'ComicRelief',
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          '${provider.score}',
-                          style: const TextStyle(
-                            fontFamily: 'ComicRelief',
-                            fontSize: 44,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            height: 1.0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -10,13 +10,15 @@
 /// - **Level 3 — a to o**: 9 random in 3×3 grid, complete a row.
 /// - **Level 4 — a to u**: 16 random in 4×4 grid, complete a row.
 /// - **Level 5 — a to z**: 16 random in 4×4 grid, complete a row.
+///
+/// When a tile is revealed the BSL sign is replaced with the letter.
 library;
 
 /// A single tile on the bingo board.
 ///
 /// Each tile displays a BSL hand sign for its [letter].
 /// When the player taps the correct tile, [isRevealed] becomes true
-/// and a placeholder object is shown instead.
+/// and the letter is shown instead.
 class BingoTile {
   /// The lowercase letter this tile represents (a–z)
   final String letter;
@@ -37,86 +39,6 @@ class BingoTile {
     required this.col,
     this.isRevealed = false,
   });
-
-  /// The placeholder object name revealed when this tile is cleared.
-  ///
-  /// Example: letter 'a' → 'Apple', 'b' → 'Ball', etc.
-  String get objectName => objectForLetter(letter);
-
-  /// The emoji representing the placeholder object.
-  ///
-  /// These are temporary placeholders — will be replaced with
-  /// real images in a future iteration.
-  String get objectEmoji => emojiForLetter(letter);
-
-  /// Maps a letter to its placeholder object name.
-  ///
-  /// Returns the object that starts with that letter,
-  /// used as placeholder until real images are added.
-  static String objectForLetter(String letter) {
-    const objects = {
-      'a': 'Apple',
-      'b': 'Ball',
-      'c': 'Cat',
-      'd': 'Dog',
-      'e': 'Egg',
-      'f': 'Fish',
-      'g': 'Grapes',
-      'h': 'Hat',
-      'i': 'Ice cream',
-      'j': 'Jelly',
-      'k': 'Kite',
-      'l': 'Lion',
-      'm': 'Moon',
-      'n': 'Nest',
-      'o': 'Orange',
-      'p': 'Pig',
-      'q': 'Queen',
-      'r': 'Rainbow',
-      's': 'Star',
-      't': 'Tree',
-      'u': 'Umbrella',
-      'v': 'Violin',
-      'w': 'Whale',
-      'x': 'Xylophone',
-      'y': 'Yacht',
-      'z': 'Zebra',
-    };
-    return objects[letter.toLowerCase()] ?? letter.toUpperCase();
-  }
-
-  /// Maps a letter to its placeholder emoji.
-  static String emojiForLetter(String letter) {
-    const emojis = {
-      'a': '🍎',
-      'b': '⚽',
-      'c': '🐱',
-      'd': '🐕',
-      'e': '🥚',
-      'f': '🐟',
-      'g': '🍇',
-      'h': '🎩',
-      'i': '🍦',
-      'j': '🍮',
-      'k': '🪁',
-      'l': '🦁',
-      'm': '🌙',
-      'n': '🪹',
-      'o': '🍊',
-      'p': '🐷',
-      'q': '👑',
-      'r': '🌈',
-      's': '⭐',
-      't': '🌳',
-      'u': '☂️',
-      'v': '🎻',
-      'w': '🐋',
-      'x': '🎵',
-      'y': '⛵',
-      'z': '🦓',
-    };
-    return emojis[letter.toLowerCase()] ?? '❓';
-  }
 }
 
 /// Configuration for a Letter Bingo level.

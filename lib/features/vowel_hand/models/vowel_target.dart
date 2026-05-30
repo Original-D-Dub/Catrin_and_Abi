@@ -125,30 +125,36 @@ class VowelHandConstants {
 }
 
 /// Game levels for the BSL Vowels (vowel hand) game.
-///
-/// - **Vowel Match (Level 1)**: The original gameplay. A vowel letter is shown
-///   at the bottom of the screen, and the player taps the corresponding
-///   fingertip on the BSL hand.
-///
-/// - **Vowel Words (Level 2)**: A 3-letter CVC word is shown with the middle
-///   vowel replaced by an underscore (e.g., "c_t"). The player must tap the
-///   correct fingertip to identify the missing vowel.
 enum VowelHandLevel {
   /// Level 1: Match the vowel shown to the correct fingertip
   vowelMatch(
     number: 1,
     name: 'Vowel Match',
-    description: 'Tap the right fingertip!',
+    description: 'Tap the fingertips',
   ),
 
   /// Level 2: Find the missing vowel in a CVC word
   vowelWords(
     number: 2,
     name: 'Vowel Words',
-    description: 'Find the missing vowel!',
+    description: 'Missing vowel',
+  ),
+
+  /// Level 3: Find the missing vowel in a CCVC word (e.g. fr_g)
+  ccvc(
+    number: 3,
+    name: 'CCVC Words',
+    description: 'Consonant cluster + vowel',
+  ),
+
+  /// Level 4: Find the missing vowel in a CVCC word (e.g. f_st)
+  cvcc(
+    number: 4,
+    name: 'CVCC Words',
+    description: 'Vowel + consonant cluster',
   );
 
-  /// The level number (1 or 2)
+  /// The level number (1–4)
   final int number;
 
   /// Display name for the level

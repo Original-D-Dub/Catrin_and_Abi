@@ -1,23 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/config/routes.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../shared/widgets/circular_video_container.dart';
+import '../../../shared/widgets/game_header_bar.dart';
+import '../../../shared/widgets/level_select_screen.dart';
 import '../models/colouring_page.dart';
 import '../providers/colouring_provider.dart';
 import '../widgets/colour_palette.dart';
 import '../widgets/colouring_canvas.dart';
 
-/// Main screen for the colouring game.
-///
-/// Displays:
-/// - App bar with page selection menu
-/// - Colouring canvas in the center
-/// - Colour palette at the bottom
-///
-/// Uses [ColouringProvider] for state management including
-/// flood-fill operations and colour selection.
 class ColouringScreen extends StatefulWidget {
   const ColouringScreen({super.key});
 
@@ -26,252 +19,531 @@ class ColouringScreen extends StatefulWidget {
 }
 
 class _ColouringScreenState extends State<ColouringScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Load the first colouring page when screen loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadInitialPage();
-    });
+  static const double _kCircleSize = 200.0;
+  static const double _kButtonSize = 36.0;
+  static const double _kTabletScale = 1.5;
+  static const double _kTabletBreakpoint = 600.0;
+
+  // ── Colour → BSL video name (free-colour mode) ────────────────────────────
+  static final Map<Color, String> _videoName = {
+    AppColors.lightPink:      'pink',
+    AppColors.accentRed:      'red',
+    AppColors.accentOrange:   'orange',
+    AppColors.accentYellow:   'yellow',
+    AppColors.accentNavyBlue: 'blue',
+    AppColors.schoolGreen:    'green',
+    AppColors.accentPurple:   'purple',
+    Colors.brown:             'brown',
+    AppColors.lightGrey:      'grey',
+    Color(0xFFFFFFFF):        'white',
+    Color(0xFF000000):        'black',
+  };
+
+  static const Set<String> _availableVideos = {
+    'red', 'orange', 'yellow', 'blue', 'green', 'purple',
+    'pink', 'brown', 'grey', 'white', 'black',
+  };
+
+  static String? _videoPath(Color colour) {
+    final name = _videoName[colour];
+    if (name == null || !_availableVideos.contains(name)) return null;
+    return 'assets/colours_video/$name.mov';
   }
 
-  /// Loads the initial colouring page (Abi by default).
-  Future<void> _loadInitialPage() async {
-    try {
-      await context.read<ColouringProvider>().loadPage(ColouringPage.abi());
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('Failed to load colouring page');
-      }
-    }
+  static String _label(Color colour) {
+    final name = _videoName[colour];
+    if (name == null) return 'Miss Angela';
+    return name[0].toUpperCase() + name.substring(1);
   }
 
-  /// Shows an error snackbar with the given message.
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.accentRed,
-      ),
-    );
-  }
+  double _scale(BuildContext context) =>
+      MediaQuery.of(context).size.width >= _kTabletBreakpoint
+          ? _kTabletScale
+          : 1.0;
 
   @override
   Widget build(BuildContext context) {
+    final scale = _scale(context);
     return Consumer<ColouringProvider>(
       builder: (context, provider, child) {
-        return Scaffold(
-          extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              provider.currentPage?.name ?? 'Colouring',
-              style: const TextStyle(
-                fontSize: AppSizes.fontSizeLarge,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            centerTitle: true,
-            actions: [
-              // Page selection menu
-              PopupMenuButton<ColouringPage>(
-                icon: const Icon(Icons.menu, color: AppColors.textPrimary),
-                onSelected: (page) => _loadPage(provider, page),
-                itemBuilder: (context) => ColouringPage.allPages()
-                    .map((page) => PopupMenuItem<ColouringPage>(
-                          value: page,
-                          child: Text(
-                            page.name,
-                            style: TextStyle(
-                              fontWeight: page.id == provider.currentPage?.id
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ],
-          ),
-          body: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage(
-                    'assets/backgrounds/math-background-1080x1920.jpg'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  // Colouring canvas area
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.paddingSmall,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.headerBackgroundLight,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.headerBorderDark,
-                            width: 2,
-                          ),
-                        ),
-                        padding: const EdgeInsets.all(2),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: AppColors.headerBorderDark,
-                              width: 2,
-                            ),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: _buildCanvasArea(provider),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Colour palette at bottom
-                  Padding(
-                    padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                    child: ColourPalette(
-                      colourRows: ColouringProvider.paletteColourRows,
-                      selectedColour: provider.selectedColour,
-                      onColourSelected: provider.selectColour,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        if (provider.showLevelSelect) return _buildLevelSelect(provider);
+        if (provider.currentLevel == ColouringLevel.bslColours) {
+          return _buildLevel1(provider, scale);
+        }
+        return _buildFreeColour(provider, scale);
       },
     );
   }
 
-  /// Builds the canvas area with loading and error states.
+  // ── Level select ──────────────────────────────────────────────────────────
+
+  Widget _buildLevelSelect(ColouringProvider provider) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Colouring',
+          style: TextStyle(
+            fontSize: AppSizes.fontSizeLarge,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: LevelSelectScreen(
+            levels: ColouringLevel.values.map((level) => LevelSelectItem(
+              number: level.number,
+              name: level.name,
+              description: level.description,
+              color: levelColor(level.number - 1),
+              onTap: () => provider.startLevel(level),
+            )).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Level 1: BSL Colours ──────────────────────────────────────────────────
+
+  Widget _buildLevel1(ColouringProvider provider, double scale) {
+    final target = provider.currentBslColour;
+    final videoPath = 'assets/colours_video/${target.videoName}.mov';
+
+    // Two rows of 4 from bslColourList
+    final l1Rows = [
+      bslColourList.take(4).map((c) => c.colour).toList(),
+      bslColourList.skip(4).map((c) => c.colour).toList(),
+    ];
+
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: Column(
+                  children: [
+                    GameHeaderBar(
+                      onBack: provider.showLevelSelection,
+                      scoreValue: '${provider.score}',
+                      levelNumber: ColouringLevel.bslColours.number,
+                      centerContent: const Center(
+                        child: Text(
+                          'BSL Colours',
+                          style: TextStyle(
+                            fontFamily: 'ComicRelief',
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    // Canvas
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.paddingSmall, vertical: AppSizes.paddingMedium),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.headerBackgroundLight,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: AppColors.headerBorderDark, width: 2),
+                          ),
+                          padding: const EdgeInsets.all(2),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: AppColors.headerBorderDark, width: 2),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: _buildCanvasArea(provider),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Wrong-guess message
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: provider.wrongGuessMessage != null
+                          ? _WrongGuessMessage(
+                              key: ValueKey(provider.wrongGuessMessage),
+                              message: provider.wrongGuessMessage!,
+                            )
+                          : const SizedBox(height: 0),
+                    ),
+
+                    // Palette — Level 1 colours only
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: AppSizes.paddingSmall,
+                          top: 6,
+                          bottom: 8,
+                        ),
+                        child: ColourPalette(
+                          colourRows: l1Rows,
+                          selectedColour: provider.selectedColour,
+                          onColourSelected: provider.selectColour,
+                          buttonSize: _kButtonSize * scale,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Video circle — target colour, auto-plays on advance
+              Positioned(
+                bottom: -50,
+                right: -20,
+                child: CircularVideoContainer(
+                  key: ValueKey(provider.colourChangeGeneration),
+                  size: _kCircleSize * scale,
+                  videoAssetPath: videoPath,
+                  label: target.name,
+                  autoPlay: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Level 2: Free colour ──────────────────────────────────────────────────
+
+  Widget _buildFreeColour(ColouringProvider provider, double scale) {
+    if (provider.showImageGrid) {
+      return _buildImageSelectionScreen(provider);
+    }
+    return _buildFreeColourCanvas(provider, scale);
+  }
+
+  Widget _buildImageSelectionScreen(ColouringProvider provider) {
+    final pages = ColouringPage.allPages();
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          onPressed: provider.showLevelSelection,
+        ),
+        title: const Text(
+          'Choose a picture',
+          style: TextStyle(
+            fontSize: AppSizes.fontSizeLarge,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 220,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.75,
+              ),
+              itemCount: pages.length,
+              itemBuilder: (context, index) {
+                final page = pages[index];
+                return _ThumbnailCard(
+                  page: page,
+                  onTap: () => provider.selectImageFromGrid(page),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFreeColourCanvas(ColouringProvider provider, double scale) {
+    final videoPath = _videoPath(provider.selectedColour);
+    final label = _label(provider.selectedColour);
+
+    final mapped = ColouringProvider.paletteColourRows
+        .expand((row) => row)
+        .where(_videoName.containsKey)
+        .toList();
+    final paletteRows = <List<Color>>[
+      mapped.take(5).toList(),
+      if (mapped.length > 5) mapped.skip(5).toList(),
+    ];
+
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: Column(
+                  children: [
+                    GameHeaderBar(
+                      onBack: provider.returnToImageGrid,
+                      showScore: false,
+                      levelNumber: ColouringLevel.freeColour.number,
+                      centerContent: Center(
+                        child: Text(
+                          provider.currentPage?.name ?? 'Colouring',
+                          style: const TextStyle(
+                            fontFamily: 'ComicRelief',
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.paddingSmall, vertical: AppSizes.paddingMedium),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.headerBackgroundLight,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: AppColors.headerBorderDark, width: 2),
+                          ),
+                          padding: const EdgeInsets.all(2),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: AppColors.headerBorderDark, width: 2),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: _buildCanvasArea(provider),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: AppSizes.paddingSmall,
+                          top: 8,
+                          bottom: 8,
+                        ),
+                        child: ColourPalette(
+                          colourRows: paletteRows,
+                          selectedColour: provider.selectedColour,
+                          onColourSelected: provider.selectColour,
+                          buttonSize: _kButtonSize * scale,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                bottom: -50,
+                right: -20,
+                child: CircularVideoContainer(
+                  size: _kCircleSize * scale,
+                  videoAssetPath: videoPath,
+                  label: label,
+                  autoPlay: false,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Shared canvas area ────────────────────────────────────────────────────
+
   Widget _buildCanvasArea(ColouringProvider provider) {
     if (provider.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.abiPink,
-        ),
+        child: CircularProgressIndicator(color: AppColors.abiPink),
       );
     }
-
     if (!provider.isReady || provider.originalImage == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.image_not_supported,
-              size: AppSizes.iconXLarge,
-              color: AppColors.textSecondary,
-            ),
+            Icon(Icons.image_not_supported,
+                size: AppSizes.iconXLarge, color: AppColors.textSecondary),
             const SizedBox(height: AppSizes.spacingMedium),
-            const Text(
-              'No image loaded',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: AppSizes.fontSizeBody,
-              ),
-            ),
+            const Text('No image loaded',
+                style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: AppSizes.fontSizeBody)),
           ],
         ),
       );
     }
-
     return Padding(
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
       child: ColouringCanvas(
         image: provider.originalImage!,
-        onTap: (point) => _handleCanvasTap(provider, point),
+        onTap: (point, displaySize) => provider.fillAtPoint(
+          point: point,
+          imageSize: Size(
+            provider.imageWidth.toDouble(),
+            provider.imageHeight.toDouble(),
+          ),
+          displaySize: displaySize,
+        ),
       ),
     );
   }
 
-  /// Handles a tap on the canvas by performing flood-fill.
-  Future<void> _handleCanvasTap(
-    ColouringProvider provider,
-    Offset point,
-  ) async {
-    try {
-      // Get the display size from the canvas
-      final displaySize = _getDisplaySize(provider);
-      if (displaySize == null) return;
+}
 
-      await provider.fillAtPoint(
-        point: point,
-        imageSize: Size(
-          provider.imageWidth.toDouble(),
-          provider.imageHeight.toDouble(),
+// ── Image thumbnail card ──────────────────────────────────────────────────────
+
+class _ThumbnailCard extends StatelessWidget {
+  final ColouringPage page;
+  final VoidCallback onTap;
+
+  const _ThumbnailCard({required this.page, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.headerBorderDark, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        displaySize: displaySize,
-      );
-    } catch (e) {
-      debugPrint('Error during flood-fill: $e');
-    }
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(14)),
+                child: Image.asset(page.imagePath, fit: BoxFit.cover),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: Text(
+                page.name,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'ComicRelief',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+}
 
-  /// Calculates the display size of the canvas.
-  Size? _getDisplaySize(ColouringProvider provider) {
-    if (!provider.isReady) return null;
+// ── Wrong-guess message banner ────────────────────────────────────────────────
 
-    // Get available size (screen minus app bar and palette)
-    final screenSize = MediaQuery.of(context).size;
-    final availableHeight = screenSize.height -
-        kToolbarHeight -
-        MediaQuery.of(context).padding.top -
-        100; // Approximate palette height
-    final availableWidth = screenSize.width - (AppSizes.paddingMedium * 2);
+class _WrongGuessMessage extends StatelessWidget {
+  final String message;
+  const _WrongGuessMessage({super.key, required this.message});
 
-    // Calculate display size maintaining aspect ratio
-    final imageAspectRatio = provider.imageWidth / provider.imageHeight;
-    final constraintAspectRatio = availableWidth / availableHeight;
-
-    double displayWidth;
-    double displayHeight;
-
-    if (imageAspectRatio > constraintAspectRatio) {
-      displayWidth = availableWidth;
-      displayHeight = availableWidth / imageAspectRatio;
-    } else {
-      displayHeight = availableHeight;
-      displayWidth = availableHeight * imageAspectRatio;
-    }
-
-    return Size(displayWidth, displayHeight);
-  }
-
-  /// Loads a new colouring page.
-  Future<void> _loadPage(ColouringProvider provider, ColouringPage page) async {
-    try {
-      await provider.loadPage(page);
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('Failed to load ${page.name}');
-      }
-    }
-  }
-
-  /// Navigates back to the home screen.
-  void _navigateToHome() {
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.home,
-      (route) => false,
+  @override
+  Widget build(BuildContext context) {
+    final isAreYouSure = message == 'Are you sure?';
+    final colour = isAreYouSure ? AppColors.accentOrange : AppColors.accentRed;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: colour.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colour, width: 2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isAreYouSure ? Icons.help_outline : Icons.refresh,
+            color: colour,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            message,
+            style: TextStyle(
+              fontFamily: 'ComicRelief',
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: colour,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="shorts" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 845 1080">
+  <path id="outline" class="outline" d="M638.8,526.7c-43.3,8.7-89.2,19.2-133.6,26.9-11.2,1.9-40.7,8.1-50.3,5.7-1.2-.3-3.5-2.5-4.3-3.8-3.3-5.7-7.9-33.9-7.6-40.7,0-3.4,2.2-4.6,2.3-6.3.4-7.3-7.4-44.9-9.8-53.7-.6-2.1-3.7-13.6-5.6-13.7-3.6,0-7.5,20.5-8.2,24-2,9.7-7.6,34.8-7.5,43.3s2.4,3.5,2.4,7.1c0,6.7-3.9,28.4-6,35.1-3.5,11.3-10,9.7-20,8.8-15.5-1.4-33.3-5.5-48.8-8.3-75.7-13.8-151.7-29-227-44.9-5.6-1.2-23.5-3.9-26.7-7.1s-3.1-4.8-3.6-6.8c-1.4-5.6,2.1-40.7,5.6-44.2,3.5-3.5,3-.7,3.2-1.8,15.4-111.1,26.2-225.4,53.4-334.2,1.3-5.3,4.3-10.6,5.1-16.7s0-12.4,1.2-18.9,5.4-15.9,7.2-23.4,7.5-41.6,11.9-45.2,5-1.7,6.9-1.9c36.8-3.5,78.5-1.7,115.9-2.4,122.6-2.3,248.4-3.9,370.9,1.5,4.8.2,12.4.3,16.8.9s4.4,1.1,5.6,2.4c3.9,3.9,8,30.5,9.8,37.7,5.8,23.3,10,45.9,15.4,69,20.4,85.8,32.1,173.4,44.2,260.8,1.4,10.1,6.8,66.8,9.4,71,6,10.1,7.7,20.4,8.4,32.7.6,12,1.6,18.3-10.9,22-38.1,11.3-86.1,17.3-125.6,25.3l.2-.2Z"/>
+  <g id="colour">
+    <g>
+      <path class="colour" d="M703.7,97.6c10.7,36.8,18.2,74.6,24.8,112.5,5.6,32.7,10.6,66,15.4,98.9,6.8,46.2,12.6,92.6,17.9,138.9l-14.5,2.9c-15.6-116.7-26.1-234.6-54.6-348.9,0-2.7,8.9-3.5,11.1-4.3Z"/>
+      <path class="colour" d="M689.2,101.7c2,1.3,9.7,40.9,10.9,46.6,8.9,42.6,15.6,85.7,21.3,128.7l-74-165.3,41.8-10Z"/>
+      <g>
+        <path class="colour" d="M430.2,137.1c0,0,3.1,0,3.2,0,.5.5-.6,4,.4,4.8l1.3-4.7c16.7-1.3,33.7-1.9,50.6-2.5.6.6-1.4,4.9,1.6,4-2.8-5.5,7.1-5.8,8-4.8s-1,4.7.8,4.8c.2-1.3-.3-3.1.2-4.3.7-1.9,13.4-1.9,16.3-2.2,39.4-4.2,78.7-10.1,117.5-17.8,3.4,3.9,2.7-.3,3.9-.8,2.3-.8,1.5,1.7,3.1,1.6s4.3-.8,4.4-1c.7-.7-1-3.3,2.4-2.2l78.8,176.7.2,2.7c-2.8.8-14.7,3.6-10.1,7.3s9.5-8.9,12.3,2.9l18.6,149.3-1.3,1.1c-79,14.8-157.5,33-236.6,47.4-6.8,1.2-54,10.5-56.4,9s-1.4-9.7-1.8-11.5c-3.5-17.4-5.8-34.8-10.9-51.9-5.1-17.1.6-2.6.4-3.1s-5.1-3.1-6-5c-2.8-6.6,1.5-9.3,7.2-10.5,0,9.9,1.4.2,2.6-.9,3.4-3.1,31.7-9.9,31.6-11.6,0-3.1-28.6,6.3-31,7.6l.4-4.8c-4.6-1.1-1,3.6-3.2,6s-7.6,3.2-8,2.8c-.7-.8,5.2-12.4-.8-8.4v-100.2c4-1,1.8,2.6,2.4,3.2,2.4,2.4,2.3-2.9,2.5-3.1.4-.6,7.6-1.3,8-.9.6.6-1.3,4,1.6,3.2-.4-1.3,1.6-6.4-.4-6.4h-14.1v-176.2.2Z"/>
+        <g>
+          <path class="outline" d="M474.4,318.1c.3-.4,4-7.2,5.6-5.6s-5.1,5.2-5.6,5.6c-.9,1-6.7,9.3-8.9,7.2s8.2-6.8,8.9-7.2Z"/>
+          <path class="outline" d="M435,322.1c.2.3-.3,2,0,2.3.8.7,3.9-1.2,3.2,1.7-3.2-.7-3,.7-4.8,2.4.9-2-1.7-2.7-1.6-2.8,0-.3,2.4-4.8,3.2-3.6Z"/>
+          <polygon class="outline" points="447.9 331.8 443.1 336.6 443.1 331 447.9 331.8"/>
+          <rect class="outline" x="494.6" y="219.9" width="2.4" height="6.4"/>
+          <rect class="outline" x="494.6" y="141.1" width="2.4" height="6.4"/>
+          <rect class="outline" x="494.6" y="167.6" width="2.4" height="6.4"/>
+          <path class="outline" d="M444.7,322.1c.6.5,1.1,7.4-1.6,6.4.6-4.3-.8-2.7-1.8-3.2-1.9-1.1,3.2-3.4,3.4-3.2Z"/>
+          <rect class="outline" x="494.6" y="149.9" width="2.4" height="6.4"/>
+          <rect class="outline" x="494.6" y="158.8" width="2.4" height="6.4"/>
+          <path class="outline" d="M497,176.5c.9.9-.5,8.6-2.4,6.4s-.4-9.2,2.4-6.4Z"/>
+          <path class="outline" d="M497,243.3c-2.8,2.7-3-5.8-2.4-6.4,1.9-2.2,3.3,5.6,2.4,6.4Z"/>
+          <path class="outline" d="M497,228.8c.9.9-.5,8.6-2.4,6.4s-.4-9.2,2.4-6.4Z"/>
+          <path class="outline" d="M497,211.1c.9.9-.5,8.6-2.4,6.4s-.4-9.2,2.4-6.4Z"/>
+          <path class="outline" d="M497,208.7c-2.8,2.7-3-5.8-2.4-6.4,1.9-2.2,3.3,5.6,2.4,6.4Z"/>
+          <path class="outline" d="M497,199.8c-2.8,2.7-3-5.8-2.4-6.4,1.9-2.2,3.3,5.6,2.4,6.4Z"/>
+          <path class="outline" d="M497,191c-2.8,2.7-3-5.8-2.4-6.4,1.9-2.2,3.3,5.6,2.4,6.4Z"/>
+          <path class="outline" d="M439.8,333.4c.6,2.9-2.6,1-4.3,1.6s-1.6,3-3,1.6c-2.7-2.7,5.6-4.1,7.2-3.2Z"/>
+          <path class="outline" d="M659.5,173.3c.2.2,1.9,6.2,1.6,6.4-1.4,1.6-3.8-4.5-3.9-5.3-.4-1.9,2-1.3,2.3-1h0Z"/>
+          <path class="outline" d="M684.4,229.7c.6.5,2.1,5.1,1.7,6.3-1.6.6-3.8-4.6-4-5.2-.5-1.7,1.7-1.5,2.3-1h0Z"/>
+          <rect class="outline" x="483" y="299" width="7.6" height="2.3" transform="translate(-5.8 590.8) rotate(-62.2)"/>
+          <path class="outline" d="M483.3,286.7c0,2-.7,8.7-3.2,6.4s.6-7.2,3.2-6.4Z"/>
+          <path class="outline" d="M494.6,271.4c-.2,1.9.9,7.6-2.4,7.2.2-1.7-.6-7.6,2.4-7.2Z"/>
+          <path class="outline" d="M493.8,280.3c0,2.1-.6,8.6-3.2,6.4-2.6-2.2.8-7.2,3.2-6.4Z"/>
+          <path class="outline" d="M669.9,197.5c.3.2,1.9,5.3,1.7,6.4-1.6.6-3.8-4.6-4-5.2-.5-1.7,1.8-1.4,2.3-1.1Z"/>
+          <rect class="outline" x="431.2" y="393" width="5.6" height="2.4" transform="translate(39 827.6) rotate(-89.9)"/>
+          <path class="outline" d="M675.6,211.9c-1.4,1.4-4.9-5.5-4-6.4,1.4-1.7,4.6,5.8,4,6.4Z"/>
+          <path class="outline" d="M646.6,146.7c-1.4,1.7-4.6-5.8-4-6.4,1.4-1.4,4.9,5.5,4,6.4Z"/>
+          <path class="outline" d="M668.3,195.8c-1.4,1.7-4.6-5.8-4-6.4,1.4-1.4,4.9,5.5,4,6.4Z"/>
+          <rect class="outline" x="440.9" y="384.2" width="5.6" height="2.4" transform="translate(57.6 828.4) rotate(-89.9)"/>
+          <path class="outline" d="M698.8,261.8c.3.2,1.9,5.3,1.7,6.4-1.6.6-3.8-4.6-4-5.2-.5-1.7,1.8-1.4,2.3-1.1Z"/>
+          <path class="outline" d="M682.8,228c-1.4,1.4-4.9-5.5-4-6.4,1.4-1.7,4.6,5.8,4,6.4Z"/>
+          <path class="outline" d="M648.1,148.4c.3.2,1.9,5.3,1.7,6.4-1.6.6-3.8-4.6-4-5.2-.5-1.7,1.8-1.4,2.3-1.1Z"/>
+          <path class="outline" d="M690.1,244.1c-1.4,1.4-4.9-5.5-4-6.4,1.4-1.6,4.4,6,4,6.4Z"/>
+          <path class="outline" d="M496.2,252.1c-2,2.5-1.9-6.1-1.6-6.4,1.9-2.2,3.1,4.6,1.6,6.4Z"/>
+          <path class="outline" d="M691.7,245.7c.2.2,1.5,5.5,1.6,6.4-1.6.6-3.8-4.6-4-5.2-.5-1.8,2.1-1.4,2.3-1.1h0Z"/>
+          <path class="outline" d="M487.3,252.9c1.7,7.3-3.9,9.9-1.7,1.9,2.3-8-.6-2.3,1.7-1.9Z"/>
+          <path class="outline" d="M694.9,253.7c.2.2,2.7,6,2.4,6.4-2.1,2.3-6-9.3-2.4-6.4Z"/>
+          <path class="outline" d="M496.2,254.5c1.7,7.3-3.9,9.9-1.7,1.9,2.3-8-.6-2.3,1.7-1.9Z"/>
+          <path class="outline" d="M491.3,289.1c1,6-5.8,10.2-1.9,1.8s-.5-2.2,1.9-1.8Z"/>
+          <path class="outline" d="M639.4,129.8c-1.5,1.6-4.6-5.8-4-6.4,1.5-1.6,4.6,5.8,4,6.4Z"/>
+          <path class="outline" d="M443.9,399.3c-.2,1.6.4,6.8-2.4,6.4.2-2.3-1-6.4,2.4-6.4Z"/>
+          <path class="outline" d="M641,132.2c.2.2,2.7,6.2,2.4,6.4-2.9,2.7-5.3-9.3-2.4-6.4Z"/>
+          <path class="outline" d="M655.5,145.9c-1.5,1.6-4.6-5.8-4-6.4,1.5-1.6,4.6,5.8,4,6.4Z"/>
+          <path class="outline" d="M443.1,408.2c.2.2-.4,7.3-2.4,6.4-.3-2.1-.4-8.9,2.4-6.4Z"/>
+          <path class="outline" d="M662.7,162c-1.4,1.6-4.4-6-4-6.4,1.5-1.6,4.6,5.8,4,6.4Z"/>
+          <rect class="outline" x="457.8" y="325.9" width="7.6" height="2.1" transform="translate(-100 258.9) rotate(-28.4)"/>
+          <path class="outline" d="M468,311.6c1.6,1.7-4.2,5.6-4.8,4.8-1.5-1.7,4.3-5.4,4.8-4.8Z"/>
+          <path class="outline" d="M495.4,263.4c1.6,7-3.8,10.1-1.6,1.9.3-1.3-.8-2.3,1.6-1.9Z"/>
+          <rect class="outline" x="676.2" y="213.2" width="2.2" height="7" transform="translate(-33.8 217.4) rotate(-17.8)"/>
+          <rect class="outline" x="691.8" y="227.1" width="2" height="7.3" transform="translate(-34.2 299.2) rotate(-23.8)"/>
+          <rect class="outline" x="485.3" y="243.9" width="1.6" height="7.2"/>
+          <rect class="outline" x="666.9" y="170.8" width="2" height="7.3" transform="translate(-13.6 284.4) rotate(-23.8)"/>
+          <rect class="outline" x="485.3" y="157.8" width="1.6" height="7.2"/>
+          <rect class="outline" x="651.3" y="157" width="1.9" height="7.1" transform="translate(-17.8 207.1) rotate(-17.8)"/>
+          <path class="outline" d="M456.7,329.3c.4,2.3-.6,1.3-1.8,1.8-8.7,3.6-3.9-2.3,1.8-1.8Z"/>
+          <rect class="outline" x="455.2" y="318.1" width="6.8" height="1.9" transform="translate(-97.5 266.2) rotate(-29.4)"/>
+          <path class="outline" d="M723.9,315.7c-1.3,1.4-4.7-5-4-5.6,1.3-1.4,4.7,5,4,5.6Z"/>
+          <path class="outline" d="M484.9,305.2c.5.5-2.8,7.1-4,5.6s2.9-6.8,4-5.6Z"/>
+          <path class="outline" d="M719.8,307.6c-1.3,1.4-4.7-5-4-5.6,1.3-1.4,4.7,5,4,5.6Z"/>
+          <path class="outline" d="M477.7,300.4c.8.9-2.1,6.5-4,4.8s3-6,4-4.8Z"/>
+          <path class="outline" d="M484.9,279.5c.2.2-.3,6.5-2.4,5.6-.5-2.1-.2-8,2.4-5.6Z"/>
+          <path class="outline" d="M706.2,277.9l1.6,6.4c-1.4-.3-5.4-7-1.6-6.4Z"/>
+          <path class="outline" d="M485.7,270.6c1.4,6-3.5,9.4-1.6,1.9s-.8-2.3,1.6-1.9Z"/>
+          <rect class="outline" x="485.2" y="166.7" width="1.6" height="6.4"/>
+          <path class="outline" d="M674.8,187.7l1.6,6.4c-1.4-.3-5.4-7-1.6-6.4Z"/>
+          <rect class="outline" x="485.2" y="192.4" width="1.6" height="6.4"/>
+          <rect class="outline" x="485.2" y="184.4" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="194.8" width="1.6" height="6.4"/>
+          <rect class="outline" x="485.2" y="149.8" width="1.6" height="6.4"/>
+          <rect class="outline" x="485.2" y="201.3" width="1.6" height="6.4"/>
+          <rect class="outline" x="441.9" y="390.2" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="203.7" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="382.1" width="1.6" height="6.4"/>
+          <rect class="outline" x="485.2" y="210.1" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="211.7" width="1.6" height="6.4"/>
+          <rect class="outline" x="442.7" y="373.4" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="373.4" width="1.6" height="6.4"/>
+          <rect class="outline" x="442.7" y="364.5" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="220.6" width="1.6" height="6.4"/>
+          <rect class="outline" x="485.2" y="226.9" width="1.6" height="6.4"/>
+          <path class="outline" d="M662.7,181.3l1.6,5.6c-2.1.8-5-6.6-1.6-5.6Z"/>
+          <rect class="outline" x="433" y="356.5" width="1.6" height="6.4"/>
+          <rect class="outline" x="442.7" y="347.6" width="1.6" height="6.4"/>
+          <rect class="outline" x="485.2" y="235.8" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="347.6" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="237.4" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="339.6" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="152.2" width="1.6" height="6.4"/>
+          <rect class="outline" x="699.3" y="244.1" width="1.9" height="7.5" transform="translate(-40.4 304.9) rotate(-23.9)"/>
+          <rect class="outline" x="433" y="177.9" width="1.6" height="6.4"/>
+          <path class="outline" d="M703.7,252.1l1.6,6.4c-1.4-.3-5.4-7-1.6-6.4Z"/>
+          <rect class="outline" x="433" y="254.3" width="1.6" height="6.4"/>
+          <path class="outline" d="M648.2,129.8c-2.7.4-2.9-4.7-3.2-6.4,2,1.1,3.2,4.2,3.2,6.4Z"/>
+          <path class="outline" d="M438.2,439.6c-3.4.6-.8-6.1.8-6.4l-.8,6.4Z"/>
+          <rect class="outline" x="484.4" y="261.5" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="263.1" width="1.6" height="6.4"/>
+          <rect class="outline" x="485.2" y="140.9" width="1.6" height="6.4"/>
+          <path class="outline" d="M453.5,320.5c.5,2.3-4.7,4.1-5.6,2l5.6-2Z"/>
+          <rect class="outline" x="485.2" y="175.5" width="1.6" height="6.4"/>
+          <path class="outline" d="M702.9,270.6l1.6,5.6c-2.1.8-5-6.6-1.6-5.6Z"/>
+          <rect class="outline" x="433" y="271.2" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="280" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="296.9" width="1.6" height="6.4"/>
+          <rect class="outline" x="433" y="169.1" width="1.6" height="6.4"/>
+          <path class="outline" d="M655.5,165.2l1.6,5.6c-2.1.8-5-6.6-1.6-5.6Z"/>
+          <path class="outline" d="M649.8,131.4c.3.3,1.6,5.4,1.6,6.4-2.2.2-4.3-9.2-1.6-6.4Z"/>
+          <path class="outline" d="M444.7,345.4c-2.9.7-1.9-5.3-.4-6.4l.4,6.4Z"/>
+          <path class="outline" d="M690.9,226.4c-2.4.3-2.8-4.9-3.2-6.4,2,1.1,3.2,4.2,3.2,6.4Z"/>
+          <path class="outline" d="M686.8,217.5l-3.2-5.6c2.8,0,3.4,3.5,3.2,5.6Z"/>
+          <path class="outline" d="M682,203.8l1.6,6.4c-1.4-.3-5.4-7-1.6-6.4Z"/>
+          <path class="outline" d="M434.2,399.3c-.2,2.1.9,5.4-1.6,6.4.5-1.8-1.4-7.1,1.6-6.4Z"/>
+          <rect class="outline" x="432.9" y="161" width="1.6" height="5.6"/>
+          <rect class="outline" x="432.9" y="186.7" width="1.6" height="5.6"/>
+          <rect class="outline" x="442.5" y="356.4" width="1.6" height="5.6"/>
+          <rect class="outline" x="678" y="195" width="1.5" height="7" transform="translate(-15.7 332.2) rotate(-27.2)"/>
+          <rect class="outline" x="656.2" y="146.7" width="1.5" height="7" transform="translate(4 316.9) rotate(-27.2)"/>
+          <rect class="outline" x="432.9" y="144.1" width="1.6" height="5.6"/>
+          <rect class="outline" x="485.1" y="218.9" width="1.6" height="5.6"/>
+          <rect class="outline" x="670.7" y="179.6" width="1.8" height="6.4" transform="translate(-23.5 218.9) rotate(-18.2)"/>
+          <rect class="outline" x="432.9" y="229.3" width="1.6" height="5.6"/>
+          <path class="outline" d="M468.8,311.6c-1.2-1.3,3.8-4.9,4.8-5.6.6,1.5-3.8,6.8-4.8,5.6Z"/>
+          <rect class="outline" x="432.9" y="305.7" width="1.6" height="5.6"/>
+          <rect class="outline" x="432.9" y="288.8" width="1.6" height="5.6"/>
+          <rect class="outline" x="432.9" y="246.2" width="1.6" height="5.6"/>
+          <path class="outline" d="M725.5,317.3c.3.3,1.8,4.7,1.6,5.6-2.1.2-4.3-8.3-1.6-5.6Z"/>
+          <path class="outline" d="M664.3,164.4c.3.3,1.8,4.7,1.6,5.6-2.1.2-4.3-8.3-1.6-5.6Z"/>
+          <path class="outline" d="M698.1,241.7c-1.4,1.7-3.6-4.7-3.2-5.6l3.2,5.6Z"/>
+          <path class="outline" d="M718.2,284.3c.2.2,1.5,4,1.6,4.8-2.7,1-4.1-7.3-1.6-4.8Z"/>
+          <path class="outline" d="M710.2,286.7c.2.2,1.5,4,1.6,4.8-2.7,1-4.1-7.3-1.6-4.8Z"/>
+          <rect class="outline" x="476.9" y="296.6" width="5.6" height="1.9" transform="translate(24.1 630.8) rotate(-68)"/>
+          <path class="outline" d="M712.6,273.8c-1.5,1.9-2.9-3.9-2.4-4.8,1.4.2,3,4.1,2.4,4.8Z"/>
+          <path class="outline" d="M709.4,266.6c-2.3.5-1.3-.9-1.9-1.8-5.4-8.1,1-4.3,1.9,1.8Z"/>
+          <path class="outline" d="M716.6,281.9c-1.4,1.4-2.3-2.6-2.4-4l2.4,4Z"/>
+          <polygon class="outline" points="713.8 276.2 714.2 276.7 713.8 277.1 713.8 276.2"/>
+        </g>
+      </g>
+    </g>
+    <g>
+      <g>
+        <path class="colour" d="M668.3,9.9c-.6,1.3-4.2,1.8-5.6,2-7.2,1.4-14.4,2-21.7,1.2l1.6,2.4c-24.8,3.8-49.6,8.3-74.5,11.2-102.6,11.9-203.3,10.4-305.5-4-6-.8-41.9-5.6-44.3-7.1s0-2.3-1-2.5c-1.9-.6-5,1-7.2.9s-18.2-2.7-18.2-3.6c8.4.2,17.1-1.7,25.3-2,113.4-4.4,229.9-2.7,343.5-.7,35.8.6,71.8-.3,107.4,2.4v-.2Z"/>
+        <g>
+          <path class="outline" d="M307.9,13.2c-.6-2.7,6.1-4,6.4-2s-5,2-6.4,2Z"/>
+          <path class="outline" d="M305.5,10.7c2.7,2.8-5.8,3-6.4,2.4-2.2-1.9,5.6-3.3,6.4-2.4Z"/>
+          <path class="outline" d="M550.9,10.7c.2,3.3-4.8,3.2-6.4,1.2,0-2.5,5.1-.6,6.4-1.2Z"/>
+          <path class="outline" d="M559.7,11.5c2.1,2.2-6.2,1.9-6.4,1.6-2.1-1.8,4.6-3.5,6.4-1.6Z"/>
+          <path class="outline" d="M586.3,11.5c2.7,2.3-5.5,2.2-6.4,1.6-1.2-2.5,6.2-1.9,6.4-1.6Z"/>
+          <rect class="outline" x="456.3" y="9.9" width="6.4" height="1.6"/>
+          <rect class="outline" x="482.8" y="9.9" width="6.4" height="1.6"/>
+          <rect class="outline" x="316.4" y="10.7" width="6.4" height="1.6"/>
+          <rect class="outline" x="325.2" y="10.7" width="6.4" height="1.6"/>
+          <rect class="outline" x="334" y="10.7" width="6.4" height="1.6"/>
+          <rect class="outline" x="517.4" y="10.7" width="6.4" height="1.6"/>
+          <rect class="outline" x="526.3" y="10.7" width="6.4" height="1.6"/>
+          <rect class="outline" x="535.1" y="10.7" width="6.4" height="1.6"/>
+          <rect class="outline" x="281" y="11.5" width="6.4" height="1.6"/>
+          <rect class="outline" x="561.7" y="11.5" width="6.4" height="1.6"/>
+          <rect class="outline" x="570.5" y="11.5" width="6.4" height="1.6"/>
+          <rect class="outline" x="246.4" y="12.3" width="6.4" height="1.6"/>
+          <rect class="outline" x="614.8" y="12.3" width="6.4" height="1.6"/>
+          <path class="outline" d="M262,12.4c-1,2.5-4.3,1.4-6.4,1.6-.6-3.1,4.7-1,6.4-1.6Z"/>
+          <rect class="outline" x="342.8" y="10.7" width="5.6" height="1.6"/>
+          <rect class="outline" x="509.3" y="10.7" width="5.6" height="1.6"/>
+          <rect class="outline" x="290.6" y="11.5" width="5.6" height="1.6"/>
+          <rect class="outline" x="605.7" y="12.3" width="5.6" height="1.6"/>
+        </g>
+      </g>
+      <g>
+        <path class="colour" d="M684.4,16.4c.2.2,2.3-.5,3.1,1.4,2.8,6,4.1,22.6,6,30.2,4.1,16.6,7.4,23.6,8.6,41.2,0,.3,3.5,1.4.6,5.1-76.5,19.9-155.1,33.7-234.3,38.1-47.1,2.6-94.7-.5-141.5-5.8-57.8-6.5-115-17.9-171.1-32.5-.7-6.3,1.3-3.6,2.5-4.3s-2.3-2-2.4-3.6c-.6-6.9,6.8-24.8,8.6-32.4,3-12.5,5.1-25.3,7.5-38l3.2.8c.7-2.7-2.1-1.2-2.4-1.6-.7-.9.8-3.7,2.2-3.9,62,12.2,124.9,21.5,188.1,25.6,86,5.6,173.1-.5,258-13.9,17.6-2.8,43.4-10.2,59.8-11,9.3-.5,2.7,3.9,3.6,4.8h0Z"/>
+        <g>
+          <path class="outline" d="M376.3,126.6c-1,.9-9.6-.4-7.2-2.4s9.6.4,7.2,2.4Z"/>
+          <rect class="outline" x="457.5" y="42.1" width="6.4" height="2.4"/>
+          <rect class="outline" x="396.4" y="125.8" width="6.4" height="2.4"/>
+          <rect class="outline" x="395.6" y="42.1" width="6.4" height="2.4"/>
+          <rect class="outline" x="458.3" y="125.8" width="6.4" height="2.4"/>
+          <path class="outline" d="M437.4,42.9c2.3,2.5-4.6,3.8-6.4,1.2-.5-1.9,6.2-1.4,6.4-1.2Z"/>
+          <path class="outline" d="M428.6,42.9c2.2,1.9-5.6,3.3-6.4,2.4-2.7-2.8,5.8-3,6.4-2.4Z"/>
+          <path class="outline" d="M419.7,126.6c2.3,2.5-4.6,3.8-6.4,1.2-.5-1.9,6.2-1.4,6.4-1.2Z"/>
+          <path class="outline" d="M447.1,126.6c2.2,1.9-5.6,3.3-6.4,2.4-2.7-2.8,5.8-3,6.4-2.4Z"/>
+          <path class="outline" d="M209.7,21.2c2.6,2.2-5.5,2.7-6.4,1.6-3-3.1,6-2,6.4-1.6Z"/>
+          <path class="outline" d="M491.3,124.2c2.1,1.9-5.3,3.4-6.4,2.4-2.1-1.9,5.3-3.4,6.4-2.4Z"/>
+          <path class="outline" d="M384.3,43.7c-1.1,1-8.5-.6-6.4-2.4s8.5.6,6.4,2.4Z"/>
+          <path class="outline" d="M674,17.2c.8,2.4-6.2,3.5-6.4,3.2-2.2-2.6,4.3-3.2,6.4-3.2Z"/>
+          <rect class="outline" x="266.5" y="109.2" width="2.3" height="6.6" transform="translate(123.8 364.7) rotate(-83.1)"/>
+          <path class="outline" d="M287.8,114.5c3.1,3-6.8,2.9-6.4-.8,1,.5,6.2.6,6.4.8Z"/>
+          <path class="outline" d="M480.9,41.3c1.9,1.7-4.7,3.4-5.6,2.4-2.6-2.7,4.8-3.1,5.6-2.4Z"/>
+          <path class="outline" d="M570.2,115.3c0,3.5-4.2,2.3-6.4,2.4-.4-2.8,4.8-2.2,6.4-2.4Z"/>
+          <path class="outline" d="M552.5,117.7c0,3.5-4.2,2.3-6.4,2.4-.4-2.8,4.8-2.2,6.4-2.4Z"/>
+          <path class="outline" d="M340.9,123.4c-1.6-.2-6.8.4-6.4-2.4,2.3.2,6.4-1,6.4,2.4Z"/>
+          <rect class="outline" x="500.9" y="39.7" width="6.6" height="2.3" transform="translate(-1.3 60.9) rotate(-6.9)"/>
+          <path class="outline" d="M226.6,105.7c-2-.3-8.7-.6-6.4-3.2s7.2.8,6.4,3.2Z"/>
+          <path class="outline" d="M349.7,39.7c.4,3.2-9,1.9-6.4-.8s5.1,1.1,6.4.8Z"/>
+          <path class="outline" d="M349.7,122.6c2.3,1.9-7.2,3.1-6.4-.8l6.4.8Z"/>
+          <path class="outline" d="M367.4,124.2c.4,3.2-9,1.9-6.4-.8s5.1,1.1,6.4.8Z"/>
+          <path class="outline" d="M613.6,108.1c.3,2.8-5.6,2.1-7.2,2.4-.3-3,5.6-2.2,7.2-2.4Z"/>
+          <path class="outline" d="M699.7,88.8c.8,2.4-6.1,3.5-6.4,3.2-1.7-1.6,5.2-3.9,6.4-3.2Z"/>
+          <rect class="outline" x="588.6" y="30.9" width="6.6" height="2.3" transform="translate(.4 71.3) rotate(-6.9)"/>
+          <path class="outline" d="M682,92.8c2.3,2.6-4.9,3.3-6.4,3.2-.9-2.1,6.2-3.5,6.4-3.2Z"/>
+          <path class="outline" d="M261.2,30.1c0,1.9.2,1.4-1.2,1.6-7.2,1-7.2-4.3,1.2-1.6Z"/>
+          <rect class="outline" x="580.3" y="32.6" width="6" height="2.4" transform="translate(2.1 93.7) rotate(-9.2)"/>
+          <path class="outline" d="M217.8,22.8c2.9,3.1-5.4,1.9-5.6,1.6-3-2.9,5.1-2.3,5.6-1.6Z"/>
+          <rect class="outline" x="301.2" y="32.8" width="2.2" height="6.7" transform="translate(209.6 326.2) rotate(-79.1)"/>
+          <path class="outline" d="M517.1,121.8c2.5,2.7-4.3,2.7-6.4,2.4-.9-2,6.2-2.7,6.4-2.4Z"/>
+          <path class="outline" d="M357.8,40.5c2.3,2.4-8.8,2.4-5.6-.8s5.2.4,5.6.8Z"/>
+          <rect class="outline" x="292.4" y="113.2" width="2.2" height="6.6" transform="translate(123.6 382.7) rotate(-79.1)"/>
+          <rect class="outline" x="589.5" y="111.3" width="6.7" height="2.2" transform="translate(-10.6 114.1) rotate(-10.9)"/>
+          <rect class="outline" x="274.7" y="29.7" width="2.2" height="6.7" transform="translate(191.2 297.6) rotate(-79.1)"/>
+          <rect class="outline" x="249.1" y="106" width="2" height="6.7" transform="translate(97.5 335.6) rotate(-79.6)"/>
+          <rect class="outline" x="257.9" y="107.6" width="2" height="6.6" transform="translate(101 344.2) rotate(-79.1)"/>
+          <rect class="outline" x="615.2" y="106.5" width="6.7" height="2" transform="translate(-9.2 118.9) rotate(-10.9)"/>
+          <rect class="outline" x="240.2" y="104.4" width="2" height="6.6" transform="translate(89.8 324.2) rotate(-79.1)"/>
+          <path class="outline" d="M630.5,104.9c.5,2.7-5,1.9-6.4,2.4-.4-3.1,4.7-2.3,6.4-2.4Z"/>
+          <path class="outline" d="M305.5,119.4c-.2.2-7.3-.3-6.4-2.4,1-.8,8.6.5,6.4,2.4Z"/>
+          <path class="outline" d="M561.3,116.9c.4,2.4-.6,1.3-1.9,1.6-8.5,2.3-3.9-3,1.9-1.6Z"/>
+          <path class="outline" d="M323.2,119.4c1.2,2.5-6.2,1.9-6.4,1.6-3-3.1,4.7-1.6,6.4-1.6Z"/>
+          <path class="outline" d="M569.4,34.1c.5,2.7-5,1.9-6.4,2.4-.4-3.1,4.7-2.3,6.4-2.4Z"/>
+          <rect class="outline" x="641.4" y="100.6" width="7.1" height="1.9" transform="translate(-2.1 188.5) rotate(-16.6)"/>
+          <path class="outline" d="M358.6,123.4c0,1.9.2,1.4-1.2,1.6-7.2,1-7.3-4.2,1.2-1.6Z"/>
+          <path class="outline" d="M217.8,101.7c1.9,1.9-1,2.8-3.6,1.6-6.5-3.1,3-2.3,3.6-1.6Z"/>
+          <path class="outline" d="M166.3,89.6c1.9,1.9-1,2.8-3.6,1.6-6.5-3.1,3-2.3,3.6-1.6Z"/>
+          <path class="outline" d="M287.8,33.3c1.2,2.5-6.2,1.9-6.4,1.6-3-3.1,4.7-1.6,6.4-1.6Z"/>
+          <path class="outline" d="M604,29.2c2.5,3-4.6,2.7-6.4,2.4-.2-2.3,0-1.3,1.2-1.6s5.1-1,5.2-.8Z"/>
+          <path class="outline" d="M612.8,28.4c.4,2.4-.6,1.3-1.9,1.6-8.5,2.3-3.9-3,1.9-1.6Z"/>
+          <rect class="outline" x="615.2" y="26.9" width="6.7" height="2" transform="translate(5.9 117.5) rotate(-10.9)"/>
+          <path class="outline" d="M200.9,100c-.3.2-7.9-.6-5.6-3.2s7.4,1.6,5.6,3.2Z"/>
+          <rect class="outline" x="231.1" y="23.1" width="2.1" height="6.7" transform="translate(169.3 251.4) rotate(-80.9)"/>
+          <rect class="outline" x="448.4" y="126.4" width="7.2" height="1.6"/>
+          <path class="outline" d="M226.6,24.4c0,1.9.2,1.4-1.2,1.6-7.2,1-7.3-4.2,1.2-1.6Z"/>
+          <rect class="outline" x="179.5" y="13.4" width="2.1" height="6.7" transform="translate(135.5 192.4) rotate(-80.9)"/>
+          <path class="outline" d="M664.3,18.8c2.3,2.7-5.3,3.5-5.6,3.2-1.9-1.6,5.3-3.6,5.6-3.2Z"/>
+          <rect class="outline" x="187.6" y="15.1" width="2.1" height="6.7" transform="translate(140.7 201.8) rotate(-80.9)"/>
+          <rect class="outline" x="171" y="89.1" width="2" height="6.6" transform="translate(48.7 243.9) rotate(-79.1)"/>
+          <path class="outline" d="M200.9,21.2c-1,.8-8.6-.6-6.4-2.4s6.3.7,6.4,2.4Z"/>
+          <rect class="outline" x="684.4" y="91.8" width="6.7" height="1.9" transform="translate(-6 109.9) rotate(-9.1)"/>
+          <path class="outline" d="M184,94.4c2.6,2.6-8.4,1.4-5.6-1.6s5.4,1.4,5.6,1.6Z"/>
+          <rect class="outline" x="675.5" y="16.2" width="6.7" height="1.9" transform="translate(5.8 107.6) rotate(-9.1)"/>
+          <path class="outline" d="M655.5,21.2c.6,2.7-4.2,2.1-5.6,2.4l5.6-2.4Z"/>
+          <path class="outline" d="M647.4,22.8c.4,2.4-.6,1.3-1.9,1.6-8.6,2.3-3.7-2.7,1.9-1.6Z"/>
+          <rect class="outline" x="624" y="25.8" width="6.7" height="1.9" transform="translate(3.7 99.6) rotate(-9.1)"/>
+          <path class="outline" d="M384.3,125c2.7,2.8-3.7,2.3-5.6,1.6-1.2-2.4,5.4-1.9,5.6-1.6Z"/>
+          <path class="outline" d="M270.1,33.3c-.2.2-4.6-.6-5.2-.8-1.1-.3-1.4.6-1.2-1.6,1-.7,8.5.4,6.4,2.4Z"/>
+          <path class="outline" d="M534.8,120.2c.2,2.3,0,1.3-1.2,1.6-9,2.3-5.5-2.7,1.2-1.6Z"/>
+          <path class="outline" d="M578.2,33.3c.2,2.3,0,1.3-1.2,1.6-9,2.3-5.5-2.7,1.2-1.6Z"/>
+          <path class="outline" d="M295.8,34.1c2.7,2.8-3.7,2.3-5.6,1.6-1.2-2.4,5.4-1.9,5.6-1.6Z"/>
+          <rect class="outline" x="310.4" y="115.7" width="1.9" height="6.7" transform="translate(138.1 403.7) rotate(-79.6)"/>
+          <rect class="outline" x="580.5" y="112.9" width="6.8" height="1.9" transform="translate(-11 107.3) rotate(-10.4)"/>
+          <rect class="outline" x="598.2" y="110.2" width="6.7" height="1.9" transform="translate(-10 96.5) rotate(-9.1)"/>
+          <rect class="outline" x="239.7" y="25" width="2" height="6" transform="translate(162.9 257.4) rotate(-77.9)"/>
+          <path class="outline" d="M578.2,114.5c.4,2.5-.6,1.3-1.9,1.6-7,1.9-4.2-3.1,1.9-1.6Z"/>
+          <rect class="outline" x="231.6" y="103" width="2" height="6" transform="translate(80.2 311.2) rotate(-77.9)"/>
+          <rect class="outline" x="536.7" y="119.2" width="6.4" height="1.6"/>
+          <rect class="outline" x="448.3" y="42.8" width="6.4" height="1.6"/>
+          <rect class="outline" x="439.4" y="42.8" width="6.4" height="1.6"/>
+          <rect class="outline" x="501.3" y="123.2" width="6.4" height="1.6"/>
+          <rect class="outline" x="412.9" y="42.8" width="6.4" height="1.6"/>
+          <rect class="outline" x="404" y="42.8" width="6.4" height="1.6"/>
+          <rect class="outline" x="466" y="42" width="6.4" height="1.6"/>
+          <rect class="outline" x="386.3" y="42" width="6.4" height="1.6"/>
+          <rect class="outline" x="205.5" y="97.1" width="1.8" height="6.7" transform="translate(74.5 288.3) rotate(-80.9)"/>
+          <path class="outline" d="M638.6,23.6l-5.6,2.4c-.6-2.6,4.3-1.9,5.6-2.4Z"/>
+          <rect class="outline" x="359.8" y="40.4" width="6.4" height="1.6"/>
+          <rect class="outline" x="509.4" y="39.6" width="6.4" height="1.6"/>
+          <path class="outline" d="M665.1,97.6c-.2,1.7-6.1,2.7-6.4,2.4-2.3-1.8,5.7-3.1,6.4-2.4Z"/>
+          <path class="outline" d="M559.7,34.9c2.3,2.7-3.8,2.7-5.6,2.4-1-1.9,5.4-2.7,5.6-2.4Z"/>
+          <rect class="outline" x="518.2" y="38.8" width="6.4" height="1.6"/>
+          <rect class="outline" x="466.8" y="125.6" width="6.4" height="1.6"/>
+          <rect class="outline" x="527.1" y="38" width="6.4" height="1.6"/>
+          <rect class="outline" x="404.8" y="126.4" width="6.4" height="1.6"/>
+          <rect class="outline" x="307.6" y="36.4" width="6.4" height="1.6"/>
+          <rect class="outline" x="535.9" y="37.2" width="6.4" height="1.6"/>
+          <rect class="outline" x="667.3" y="95.3" width="6.8" height="1.8" transform="translate(-6.3 122.7) rotate(-10.4)"/>
+          <path class="outline" d="M331.2,38.1c1.2,2.4-5.4,1.9-5.6,1.6-2.8-2.9,3.9-1.9,5.6-1.6Z"/>
+          <rect class="outline" x="316.4" y="37.2" width="6.4" height="1.6"/>
+          <rect class="outline" x="544.8" y="36.4" width="6.4" height="1.6"/>
+          <rect class="outline" x="422.5" y="127.2" width="6.4" height="1.6"/>
+          <rect class="outline" x="431.4" y="127.2" width="6.4" height="1.6"/>
+          <rect class="outline" x="188.5" y="93.7" width="1.9" height="5.9" transform="translate(57.8 263.7) rotate(-78.8)"/>
+          <path class="outline" d="M393.2,125.8c.7,2.9-5.3,1.9-6.4.4l6.4-.4Z"/>
+          <path class="outline" d="M375.5,41.3c.7,2.9-5.3,1.9-6.4.4l6.4-.4Z"/>
+          <rect class="outline" x="650.5" y="98.7" width="6" height="1.9" transform="translate(-5.7 148.4) rotate(-12.9)"/>
+          <path class="outline" d="M332,121.8c-1.8-.5-7.1,1.4-6.4-1.6,2.1.2,5.4-.9,6.4,1.6Z"/>
+          <path class="outline" d="M278.9,115.3c-1.4-1-6.2.3-5.6-2.4l5.6,2.4Z"/>
+          <rect class="outline" x="246.3" y="28.4" width="5.6" height="1.6"/>
+          <rect class="outline" x="632.8" y="103.3" width="6" height="1.8" transform="translate(-8.3 121) rotate(-10.8)"/>
+          <rect class="outline" x="520.2" y="121" width="6" height="1.8" transform="translate(-13.6 100.2) rotate(-10.8)"/>
+          <rect class="outline" x="334" y="38.7" width="5.6" height="1.6"/>
+          <rect class="outline" x="483.5" y="41.2" width="5.6" height="1.6"/>
+          <rect class="outline" x="492.4" y="40.4" width="5.6" height="1.6"/>
+          <rect class="outline" x="475.5" y="124.8" width="5.6" height="1.6"/>
+          <path class="outline" d="M499.4,124.2l-5.6,1.6c-.6-3,3.9-1.1,5.6-1.6Z"/>
+          <g>
+            <path class="outline" d="M377.7,47.9l101.2-.2c2.4,0,4.8.8,5.6,3.2v69.2l-3.1,2.7c-34.6,1.1-69.6.8-104.4.2-1.5-1.3-3.3-2.6-3.3-4.7,1.7-20.5-2.1-44.3,0-64.4s.6-5,3.9-5.8h0Z"/>
+            <rect class="colour" x="376.2" y="51" width="106.3" height="69.3"/>
+            <g>
+              <path class="outline" d="M479.3,53.4v4c-2.7.8-1-2.2-2.1-2.5s-3.6.3-5.1,0c-.6-3.1,5.4-1,7.2-1.6h0Z"/>
+              <path class="outline" d="M479.3,113.7c.5,3.3-.6,4.5-4,4-.6-2.6,1.2-1.1,1.9-1.6,1.4-.9-.5-3.1,2.2-2.4Z"/>
+              <rect class="outline" x="379" y="58.9" width="1.6" height="5.6"/>
+              <rect class="outline" x="464.2" y="53.2" width="5.6" height="1.6"/>
+              <rect class="outline" x="429.7" y="53.2" width="5.6" height="1.6"/>
+              <rect class="outline" x="416" y="53.2" width="5.6" height="1.6"/>
+              <path class="outline" d="M381.1,114.5l2.4,3.2c-4.6,1.6-4.9-4.8-2.4-3.2Z"/>
+              <rect class="outline" x="382.1" y="53.2" width="4.8" height="1.6"/>
+              <rect class="outline" x="476.9" y="99.8" width="1.6" height="4.8"/>
+              <rect class="outline" x="476.9" y="79.8" width="1.6" height="4.8"/>
+              <rect class="outline" x="378.9" y="100.6" width="1.6" height="4.8"/>
+              <rect class="outline" x="476.9" y="86.2" width="1.6" height="4.8"/>
+              <rect class="outline" x="378.9" y="79.8" width="1.6" height="4.8"/>
+              <rect class="outline" x="423.1" y="53.2" width="4.8" height="1.6"/>
+              <rect class="outline" x="476.9" y="107" width="1.6" height="4.8"/>
+              <rect class="outline" x="476.9" y="93.4" width="1.6" height="4.8"/>
+              <rect class="outline" x="378.9" y="93.4" width="1.6" height="4.8"/>
+              <rect class="outline" x="460" y="115.9" width="4.8" height="1.6"/>
+              <rect class="outline" x="378.9" y="87" width="1.6" height="4.8"/>
+              <rect class="outline" x="436.8" y="53.2" width="4.8" height="1.6"/>
+              <rect class="outline" x="444" y="53.2" width="4.8" height="1.6"/>
+              <rect class="outline" x="440" y="115.9" width="4.8" height="1.6"/>
+              <rect class="outline" x="432.8" y="115.9" width="4.8" height="1.6"/>
+              <rect class="outline" x="426.3" y="115.9" width="4.8" height="1.6"/>
+              <rect class="outline" x="419.1" y="115.9" width="4.8" height="1.6"/>
+              <rect class="outline" x="412.7" y="115.9" width="4.8" height="1.6"/>
+              <rect class="outline" x="399" y="115.9" width="4.8" height="1.6"/>
+              <rect class="outline" x="476.9" y="72.5" width="1.6" height="4.8"/>
+              <rect class="outline" x="409.4" y="53.2" width="4.8" height="1.6"/>
+              <rect class="outline" x="378.9" y="107" width="1.6" height="4.8"/>
+              <rect class="outline" x="476.9" y="66.1" width="1.6" height="4.8"/>
+              <rect class="outline" x="476.9" y="58.9" width="1.6" height="4.8"/>
+              <rect class="outline" x="378.9" y="66.1" width="1.6" height="4.8"/>
+              <g>
+                <path class="outline" d="M446.5,79.8c.5.4,2-.2,2.3.6.5,1.8,0,6.9-.6,9-2.7,9.9-14.5,17-24.3,13.5s-7-5.1-10.5-9.5-1.9-.2-2.5-1c-.9-1.4-1.3-11.7-.6-13s1.7-.6,2.3-1.4c3.3-4.7,5.1-9.2,11.3-10.5s13-.2,16.9,2.5c3.9,2.7,4.9,9,5.9,9.8v-.2Z"/>
+                <g>
+                  <circle class="button" cx="429.4" cy="85.2" r="15.5"/>
+                  <g>
+                    <path class="colour" d="M418.1,88c-1.7-1-1.3-6.7.8-7.2l-.8,7.2Z"/>
+                    <rect class="colour" x="440.6" y="82.3" width=".8" height="5.6"/>
+                    <path class="colour" d="M439.8,92h-.8c.6-4.3,2.5-4.5.8,0Z"/>
+                    <polygon class="colour" points="419.7 92 418.9 92 418.1 88.8 418.9 88.8 419.7 92"/>
+                    <polygon class="colour" points="440.6 81.5 439.8 81.5 439 78.3 439.8 78.3 440.6 81.5"/>
+                    <polygon class="colour" points="420.1 77.5 420.5 77.9 420.1 78.3 420.1 77.5"/>
+                    <polygon class="colour" points="419.3 79.1 419.7 79.5 419.3 79.9 419.3 79.1"/>
+                    <g>
+                      <path class="colour" d="M430.2,81.5c.7.2.7.5,0,.8-2.3,3.3-1.5,3.2,2.3-.2l1,.2c.7.2.7.5,0,.8,0,.5-.6,1.4-.5,2,.3,1.2,4,3.7,1.3,5.7s-4.2-2.1-4.4-2.1c-.5,0-8.4,5.6-6-1.1,2.4-6.8,2-1,2.6-1.3,2.6-1.6-3.9-2.6-3.4-5.1.7-4,5.3-.2,7.2.3Z"/>
+                      <path class="outline" d="M430.2,81.5c3-4.5,8,.6,3.2,1.6v-.8c-1.4.3-2.6.3-3.2,0v-.8Z"/>
+                      <path class="button" d="M433.4,82.3c-3.6,1.7-2.3,3.8,0,6-1.7,1.6-1.4-1-2.6-1.5s-2.9.4-3,.3c-.3-.5.2-4.3-2.4-5.2,3.1.2.5,1.4,4.8.4s2.6-1.4,3.2,0h0Z"/>
+                      <rect class="button" x="425.4" y="88" width="1.6" height=".8"/>
+                    </g>
+                  </g>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <path class="colour" d="M766.4,451.7c.3.2,1.1,2.8.9,3.1s-7,1.9-7.2,1.6-1-3.9-.8-4c.2-.2,6.6-1,7.2-.7Z"/>
+      <path class="colour" d="M758.5,453.3c1.2,1.2-.2,6.1-3.9,3.9s-1.2-3.6-1-3.9,4.7-.2,4.8,0Z"/>
+      <path class="colour" d="M752.8,454.1c.6.6,0,5.1-2,4.8s-1.5-4.5-1.2-4.8,3.1,0,3.2,0Z"/>
+      <g>
+        <path class="colour" d="M110,454.1l-5.6,45.1c-5.1.6-1.5-4.7-2.4-8-2.4-.4-1.3.6-1.6,1.9-1.3,5.4,2.3,6.8-5.2,3.7l.5-7.3c-3.7-.9.2,8.1-2.8,7.2s-4.1-3.5-4.4-6,2.1-33,3.2-34.2,6.1,1.4,6.4,1.8c.5.7-.4,5.7,1.9,2.1s-.2-3.2,2.8-1.6.5,3.7,1,4.2c1.8,1.9,4.1-5.5,2.4-6.4s-2.5,1.4-4.3.7-1.2-2.1-1.4-2.3c-.4-.2-9.7,1.9-8-2.1s6.8-.7,8.4.8l9.3.4h-.2Z"/>
+        <g>
+          <path class="outline" d="M98.7,463.7c-.2,2.3,1,6.4-2.4,6.4.2-1.6-.4-6.8,2.4-6.4Z"/>
+          <path class="outline" d="M105.1,465.3c.2.2-.2,7.3-2.4,6.4-.8-1,.6-8.6,2.4-6.4Z"/>
+          <path class="outline" d="M96.3,480.6c1.4,7.6-3.8,10-1.6,1.2s-.6-1.4,1.6-1.2Z"/>
+          <path class="outline" d="M97.9,471.8c.2.2-.7,4.7-.8,5.2-.3,1.2.6,1.4-1.6,1.2-.2-1.9-.6-8.9,2.4-6.4Z"/>
+          <path class="outline" d="M102.7,482.2l-1.6,6.4c.5-1.8-1.4-7.1,1.6-6.4Z"/>
+          <path class="outline" d="M103.5,474.2c0,1.5.3,5.1-1.6,5.6.5-1.7-1.4-6.3,1.6-5.6Z"/>
+        </g>
+      </g>
+      <g>
+        <path class="colour" d="M767.3,456.5c1.2.8,4,25.5,4,28.6.2,13-6.1,12-16.9,14.1,1.7-5-4.7-38.1-3.2-39.4,2.2-2.1,2.6,3,4,3.2-.3-2.7.6-4.8,3.5-4s.8,3.1,3,2.4c-1.6-3.1,4.2-5.8,5.6-4.8Z"/>
+        <g>
+          <path class="outline" d="M762.5,463.7l.8,6.4c-1.9,2.1-4.5-7.2-.8-6.4Z"/>
+          <path class="outline" d="M756,465.3l.8,5.6c-2.7,2.4-4.1-6.1-.8-5.6Z"/>
+          <rect class="outline" x="761.7" y="472" width="1.9" height="6.7" transform="translate(-65.6 126.6) rotate(-9.1)"/>
+          <rect class="outline" x="757.1" y="490.7" width="1.6" height="6.4"/>
+          <rect class="outline" x="762.7" y="480.3" width="1.6" height="6.4"/>
+          <rect class="outline" x="755.7" y="473.7" width="1.8" height="6" transform="translate(-75.9 150.2) rotate(-10.8)"/>
+        </g>
+      </g>
+      <g>
+        <path class="colour" d="M746.4,455.7c.8.8-.9,4.3-.8,5.1s1.8.6,2.3,1.8c.8,2,2.1,13.8,2.4,16.9.7,6.8,1.2,13.5.8,20.4l-239.5,48.1c-11.3,1.5-22.4,4.3-33.7,5.7-11.3,1.4-20.2,3.4-22.8.4s-7.1-28.5-7-33,1.6-2.3,1.4-3.8-5.1-2-1.1-4.3l297.9-57.3h0Z"/>
+        <g>
+          <path class="outline" d="M510.6,506.4c1.9,1.7-5.9,3.8-6.4,3.2-2.3-2.6,6.1-3.5,6.4-3.2Z"/>
+          <path class="outline" d="M501.8,508c2.3,2.7-4.4,2.9-6.4,3.2-.8-2.4,6.2-3.5,6.4-3.2Z"/>
+          <path class="outline" d="M734.3,462.1c.8,2.4-6.2,3.5-6.4,3.2-2.3-2.7,4.4-2.9,6.4-3.2Z"/>
+          <path class="outline" d="M492.9,509.6c2.3,2.7-4.4,2.9-6.4,3.2-.8-2.4,6.2-3.5,6.4-3.2Z"/>
+          <path class="outline" d="M484.9,512c.3,2.8-5.6,2.1-7.2,2.4-.3-3,5.6-2.2,7.2-2.4Z"/>
+          <rect class="outline" x="460.6" y="514.8" width="6.8" height="2.3" transform="translate(-64.9 66.8) rotate(-7.7)"/>
+          <path class="outline" d="M682.8,472.6c.8,2.4-6.2,3.5-6.4,3.2-2.3-2.7,4.4-2.9,6.4-3.2Z"/>
+          <path class="outline" d="M518.7,504.7c2.3,2.7-4.4,2.9-6.4,3.2-.8-2.4,6.2-3.5,6.4-3.2Z"/>
+          <path class="outline" d="M527.5,503.1c2,1.9-6.1,3.5-6.4,3.2-2-1.9,6.1-3.5,6.4-3.2Z"/>
+          <rect class="outline" x="529.4" y="502.6" width="6" height="2.3" transform="translate(-73.7 91.6) rotate(-9.2)"/>
+          <rect class="outline" x="555.5" y="497.3" width="6.7" height="2.1" transform="translate(-71.8 94.7) rotate(-9.1)"/>
+          <rect class="outline" x="564.5" y="495.1" width="6.7" height="2" transform="translate(-83.6 116.3) rotate(-10.9)"/>
+          <path class="outline" d="M587.9,491.9c.5,2.7-5,1.9-6.4,2.4-.4-3.1,4.7-2.3,6.4-2.4Z"/>
+          <path class="outline" d="M458.3,516c2.2,1.9-5.4,3.2-6.4,2.4-.9-2,6.2-2.7,6.4-2.4Z"/>
+          <path class="outline" d="M613.6,486.2c2,1.9-6.1,3.5-6.4,3.2-2-1.9,6.1-3.5,6.4-3.2Z"/>
+          <rect class="outline" x="633" y="481.4" width="6.7" height="2" transform="translate(-79.7 129) rotate(-10.9)"/>
+          <rect class="outline" x="641.8" y="479.8" width="6.7" height="2" transform="translate(-79.3 130.7) rotate(-10.9)"/>
+          <path class="outline" d="M674,474.2c2,1.9-6.1,3.5-6.4,3.2-2-1.9,6.1-3.5,6.4-3.2Z"/>
+          <rect class="outline" x="702.1" y="467.7" width="6.7" height="2" transform="translate(-75.9 141.9) rotate(-10.9)"/>
+          <path class="outline" d="M725.5,464.5c.4,2.4-.6,1.3-1.9,1.6-8.6,2.3-3.7-2.7,1.9-1.6Z"/>
+          <path class="outline" d="M665.1,476.6c.4,2.4-.6,1.3-1.9,1.6-8.6,2.3-3.7-2.7,1.9-1.6Z"/>
+          <rect class="outline" x="615.9" y="485.2" width="6.7" height="1.9" transform="translate(-69.1 104.1) rotate(-9.1)"/>
+          <rect class="outline" x="572.4" y="494.1" width="6.7" height="1.9" transform="translate(-71 97.3) rotate(-9.1)"/>
+          <path class="outline" d="M476.1,513.6c-.2,1.7-6.1,2.7-6.4,2.4-2.3-1.8,5.7-3.1,6.4-2.4Z"/>
+          <path class="outline" d="M553.3,498.3c2.3,1.8-5.7,3.1-6.4,2.4.2-1.7,6.1-2.7,6.4-2.4Z"/>
+          <rect class="outline" x="625" y="482.8" width="5.9" height="2" transform="translate(-82 131.2) rotate(-11.2)"/>
+          <path class="outline" d="M690.9,471l-5.6,2.4c-.6-2.6,4.3-1.9,5.6-2.4Z"/>
+          <rect class="outline" x="711.1" y="465.4" width="6" height="1.9" transform="translate(-86.1 171.2) rotate(-12.9)"/>
+          <rect class="outline" x="736.4" y="461.4" width="5.9" height="1.9" transform="translate(-65.6 127) rotate(-9.4)"/>
+          <rect class="outline" x="694.3" y="468.7" width="6" height="1.9" transform="translate(-87.2 167.5) rotate(-12.9)"/>
+          <rect class="outline" x="650.6" y="478.1" width="6" height="1.9" transform="translate(-78.2 131) rotate(-10.8)"/>
+          <path class="outline" d="M604.8,487.8l-5.6,2.4c-.6-2.7,4.2-1.4,5.6-2.4Z"/>
+          <path class="outline" d="M595.9,490.3c.6,2.7-4.2,1.4-5.6,2.4l5.6-2.4Z"/>
+          <rect class="outline" x="538.3" y="501.1" width="5.9" height="1.9" transform="translate(-65.3 81.3) rotate(-8.1)"/>
+        </g>
+      </g>
+      <g>
+        <path class="colour" d="M411.6,517.5c-.3.3-2.1-.2-2.3,0s1.7,3.6,1.6,6c-.2,5-3.4,22.5-5.2,27s-4.7,5.1-10.5,4.8c-36.5-1.6-84.8-15.9-121.6-23.2-55.3-10.9-110.7-21.3-165.9-32.4-1.4-1.4,2.7-36.6,3.9-38.1s3.5,2.1,1-5.6c.6-1.9,4.8-.5,6.5-.2,70,11.4,141.4,29.4,211.4,42.8,27,5.1,54.3,9,80.9,14.8.5.7.6,3.5.3,4l-.2.2Z"/>
+        <g>
+          <path class="outline" d="M407.7,516.8c2.4,1.9-8.1,3.1-7.2-.8l7.2.8Z"/>
+          <rect class="outline" x="385.2" y="510.8" width="2.6" height="6.8" transform="translate(-171.5 834.1) rotate(-82.9)"/>
+          <path class="outline" d="M131.7,462.9c3.1,3.1-7.1,2.9-6.4-.8,1,.2,6.2.6,6.4.8Z"/>
+          <path class="outline" d="M373.1,512.8c-1.6.4-8.7-.6-6.4-3.2s7.2.8,6.4,3.2Z"/>
+          <path class="outline" d="M346.5,505.5c2.1,2-1.6,3-4.5,1.7-6.9-3.1,4.1-2,4.5-1.7Z"/>
+          <path class="outline" d="M398.8,515.2c2.5,2.3-2.3,2.6-4.4,1.6-6.8-3.1,3.9-2.1,4.4-1.6Z"/>
+          <path class="outline" d="M192,477.4c-.3.3-8.8-.6-6.4-3.2s8.4,1.5,6.4,3.2Z"/>
+          <path class="outline" d="M140.5,465.3c2.7,2.7-9.3,1.7-6.4-1.6s6.2,1.4,6.4,1.6Z"/>
+          <path class="outline" d="M364.2,511.2c-2.1,0-8.6-.6-6.4-3.2s7.2.8,6.4,3.2Z"/>
+          <path class="outline" d="M183.2,473.4c3.1,3-6.8,2.9-6.4-.8,1,.5,6.2.6,6.4.8Z"/>
+          <path class="outline" d="M260.4,488.7c3.1,3-6.8,2.9-6.4-.8,1,.5,6.2.6,6.4.8Z"/>
+          <rect class="outline" x="333.3" y="501.2" width="2.5" height="6" transform="translate(-211.8 764.3) rotate(-81.9)"/>
+          <rect class="outline" x="350.8" y="504.4" width="2.1" height="5.9" transform="translate(-227.5 721) rotate(-75.5)"/>
+          <path class="outline" d="M320.8,500.7c1.9,1.9-1,2.8-3.6,1.6-6.5-3.1,3-2.3,3.6-1.6Z"/>
+          <rect class="outline" x="308.3" y="496.1" width="2.1" height="6.7" transform="translate(-232.7 725.9) rotate(-80.9)"/>
+          <rect class="outline" x="299.8" y="494.7" width="2" height="6.6" transform="translate(-245.1 699.2) rotate(-79.1)"/>
+          <rect class="outline" x="290.9" y="493" width="2" height="6.7" transform="translate(-249 693.9) rotate(-79.6)"/>
+          <path class="outline" d="M269.3,491.1c.8.8.6,1.5-1,1.4s-7.6-.6-5.4-3.1,6.2,1.4,6.4,1.6h0Z"/>
+          <rect class="outline" x="239.1" y="482.4" width="2.1" height="6.7" transform="translate(-277.5 646.1) rotate(-80.9)"/>
+          <rect class="outline" x="230.6" y="481" width="2" height="6.6" transform="translate(-287.8 620.1) rotate(-79.1)"/>
+          <rect class="outline" x="169.9" y="468.7" width="2.1" height="6.7" transform="translate(-322.2 566.2) rotate(-80.9)"/>
+          <rect class="outline" x="153.3" y="465.7" width="2" height="6.6" transform="translate(-335.4 531.9) rotate(-79.1)"/>
+          <rect class="outline" x="144.5" y="464.1" width="2" height="6.7" transform="translate(-340.5 526.1) rotate(-79.6)"/>
+          <path class="outline" d="M200.1,479c-.3.2-7.7-.7-5.6-3.2s7.4,1.6,5.6,3.2Z"/>
+          <rect class="outline" x="204.9" y="476.2" width="1.9" height="6.7" transform="translate(-303 595.4) rotate(-79.6)"/>
+          <rect class="outline" x="213.8" y="477.8" width="1.9" height="6.7" transform="translate(-297.3 605.4) rotate(-79.6)"/>
+          <path class="outline" d="M252.4,488.7c-1,.8-8.6-.6-6.4-2.4s6.3.7,6.4,2.4Z"/>
+          <rect class="outline" x="282.2" y="491.5" width="1.9" height="6.7" transform="translate(-248.1 701.8) rotate(-81.5)"/>
+          <path class="outline" d="M381.1,514.4c-.3.2-6.3-.7-6.4-2.4,1-.8,8.6.6,6.4,2.4Z"/>
+          <path class="outline" d="M328.8,502.3c.8,2.3-2.3,1.9-3.6,1.6-5.5-1.5.2-3.2,3.6-1.6Z"/>
+          <rect class="outline" x="274.3" y="489.9" width="1.9" height="6.7" transform="translate(-253.3 692.5) rotate(-81.5)"/>
+          <rect class="outline" x="222" y="479.5" width="2" height="6" transform="translate(-295.5 599.4) rotate(-77.9)"/>
+          <path class="outline" d="M122.8,461.3c.8,2.3-2.3,1.9-3.6,1.6-5.5-1.5.2-3.2,3.6-1.6Z"/>
+          <rect class="outline" x="161.9" y="468" width="1.9" height="5.9" transform="translate(-330.7 539.1) rotate(-78.8)"/>
+        </g>
+      </g>
+    </g>
+    <g>
+      <path class="colour" d="M166.2,100.1c.5.6,0,3.1-.2,4.1-2.6,21.1-11.3,48.5-15.5,70.6-17.2,91.2-26.4,183.9-38.2,276l-15.2-2.5c15.7-116.9,27.9-235.3,58-349.4.4-2.3,10.7.7,11,1.1v.2Z"/>
+      <path class="colour" d="M212.2,110.5l-74,165.7c7.2-58.5,17.6-116.7,31.8-173.8l3.1-.7,39.1,8.8Z"/>
+      <g>
+        <path class="colour" d="M427,428.3c-.2.2-3.9,1.1-5.1,1.7-13.6,6.8-27.6,13.6-39.1,23.7l44.3-22.1c1.4,6-2.5,7.7-4.6,12.6-7.9,18.3-7.7,45-12.2,64.6-98.4-15-195.3-38-293.1-56.5l-1.4-2.7,14.6-120.6c-.2-5.1,4.5-7,5.6-10.5s-.2-1.7-1.2-1.2c-1.6.8-1.2,3.7-2.8,4,0-8.7,1.4-17.5,4-25.7l10,3.9c3.7-7.2.7-4.4-2-5.1s-7.1-3.6-7.2-4.7l78.7-177.2c3.5-1.7,1.9,1.3,2.6,1.9,3.1,3.1,9.2-3.4,8,1.8,1.7-1.1,2.1-1.6,4.3-1.6,13,.4,34.4,6.5,48.5,8.7,49,7.4,98.7,12.8,148.3,13v292.1h0Z"/>
+        <g>
+          <path class="outline" d="M159.1,269.8c.6.6-2.5,8-4,6.4s2.7-7.9,4-6.4Z"/>
+          <path class="outline" d="M166.3,253.7c.6.6-2.5,8-4,6.4s2.7-7.9,4-6.4Z"/>
+          <path class="outline" d="M173.5,237.6c.6.6-2.5,8-4,6.4s2.7-7.9,4-6.4Z"/>
+          <path class="outline" d="M169.5,245.7c.4,7.3-7.2,9.5-2,1.6s-.2-2.1,2-1.6Z"/>
+          <path class="outline" d="M180.8,221.5c.6.6-2.5,8-4,6.4s2.5-8,4-6.4Z"/>
+          <path class="outline" d="M171.9,219.9c.9,1-2.7,7.9-4,6.4s2.6-8,4-6.4Z"/>
+          <path class="outline" d="M205.7,165.2c.6.6-2.5,8-4,6.4s2.5-8,4-6.4Z"/>
+          <rect class="outline" x="211.1" y="142.3" width="7" height="2.2" transform="translate(12.5 303.9) rotate(-72.2)"/>
+          <path class="outline" d="M220.2,132.2c.4.4-2.6,8-4,6.4s2.5-8,4-6.4Z"/>
+          <path class="outline" d="M211.3,131.4c.2.3-2.1,7.2-4,6.4-.7-1.4,2.7-7.9,4-6.4Z"/>
+          <path class="outline" d="M196.9,163.6c0,6.3-7.4,9.7-2,1.6,5.4-8.1-.2-2.1,2-1.6Z"/>
+          <path class="outline" d="M186.4,187.7c.4.4-2.6,8-4,6.4s2.5-8,4-6.4Z"/>
+          <path class="outline" d="M151,285.9c0,6.3-7.4,9.7-2,1.6,5.4-8.1-.2-2.1,2-1.6Z"/>
+          <path class="outline" d="M188,205.4c.2.3-2.1,7.2-4,6.4-.7-1.4,2.7-7.9,4-6.4Z"/>
+          <path class="outline" d="M155,277.9c0,6.3-7.4,9.7-2,1.6,5.4-8.1-.2-2.1,2-1.6Z"/>
+          <path class="outline" d="M184,213.5c0,6.3-7.4,9.7-2,1.6s-.2-2.1,2-1.6Z"/>
+          <rect class="outline" x="171.8" y="231.8" width="7" height="2.2" transform="translate(-99.9 329.1) rotate(-72.3)"/>
+          <path class="outline" d="M157.4,252.1c.3.3-2.7,8-4,6.4s2.5-8,4-6.4Z"/>
+          <path class="outline" d="M213,148.3c.5.6-2.5,8-4,6.4s2.7-8,4-6.4Z"/>
+          <path class="outline" d="M142.2,284.3c0,2.4-.8,5.4-3.2,6.4.3-1.7.6-6.8,3.2-6.4Z"/>
+          <path class="outline" d="M162.3,261.8c.6.8-1.7,6.1-3.2,6.4-.7-.8,1.8-8.3,3.2-6.4Z"/>
+          <path class="outline" d="M198.5,181.3c.2.2-1.1,6.5-3.2,5.6-.9-1.4,1.9-7.1,3.2-5.6Z"/>
+          <path class="outline" d="M192.8,195.8c-3.8.6.2-6.1,1.6-6.4l-1.6,6.4Z"/>
+          <rect class="outline" x="186.5" y="199.1" width="6.3" height="2" transform="translate(-65.7 304.1) rotate(-68.7)"/>
+          <rect class="outline" x="158.9" y="238" width="7.3" height="1.9" transform="translate(-121.5 291.7) rotate(-66.3)"/>
+          <rect class="outline" x="204.2" y="158.9" width="6.3" height="2" transform="translate(-17 295) rotate(-68.7)"/>
+          <path class="outline" d="M147.8,274.6c-2.7,2.7-.6-6.6,1.6-6.4.2,1.2-1.1,5.9-1.6,6.4Z"/>
+          <rect class="outline" x="141.5" y="277.9" width="6.3" height="2" transform="translate(-167.8 312.3) rotate(-68.7)"/>
+          <path class="outline" d="M201.7,173.3c.4,5.3-5.5,8.8-1.9,1.6s-.2-2,1.9-1.6Z"/>
+          <path class="outline" d="M191.2,178.1c-2.7,2.7-.6-6.6,1.6-6.4.2,1.2-1.1,5.9-1.6,6.4Z"/>
+          <rect class="outline" x="134.2" y="311.7" width="6.3" height="2" transform="translate(-203.9 327.1) rotate(-68.7)"/>
+          <rect class="outline" x="202.6" y="141.2" width="6.2" height="1.9" transform="translate(6.9 293.9) rotate(-72)"/>
+          <path class="outline" d="M196.9,162c0-2.3,1.2-5.3,3.2-6.4,0,2.4-.9,5.4-3.2,6.4Z"/>
+          <path class="outline" d="M157.4,249.7l3.2-5.6c.2,2.2-.4,5.7-3.2,5.6Z"/>
+          <rect class="outline" x="210" y="125.4" width="6.2" height="1.9" transform="translate(26.5 289.4) rotate(-71.8)"/>
+          <rect class="outline" x="174.6" y="205.9" width="6.2" height="1.9" transform="translate(-74.3 311) rotate(-71.8)"/>
+          <rect class="outline" x="177.7" y="197.4" width="6.2" height="1.9" transform="translate(-63.8 309) rotate(-72)"/>
+          <path class="outline" d="M143.8,302c.2.2-2.9,6.9-4,5.6s2.6-6.9,4-5.6Z"/>
+          <rect class="outline" x="148.4" y="263" width="7.2" height="1.5" transform="translate(-152.1 278.3) rotate(-62.8)"/>
+          <rect class="outline" x="218.6" y="125.9" width="6.2" height="1.8" transform="translate(32.6 298.5) rotate(-72)"/>
+          <path class="outline" d="M204.1,147.5l-3.2,5.6c-.4-.9,1.8-7.3,3.2-5.6Z"/>
+          <path class="outline" d="M173.5,217.5c-2.7,2.7-.5-5.8,1.6-5.6.2,1-1.3,5.3-1.6,5.6Z"/>
+          <path class="outline" d="M217.8,116.1c.2.7-1.9,6.4-3.2,4.8s1-5.5,3.2-4.8Z"/>
+          <path class="outline" d="M164.7,234.4c.3-2.1,1.1-5.4,3.2-6.4,0,2.3-1.2,5.3-3.2,6.4Z"/>
+          <rect class="outline" x="185" y="181.6" width="6.2" height="1.8" transform="translate(-42.7 306.6) rotate(-72.4)"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

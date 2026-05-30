@@ -53,37 +53,61 @@ class SimpleRoomComponent extends PositionComponent
   ///
   /// Even-numbered columns (0, 2, 4, …) are offset downward by 40px
   /// to create a brick-like staggered pattern.
+  ///
+  /// Tiles that would overflow the room boundary are cropped to a half-size
+  /// tile so all four edges are straight rather than jagged.
   void _addFloorTiles() {
     final floorImage =
         game.images.fromCache('games/letter_quest/floor-tile-wood-pale.png');
-    final sprite = Sprite(floorImage);
 
-    final cols = (SimpleRoomConfig.mapWidth / _tileSize).ceil() + 1;
-    final rows = (SimpleRoomConfig.mapHeight / _tileSize).ceil() + 2;
+    const double roomW = SimpleRoomConfig.mapWidth;
+    const double roomH = SimpleRoomConfig.mapHeight;
+    final double imgW = floorImage.width.toDouble();
+    final double imgH = floorImage.height.toDouble();
+    final fullSprite = Sprite(floorImage);
+
+    final cols = (roomW / _tileSize).ceil() + 1;
+    final rows = (roomH / _tileSize).ceil() + 2;
 
     for (int col = 0; col < cols; col++) {
       final isEvenColumn = col % 2 == 0;
       final yOffset = isEvenColumn ? _evenColumnOffset : 0.0;
-
-      // Even columns need an extra tile at the top to fill the gap
       final startRow = isEvenColumn ? -1 : 0;
 
       for (int row = startRow; row < rows; row++) {
-        final x = col * _tileSize;
-        final y = row * _tileSize + yOffset;
+        final double x = col * _tileSize;
+        final double y = row * _tileSize + yOffset;
 
-        // Skip tiles entirely outside the map bounds
-        if (x >= SimpleRoomConfig.mapWidth ||
-            y + _tileSize <= 0 ||
-            y >= SimpleRoomConfig.mapHeight) {
-          continue;
+        // Skip tiles completely outside the room
+        if (x >= roomW || y + _tileSize <= 0 || y >= roomH) continue;
+
+        // Clip to room bounds — produces straight edges instead of jagged ones
+        final double vy = y < 0 ? 0.0 : y;
+        final double vw = (x + _tileSize).clamp(0.0, roomW) - x;
+        final double vh = (y + _tileSize).clamp(0.0, roomH) - vy;
+
+        if (vw == _tileSize && vh == _tileSize) {
+          add(SpriteComponent(
+            sprite: fullSprite,
+            position: Vector2(x, vy),
+            size: Vector2(_tileSize, _tileSize),
+          ));
+        } else {
+          // Half-size edge tile: sample only the in-bounds portion of the image
+          final double srcY = y < 0 ? (-y / _tileSize) * imgH : 0.0;
+          add(SpriteComponent(
+            sprite: Sprite(
+              floorImage,
+              srcPosition: Vector2(0, srcY),
+              srcSize: Vector2(
+                (vw / _tileSize) * imgW,
+                (vh / _tileSize) * imgH,
+              ),
+            ),
+            position: Vector2(x, vy),
+            size: Vector2(vw, vh),
+          ));
         }
-
-        add(SpriteComponent(
-          sprite: sprite,
-          position: Vector2(x, y),
-          size: Vector2(_tileSize, _tileSize),
-        ));
       }
     }
   }

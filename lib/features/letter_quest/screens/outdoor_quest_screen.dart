@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../shared/services/audio_service.dart';
 import '../game/outdoor/outdoor_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
@@ -35,6 +36,8 @@ class _OutdoorQuestScreenState extends State<OutdoorQuestScreen> {
     final provider = context.read<LetterQuestProvider>();
     provider.initializeGame();
     _game = OutdoorQuestGame(provider: provider);
+
+    AudioService.playIntro('letter_quest_4');
   }
 
   @override
@@ -45,7 +48,7 @@ class _OutdoorQuestScreenState extends State<OutdoorQuestScreen> {
         overlayBuilderMap: {
           // Top HUD with back button, progress, and stars
           'hud': (BuildContext context, OutdoorQuestGame game) {
-            return const GameHud();
+            return const GameHud(levelNumber: 4);
           },
           // Bottom word progress bar with letter tiles
           'wordProgress': (BuildContext context, OutdoorQuestGame game) {

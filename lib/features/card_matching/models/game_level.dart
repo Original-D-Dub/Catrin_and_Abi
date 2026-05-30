@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/game_constants.dart';
@@ -103,6 +105,25 @@ class GameLevel {
     );
   }
 
+  /// Level 6: Full Alphabet — 10 letters drawn at random each game.
+  ///
+  /// Generates a fresh random selection every time it is called so replaying
+  /// the level presents a different set of letters.
+  factory GameLevel.level6() {
+    const fullAlphabet = [
+      'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+      'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+    ];
+    final letters = [...fullAlphabet]..shuffle(Random());
+    return GameLevel(
+      name: GameConstants.level6Name,
+      nameCy: GameConstants.level6NameCy,
+      levelNumber: 6,
+      letters: letters.take(10).toList(),
+      pairColors: AppColors.letterPairColors,
+    );
+  }
+
   /// Returns all available game levels.
   static List<GameLevel> allLevels() {
     return [
@@ -111,6 +132,7 @@ class GameLevel {
       GameLevel.level3(),
       GameLevel.level4(),
       GameLevel.level5(),
+      GameLevel.level6(),
     ];
   }
 

@@ -1,11 +1,10 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-
-import '../../../core/tts_helper.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/routes.dart';
+import '../../../shared/services/audio_service.dart';
+import '../../../shared/widgets/sign_in_banner_button.dart';
 import '../game/letter_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
@@ -30,9 +29,6 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
   /// The Flame game instance
   late final LetterQuestGame _game;
 
-  /// TTS engine for level instruction
-  FlutterTts? _tts;
-
   @override
   void initState() {
     super.initState();
@@ -42,28 +38,7 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
     provider.initializeGame();
     _game = LetterQuestGame(provider: provider);
 
-    _speakInstruction();
-  }
-
-  /// Speaks the Level 3 instruction using a British female TTS voice.
-  Future<void> _speakInstruction() async {
-    try {
-      _tts = FlutterTts();
-      await TtsHelper.configure(_tts!);
-      await _tts!.speak(
-        'Move Pero to search the rooms and find the letters to spell the words at the bottom of the screen.',
-      );
-    } catch (e) {
-      debugPrint('TTS speak failed: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    try {
-      _tts?.stop();
-    } catch (_) {}
-    super.dispose();
+    AudioService.playIntro('letter_quest_3');
   }
 
   @override
@@ -74,7 +49,7 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
         overlayBuilderMap: {
           // Top HUD with back button, progress, and stars
           'hud': (BuildContext context, LetterQuestGame game) {
-            return const GameHud();
+            return const GameHud(levelNumber: 3);
           },
           // Bottom word progress bar with letter tiles
           'wordProgress': (BuildContext context, LetterQuestGame game) {
@@ -96,6 +71,7 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
                   AppRoutes.letterQuestLevel4,
                 );
               },
+              signInBanner: const SignInBannerButton(),
             );
           },
         },

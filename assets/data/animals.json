@@ -1,0 +1,128 @@
+[
+    {
+        "letter": "A",
+        "name": "Ant",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "B",
+        "name": "Bear",
+        "image": "assets/images/animals/bear.png"
+    },
+    {
+        "letter": "C",
+        "name": "Cat",
+        "image": "assets/images/animals/cat.png"
+    },
+    {
+        "letter": "D",
+        "name": "Deer",
+        "image": "assets/images/animals/deer.png"
+    },
+    {
+        "letter": "F",
+        "name": "Frog",
+        "image": "assets/images/animals/frog.png"
+    },
+    {
+        "letter": "G",
+        "name": "Giraffe",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "H",
+        "name": "Hedgehog",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "I",
+        "name": "Iguana",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "J",
+        "name": "Jaguar",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "K",
+        "name": "Kangaroo",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "L",
+        "name": "Lion",
+        "image": "assets/images/animals/lion.png"
+    },
+    {
+        "letter": "M",
+        "name": "Monkey",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "N",
+        "name": "Newt",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {   
+        "letter": "O",
+        "name": "Owl",
+        "image": "assets/images/animals/owl.png"
+    },
+    {
+        "letter": "P",
+        "name": "Pig",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "Q",
+        "name": "Quail",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "R",
+        "name": "Rabbit",
+        "image": "assets/images/animals/rabbit.png"
+    },
+    {
+        "letter": "S",
+        "name": "Snake",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "T",
+        "name": "Tiger",
+        "image": "assets/images/animals/tiger.png"
+    },
+    {
+        "letter": "U",
+        "name": "Urchin",
+        "image": "assets/images/animals/placeholder.png"
+    },
+
+    {
+        "letter": "V",
+        "name": "Vulture",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "W",
+        "name": "Whale",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "X",
+        "name": "X-ray Tetra",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "Y",
+        "name": "Yak",
+        "image": "assets/images/animals/placeholder.png"
+    },
+    {
+        "letter": "Z",
+        "name": "Zebra",
+        "image": "assets/images/animals/zebra.png"
+    }
+]

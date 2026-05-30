@@ -37,6 +37,9 @@ class ConfettiOverlay extends StatefulWidget {
   /// Optional callback when change level is pressed
   final VoidCallback? onChangeLevel;
 
+  /// Optional widget shown between the message and the buttons (e.g. sign-in banner)
+  final Widget? signInBanner;
+
   const ConfettiOverlay({
     super.key,
     required this.message,
@@ -45,6 +48,7 @@ class ConfettiOverlay extends StatefulWidget {
     required this.onPlayAgain,
     required this.onHome,
     this.onChangeLevel,
+    this.signInBanner,
   });
 
   @override
@@ -135,6 +139,10 @@ class _ConfettiOverlayState extends State<ConfettiOverlay> {
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  if (widget.signInBanner != null) ...[
+                    const SizedBox(height: AppSizes.spacingMedium),
+                    widget.signInBanner!,
+                  ],
                   const SizedBox(height: AppSizes.spacingXLarge),
 
                   // Buttons

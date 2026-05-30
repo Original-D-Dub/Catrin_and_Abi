@@ -24,8 +24,13 @@ import 'bsl_number_display.dart';
 ///   [0]  [C]  [=]
 /// ```
 ///
-/// In Level 2, two-digit numbers are entered by tapping individual digits.
-/// For example, to answer 10, tap [1] then [0].
+/// Teen Layout (3 columns x 4 rows, single-tap 11-19):
+/// ```
+///   [11] [12] [13]
+///   [14] [15] [16]
+///   [17] [18] [19]
+///   [ ]  [C]  [=]
+/// ```
 ///
 /// Number keys are tappable and show the BSL hand sign SVG
 /// with the numeral below. The C key clears the current answer.
@@ -52,6 +57,9 @@ class BslKeyboard extends StatelessWidget {
   /// Whether to show Level 2 layout with 0 key
   final bool showZeroKey;
 
+  /// Whether to show teen number layout (11-19, single-tap)
+  final bool showTeenKeys;
+
   /// Whether to show the numeral label below each BSL sign
   final bool showNumbers;
 
@@ -64,6 +72,7 @@ class BslKeyboard extends StatelessWidget {
     this.enteredAnswer,
     this.isCorrect,
     this.showZeroKey = false,
+    this.showTeenKeys = false,
     this.showNumbers = true,
   });
 
@@ -88,6 +97,7 @@ class BslKeyboard extends StatelessWidget {
       builder: (context, constraints) {
         final availableWidth = constraints.maxWidth;
         final availableHeight = constraints.maxHeight;
+        final scale = MediaQuery.of(context).size.width >= 600 ? 1.4 : 1.0;
 
         // Both levels use 4 rows
         const rowCount = 4;
@@ -103,12 +113,14 @@ class BslKeyboard extends StatelessWidget {
         final keyHeight =
             (availableHeight - verticalPadding - totalVSpacing) / rowCount;
 
-        // Clamp key size to reasonable bounds
-        final clampedWidth = keyWidth.clamp(50.0, 180.0);
-        final clampedHeight = keyHeight.clamp(40.0, 120.0);
+        // Clamp key size — bounds double on wide screens
+        final clampedWidth = keyWidth.clamp(50.0 * scale, 180.0 * scale);
+        final clampedHeight = keyHeight.clamp(40.0 * scale, 120.0 * scale);
 
-        // SVG size scales with key size
-        final svgSize = (clampedHeight * 0.55).clamp(24.0, 72.0);
+        // SVG and font sizes scale with device width
+        final svgSize = (clampedHeight * 0.55).clamp(24.0 * scale, 72.0 * scale);
+        final numeralFontSize = _numeralFontSize * scale;
+        final operatorFontSize = _operatorFontSize * scale;
 
         return Padding(
           padding: const EdgeInsets.symmetric(
@@ -117,34 +129,41 @@ class BslKeyboard extends StatelessWidget {
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Row 1: 1, 2, 3
-              Expanded(
-                child: _buildNumberRow(
-                    [1, 2, 3], clampedWidth, clampedHeight, svgSize),
-              ),
+            children: showTeenKeys
+                ? [
+                    Expanded(child: _buildNumberRow([11, 12, 13], clampedWidth, clampedHeight, svgSize, numeralFontSize)),
+                    Expanded(child: _buildNumberRow([14, 15, 16], clampedWidth, clampedHeight, svgSize, numeralFontSize)),
+                    Expanded(child: _buildNumberRow([17, 18, 19], clampedWidth, clampedHeight, svgSize, numeralFontSize)),
+                    Expanded(child: _buildTeenBottomRow(clampedWidth, clampedHeight, operatorFontSize)),
+                  ]
+                : [
+                    // Row 1: 1, 2, 3
+                    Expanded(
+                      child: _buildNumberRow(
+                          [1, 2, 3], clampedWidth, clampedHeight, svgSize, numeralFontSize),
+                    ),
 
-              // Row 2: 4, 5, 6
-              Expanded(
-                child: _buildNumberRow(
-                    [4, 5, 6], clampedWidth, clampedHeight, svgSize),
-              ),
+                    // Row 2: 4, 5, 6
+                    Expanded(
+                      child: _buildNumberRow(
+                          [4, 5, 6], clampedWidth, clampedHeight, svgSize, numeralFontSize),
+                    ),
 
-              // Row 3: 7, 8, 9
-              Expanded(
-                child: _buildNumberRow(
-                    [7, 8, 9], clampedWidth, clampedHeight, svgSize),
-              ),
+                    // Row 3: 7, 8, 9
+                    Expanded(
+                      child: _buildNumberRow(
+                          [7, 8, 9], clampedWidth, clampedHeight, svgSize, numeralFontSize),
+                    ),
 
-              // Row 4: bottom row with clear and submit
-              Expanded(
-                child: showZeroKey
-                    // Level 2: 0, C, =
-                    ? _buildLevel2BottomRow(clampedWidth, clampedHeight, svgSize)
-                    // Level 1: 10, C, =
-                    : _buildLevel1BottomRow(clampedWidth, clampedHeight, svgSize),
-              ),
-            ],
+                    // Row 4: bottom row with clear and submit
+                    Expanded(
+                      child: showZeroKey
+                          // Level 2: 0, C, =
+                          ? _buildLevel2BottomRow(clampedWidth, clampedHeight, svgSize, numeralFontSize, operatorFontSize)
+                          // Level 1: 10, C, =
+                          : _buildLevel1BottomRow(clampedWidth, clampedHeight, svgSize, numeralFontSize, operatorFontSize),
+                    ),
+                  ],
           ),
         );
       },
@@ -157,6 +176,7 @@ class BslKeyboard extends StatelessWidget {
     double keyWidth,
     double keyHeight,
     double svgSize,
+    double numeralFontSize,
   ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -165,7 +185,7 @@ class BslKeyboard extends StatelessWidget {
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-                  child: _buildNumberKey(number, keyWidth, keyHeight, svgSize),
+                  child: _buildNumberKey(number, keyWidth, keyHeight, svgSize, numeralFontSize),
                 ),
               ))
           .toList(),
@@ -177,6 +197,8 @@ class BslKeyboard extends StatelessWidget {
     double keyWidth,
     double keyHeight,
     double svgSize,
+    double numeralFontSize,
+    double operatorFontSize,
   ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -184,19 +206,19 @@ class BslKeyboard extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-            child: _buildNumberKey(10, keyWidth, keyHeight, svgSize),
+            child: _buildNumberKey(10, keyWidth, keyHeight, svgSize, numeralFontSize),
           ),
         ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-            child: _buildClearKey(keyWidth, keyHeight),
+            child: _buildClearKey(keyWidth, keyHeight, operatorFontSize),
           ),
         ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-            child: _buildOperatorKey('=', keyWidth, keyHeight),
+            child: _buildOperatorKey('=', keyWidth, keyHeight, operatorFontSize),
           ),
         ),
       ],
@@ -208,6 +230,8 @@ class BslKeyboard extends StatelessWidget {
     double keyWidth,
     double keyHeight,
     double svgSize,
+    double numeralFontSize,
+    double operatorFontSize,
   ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -215,19 +239,46 @@ class BslKeyboard extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-            child: _buildNumberKey(0, keyWidth, keyHeight, svgSize),
+            child: _buildNumberKey(0, keyWidth, keyHeight, svgSize, numeralFontSize),
           ),
         ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-            child: _buildClearKey(keyWidth, keyHeight),
+            child: _buildClearKey(keyWidth, keyHeight, operatorFontSize),
           ),
         ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-            child: _buildSubmitKey(keyWidth, keyHeight),
+            child: _buildSubmitKey(keyWidth, keyHeight, operatorFontSize),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Builds the bottom row for teen layout: spacer, C, =
+  Widget _buildTeenBottomRow(
+    double keyWidth,
+    double keyHeight,
+    double operatorFontSize,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Empty spacer in first column
+        Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2), child: SizedBox(width: keyWidth, height: keyHeight))),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
+            child: _buildClearKey(keyWidth, keyHeight, operatorFontSize),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
+            child: _buildOperatorKey('=', keyWidth, keyHeight, operatorFontSize),
           ),
         ),
       ],
@@ -240,6 +291,7 @@ class BslKeyboard extends StatelessWidget {
     double keyWidth,
     double keyHeight,
     double svgSize,
+    double numeralFontSize,
   ) {
     // Background colour for glass effect
     const Color bgColor = Colors.white;
@@ -277,8 +329,8 @@ class BslKeyboard extends StatelessWidget {
                     // Numeral label below the sign
                     Text(
                       '$number',
-                      style: const TextStyle(
-                        fontSize: _numeralFontSize,
+                      style: TextStyle(
+                        fontSize: numeralFontSize,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
@@ -294,7 +346,7 @@ class BslKeyboard extends StatelessWidget {
   }
 
   /// Builds the Clear (C) key.
-  Widget _buildClearKey(double keyWidth, double keyHeight) {
+  Widget _buildClearKey(double keyWidth, double keyHeight, double operatorFontSize) {
     return GestureDetector(
       onTap: isDisabled ? null : onClearPressed,
       child: ClipRRect(
@@ -314,11 +366,11 @@ class BslKeyboard extends StatelessWidget {
             ),
             child: Opacity(
               opacity: isDisabled ? 0.5 : 1.0,
-              child: const Center(
+              child: Center(
                 child: Text(
                   'C',
                   style: TextStyle(
-                    fontSize: _operatorFontSize,
+                    fontSize: operatorFontSize,
                     fontWeight: FontWeight.bold,
                     color: AppColors.accentWhite,
                   ),
@@ -332,7 +384,7 @@ class BslKeyboard extends StatelessWidget {
   }
 
   /// Builds the Submit (=) key for Level 2.
-  Widget _buildSubmitKey(double keyWidth, double keyHeight) {
+  Widget _buildSubmitKey(double keyWidth, double keyHeight, double operatorFontSize) {
     // Change colour based on whether answer is entered and correct/wrong
     final Color bgColor;
     final Color textColor;
@@ -376,7 +428,7 @@ class BslKeyboard extends StatelessWidget {
                 child: Text(
                   '=',
                   style: TextStyle(
-                    fontSize: _operatorFontSize,
+                    fontSize: operatorFontSize,
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
@@ -390,7 +442,7 @@ class BslKeyboard extends StatelessWidget {
   }
 
   /// Builds a non-interactive operator key for display purposes.
-  Widget _buildOperatorKey(String symbol, double keyWidth, double keyHeight) {
+  Widget _buildOperatorKey(String symbol, double keyWidth, double keyHeight, double operatorFontSize) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
       child: BackdropFilter(
@@ -409,8 +461,8 @@ class BslKeyboard extends StatelessWidget {
           child: Center(
             child: Text(
               symbol,
-              style: const TextStyle(
-                fontSize: _operatorFontSize,
+              style: TextStyle(
+                fontSize: operatorFontSize,
                 fontWeight: FontWeight.bold,
                 color: AppColors.accentWhite,
               ),

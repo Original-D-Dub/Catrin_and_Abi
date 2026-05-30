@@ -100,6 +100,16 @@ class GameConstants {
   static const String level5NameCy = 'q i z';
 
   // -------------------------
+  // Level 6 Configuration (Random — 10 letters from full alphabet)
+  // -------------------------
+
+  /// Level 6 name
+  static const String level6Name = 'Full Alphabet';
+
+  /// Level 6 name in Welsh
+  static const String level6NameCy = 'Yr Wyddor Lawn';
+
+  // -------------------------
   // Welcome screen settings
   // -------------------------
 

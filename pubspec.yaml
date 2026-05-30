@@ -8,6 +8,7 @@ environment:
   sdk: ^3.10.7
 
 dependencies:
+  supabase_flutter: ^2.8.0
   flutter:
     sdk: flutter
 
@@ -45,6 +46,12 @@ dependencies:
   # Runtime camera permission prompts
   permission_handler: ^12.0.1
 
+  # Direct vibration API for reliable haptic feedback on Android tablets
+  vibration: ^3.1.3
+
+  # Video playback for BSL colour videos in the colouring game
+  video_player: ^2.9.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -54,6 +61,9 @@ flutter:
   uses-material-design: true
 
   assets:
+    # Success screen images
+    - assets/success/
+
     # Logos
     - assets/logos/english/
     - assets/logos/welsh/
@@ -66,6 +76,7 @@ flutter:
 
     # BSL Alphabet (for card game)
     - assets/bsl_alphabet/
+    - assets/bsl_alphabet_svg/
 
     # Backgrounds
     - assets/backgrounds/
@@ -77,6 +88,10 @@ flutter:
     - assets/hand_palm.riv
     - assets/pointer.riv
     - assets/catrin-wave.riv
+    - assets/choose_a_game.riv
+
+    # BSL colour videos for the colouring game
+    - assets/colours_video/
 
     # Game-specific assets
     - assets/games/bubble_pop/
@@ -84,11 +99,16 @@ flutter:
     - assets/games/colouring/
     - assets/games/card_matching/
     - assets/games/vowel_hand/
+    - assets/games/my_special_dog/
     - assets/games/letter_quest/
     - assets/games/bsl_camera_vowels/
+    - assets/games/bsl_sprint/
 
     # BSL number signs (for maths game)
     - assets/bsl_numbers/
+
+    #Counting Game
+    - assets/audio/counting_game/
 
     # Letter Quest RPG game audio
     - assets/audio/letter_quest/
@@ -96,9 +116,16 @@ flutter:
     # Bubble Pop game audio
     - assets/audio/bubble_pop/
 
-    # Letter Quest assets
-    - assets/images/Tree2.png
+    # My Special Dog word audio
+    - assets/audio/my_special_dog/
 
+    # Speech audio files
+    - assets/audio/speech files/
+    - assets/audio/speech files/alphabet_english/
+
+    # Bingo assets
+    - assets/images/animals/
+    
     # Word thumbnails for vowel words game (3-letter CVC words)
     - assets/images/word_thumbnails/a/
     - assets/images/word_thumbnails/e/
@@ -110,6 +137,7 @@ flutter:
     - assets/data/
     - assets/images/character_parts/
     - assets/images/colours_BSL/
+    - assets/images/clothes-svg/
 
   fonts:
     - family: ComicRelief
@@ -117,3 +145,6 @@ flutter:
         - asset: assets/fonts/ComicRelief-Regular.ttf
         - asset: assets/fonts/ComicRelief-Bold.ttf
           weight: 700
+    - family: LuckiestGuy
+      fonts:
+        - asset: assets/fonts/LuckiestGuy-Regular.ttf

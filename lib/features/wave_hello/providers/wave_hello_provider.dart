@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../shared/services/game_stats_service.dart';
 import '../../bsl_camera_vowels/models/hand_landmark_data.dart';
 import '../../bsl_camera_vowels/services/hand_tracking_service.dart';
+
 
 /// Game states for the Wave Hello game.
 enum WaveHelloGameState { idle, playing, permissionDenied }
@@ -23,6 +25,7 @@ class WaveHelloProvider extends ChangeNotifier {
 
   late final HandTrackingService _trackingService = HandTrackingService.create();
   StreamSubscription<List<HandLandmarkData>>? _landmarkSub;
+  final GameStatsService _statsService = GameStatsService();
 
   // ── Game state ────────────────────────────────────────────────────────────
 
@@ -87,6 +90,9 @@ class WaveHelloProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_waveCount > 0) {
+      _statsService.recordGameResult(GameIds.waveHello, _waveCount);
+    }
     _stop();
     _trackingService.dispose();
     super.dispose();

@@ -3,45 +3,70 @@ import '../../../core/constants/app_sizes.dart';
 import '../models/card_model.dart';
 import 'game_card.dart';
 
-/// A responsive grid layout for game cards.
-///
-/// Arranges cards in a grid that adapts to screen size.
-/// Uses Wrap for flexible layout on different devices.
-///
-/// Usage:
-/// ```dart
-/// CardGrid(
-///   cards: provider.cards,
-///   onCardTap: (cardId) => provider.selectCard(cardId: cardId),
-/// )
-/// ```
 class CardGrid extends StatelessWidget {
-  /// The list of cards to display
   final List<CardModel> cards;
-
-  /// Callback when a card is tapped
   final void Function(String cardId) onCardTap;
+  final int levelNumber;
 
   const CardGrid({
     super.key,
     required this.cards,
     required this.onCardTap,
+    required this.levelNumber,
   });
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        /// 4 columns below 600px, 5 columns at 600px and above
-        final crossAxisCount = constraints.maxWidth < 600 ? 4 : 5;
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isTabletLandscape = screenWidth >= 768 &&
+            MediaQuery.of(context).orientation == Orientation.landscape &&
+            constraints.maxHeight.isFinite;
+
+        int crossAxisCount;
+        double childAspectRatio;
+        bool shrinkWrap;
+        ScrollPhysics? physics;
+
+        if (isTabletLandscape) {
+          if (levelNumber <= 2) {
+            crossAxisCount = 5;
+            const targetRows = 2;
+            final cardWidth = (constraints.maxWidth -
+                    (crossAxisCount - 1) * AppSizes.cardGridSpacing) /
+                crossAxisCount;
+            final cardHeight = (constraints.maxHeight -
+                    (targetRows - 1) * AppSizes.cardGridSpacing) /
+                targetRows;
+            childAspectRatio = cardWidth / cardHeight;
+          } else {
+            crossAxisCount = 7;
+            const targetRows = 3;
+            final cardWidth = (constraints.maxWidth -
+                    (crossAxisCount - 1) * AppSizes.cardGridSpacing) /
+                crossAxisCount;
+            final cardHeight = (constraints.maxHeight -
+                    (targetRows - 1) * AppSizes.cardGridSpacing) /
+                targetRows;
+            childAspectRatio = cardWidth / cardHeight;
+          }
+          shrinkWrap = false;
+          physics = null;
+        } else {
+          crossAxisCount = constraints.maxWidth < 600 ? 4 : 5;
+          childAspectRatio = 0.8;
+          shrinkWrap = true;
+          physics = const NeverScrollableScrollPhysics();
+        }
 
         return GridView.count(
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: AppSizes.cardGridSpacing,
           mainAxisSpacing: AppSizes.cardGridSpacing,
-          childAspectRatio: 0.8,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: childAspectRatio,
+          shrinkWrap: shrinkWrap,
+          physics: physics,
           children: cards.map((card) {
             return GameCard(
               card: card,

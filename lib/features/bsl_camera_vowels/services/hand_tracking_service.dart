@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
-
 import '../models/hand_landmark_data.dart';
-import 'android_hand_tracking_service.dart';
-import 'ios_hand_tracking_service.dart';
-import 'stub_hand_tracking_service.dart';
+// dart.library.html is only available on web, so the web stub factory is
+// selected there; the native factory (which imports jni-dependent packages)
+// is selected on Android/iOS/desktop.
+import '_platform_hand_tracking.dart'
+    if (dart.library.html) '_platform_hand_tracking_web.dart';
 
 /// Abstract interface for real-time hand landmark detection.
 ///
@@ -35,18 +35,8 @@ abstract class HandTrackingService {
 
   /// Returns the correct implementation for the current platform.
   ///
-  /// - Android → [AndroidHandTrackingService] (MediaPipe via JNI)
-  /// - iOS     → [IosHandTrackingService] (Apple Vision framework)
-  /// - web/desktop → [StubHandTrackingService] (no-op)
-  factory HandTrackingService.create() {
-    if (!kIsWeb) {
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        return AndroidHandTrackingService();
-      }
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        return IosHandTrackingService();
-      }
-    }
-    return StubHandTrackingService();
-  }
+  /// Dispatched at compile time via the conditional import:
+  /// - Android/iOS/desktop → native factory (MediaPipe / Apple Vision)
+  /// - web → stub factory (no-op, no jni dependency)
+  factory HandTrackingService.create() => createPlatformHandTrackingService();
 }

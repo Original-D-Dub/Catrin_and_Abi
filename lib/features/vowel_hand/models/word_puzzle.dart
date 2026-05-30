@@ -24,26 +24,35 @@ class WordPuzzle {
   /// Creates a word puzzle from a 3-letter CVC word.
   const WordPuzzle({required this.word});
 
-  /// The vowel in position 1 (middle letter) of the CVC word.
-  ///
-  /// All CVC words have the structure consonant-vowel-consonant,
-  /// so the vowel is always at index 1.
-  String get vowel => word[1];
+  static const _vowelSet = {'a', 'e', 'i', 'o', 'u'};
 
-  /// The word displayed with the vowel replaced by an underscore.
+  /// Index of the first vowel character in the word.
   ///
-  /// Example: 'cat' becomes 'c_t'
-  String get displayWord => '${word[0]}_${word[2]}';
+  /// Works for any word pattern:
+  /// - CVC  'cat'  → 1
+  /// - CCVC 'frog' → 2
+  /// - CVCC 'fast' → 1
+  int get _vowelIndex {
+    for (int i = 0; i < word.length; i++) {
+      if (_vowelSet.contains(word[i])) return i;
+    }
+    return 1;
+  }
 
-  /// Returns the word with a specific letter filling the vowel gap.
-  ///
-  /// Used to show the player's guess in the word display:
-  /// - Correct guess: shows the correct completed word
-  /// - Wrong guess: shows the word with the wrong vowel inserted
-  ///
-  /// [letter] is the vowel character to insert at position 1.
-  String displayWithLetter({required String letter}) =>
-      '${word[0]}$letter${word[2]}';
+  /// The vowel character in the word.
+  String get vowel => word[_vowelIndex];
+
+  /// The word with the vowel replaced by an underscore.
+  String get displayWord {
+    final i = _vowelIndex;
+    return '${word.substring(0, i)}_${word.substring(i + 1)}';
+  }
+
+  /// Returns the word with [letter] substituted for the vowel.
+  String displayWithLetter({required String letter}) {
+    final i = _vowelIndex;
+    return '${word.substring(0, i)}$letter${word.substring(i + 1)}';
+  }
 }
 
 /// Constants and word lists for the Vowel Words game level.

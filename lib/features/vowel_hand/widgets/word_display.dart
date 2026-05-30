@@ -46,11 +46,16 @@ class WordDisplay extends StatelessWidget {
   /// Whether the guess was correct (null = no guess yet)
   final bool? isCorrect;
 
+  /// Whether to show the word thumbnail image (default true).
+  /// Set to false for levels whose words have no thumbnail assets.
+  final bool showThumbnail;
+
   const WordDisplay({
     super.key,
     required this.puzzle,
     this.guessedVowel,
     this.isCorrect,
+    this.showThumbnail = true,
   });
 
   @override
@@ -82,12 +87,6 @@ class WordDisplay extends StatelessWidget {
       backgroundColor = AppColors.catrinBlue.withValues(alpha: 0.1);
     }
 
-    // Build the thumbnail asset path
-    final thumbnailPath = AssetPaths.wordThumbnail(
-      word: puzzle.word,
-      vowel: puzzle.vowel,
-    );
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(
@@ -97,32 +96,25 @@ class WordDisplay extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
-        border: Border.all(
-          color: borderColor,
-          width: 3.0,
-        ),
+        border: Border.all(color: borderColor, width: 3.0),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Word thumbnail image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppSizes.borderRadiusSmall),
-            child: Image.asset(
-              thumbnailPath,
-              height: _thumbnailHeight,
-              width: _thumbnailHeight,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                // Fallback if image not found - show empty space
-                debugPrint('Word thumbnail not found: $thumbnailPath');
-                return const SizedBox.shrink();
-              },
+          if (showThumbnail) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizes.borderRadiusSmall),
+              child: Image.asset(
+                AssetPaths.wordThumbnail(word: puzzle.word, vowel: puzzle.vowel),
+                height: _thumbnailHeight,
+                width: _thumbnailHeight,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
+              ),
             ),
-          ),
-          const SizedBox(width: AppSizes.spacingMedium),
-
-          // Word text
+            const SizedBox(width: AppSizes.spacingMedium),
+          ],
           Text(
             displayText,
             style: TextStyle(

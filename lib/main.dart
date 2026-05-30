@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 
@@ -13,13 +14,14 @@ import 'app.dart';
 /// - Card matching game (BSL signs to letters)
 /// - Bilingual support (English/Welsh)
 /// - Accessibility considerations for Deaf users
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set preferred orientations (portrait mode for consistent game experience)
-  SystemChrome.setPreferredOrientations([
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ]);
 
   // Set system UI overlay style
@@ -28,6 +30,11 @@ void main() {
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
     ),
+  );
+
+  await Supabase.initialize(
+    url: 'https://dczagvdllqhzbiqljzfi.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjemFndmRsbHFoemJpcWxqemZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjEwNTMsImV4cCI6MjA5MTI5NzA1M30.-reWzVGeuc69wVDi9-PeLxjBFhxsGeKJPwjU9I5xV5U',
   );
 
   runApp(const CatrinAbiApp());

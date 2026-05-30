@@ -44,6 +44,8 @@ class MathsQuestion {
   String toString() => '$operand1 $operatorSymbol $operand2 = $answer';
 }
 
+
+
 /// Generates random maths questions for the BSL maths game.
 ///
 /// Questions are generated based on the configured maximum answer value:
@@ -58,6 +60,36 @@ class MathsQuestionGenerator {
 
   /// Maximum operand value (BSL number assets only exist for 0-10)
   static const int maxAllowedOperand = 10;
+
+  /// Generates a random subtraction question: operand1 − operand2 = answer.
+  ///
+  /// [maxOperand1] controls the upper bound for the first number (default 10).
+  /// Rules:
+  /// - operand1 is 2–[maxOperand1]
+  /// - operand2 is 1 to operand1−1 (answer is always ≥ 1, never zero or negative)
+  /// - Differs from [previousQuestion] when one is provided
+  static MathsQuestion generateSubtraction({
+    required Random random,
+    int maxOperand1 = 10,
+    MathsQuestion? previousQuestion,
+  }) {
+    while (true) {
+      // operand1: 2..maxOperand1 (so operand2 can be at least 1)
+      final operand1 = random.nextInt(maxOperand1 - 1) + 2;
+      // operand2: 1..operand1-1 (answer stays positive)
+      final operand2 = random.nextInt(operand1 - 1) + 1;
+      final answer = operand1 - operand2;
+
+      final question = MathsQuestion(
+        operand1: operand1,
+        operand2: operand2,
+        operatorSymbol: '−',
+        answer: answer,
+      );
+
+      if (question != previousQuestion) return question;
+    }
+  }
 
   /// Generates a random addition question where the sum is always [target].
   ///
@@ -109,6 +141,7 @@ class MathsQuestionGenerator {
   static MathsQuestion generateAddition({
     required Random random,
     required int maxAnswer,
+    int minAnswer = 2,
     MathsQuestion? previousQuestion,
   }) {
     // Cap operands at 10 (BSL number assets only exist for 0-10)
@@ -129,11 +162,14 @@ class MathsQuestionGenerator {
 
       // Pick second operand: 1 to maxOperand2 (max 10)
       final operand2 = random.nextInt(maxOperand2) + minOperand;
+      final answer = operand1 + operand2;
+
+      if (answer < minAnswer) continue;
 
       final question = MathsQuestion(
         operand1: operand1,
         operand2: operand2,
-        answer: operand1 + operand2,
+        answer: answer,
       );
 
       // Ensure new question differs from the previous one

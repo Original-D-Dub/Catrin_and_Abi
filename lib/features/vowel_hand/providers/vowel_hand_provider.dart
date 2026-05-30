@@ -3,8 +3,11 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../shared/services/audio_service.dart';
+import '../../../shared/services/game_stats_service.dart';
 import '../models/vowel_target.dart';
 import '../models/word_puzzle.dart';
+import '../services/words_service.dart';
 
 /// Game state enumeration for the vowel hand game.
 enum VowelHandGameState {
@@ -32,7 +35,12 @@ class VowelHandProvider extends ChangeNotifier {
   // Core Game State
   // -------------------------
 
-  /// Current game state
+  final GameStatsService _statsService = GameStatsService();
+  final WordsService _wordsService = WordsService();
+
+  GameResult? _lastResult;
+  GameResult? get lastResult => _lastResult;
+
   VowelHandGameState _gameState = VowelHandGameState.ready;
   VowelHandGameState get gameState => _gameState;
 
@@ -83,6 +91,9 @@ class VowelHandProvider extends ChangeNotifier {
   /// Recently used words to avoid repeats
   final List<String> _recentWords = [];
 
+  /// Words fetched from Supabase for levels 3 (CCVC) and 4 (CVCC)
+  List<String> _remoteWords = [];
+
   /// Timer for reverting wrong answer display
   Timer? _wrongAnswerTimer;
 
@@ -114,6 +125,9 @@ class VowelHandProvider extends ChangeNotifier {
   // -------------------------
   // Internal State
   // -------------------------
+
+  /// Called after answer checking with `true` for correct, `false` for wrong.
+  Function(bool isCorrect)? onAnswerResult;
 
   /// Random number generator for selecting vowels/words
   final Random _random = Random();
@@ -165,6 +179,48 @@ class VowelHandProvider extends ChangeNotifier {
   // Game Control Methods
   // -------------------------
 
+  /// Transitions to game view and initialises content without starting the timer.
+  ///
+  /// Call when a level is selected so the game is visible under the intro overlay.
+  /// Follow with [startGame] once the intro countdown ends.
+  void prepareForIntro({VowelHandLevel? level}) {
+    _gameTimer?.cancel();
+    _wrongAnswerTimer?.cancel();
+    _scoreAnimationTimer?.cancel();
+    _pointerHideTimer?.cancel();
+
+    if (level != null) {
+      _selectedLevel = level;
+    }
+
+    _showLevelSelect = false;
+    _gameState = VowelHandGameState.ready;
+    _score = 0;
+    _remainingSeconds = VowelHandConstants.gameDurationSeconds;
+    _isPointerVisible = false;
+    _pointerPosition = null;
+    _hasScored = false;
+    _showScoreAnimation = false;
+    _isInputLocked = false;
+    _guessedVowel = null;
+    _isGuessCorrect = null;
+    _lastResult = null;
+
+    if (_selectedLevel == VowelHandLevel.vowelMatch) {
+      _selectRandomVowel();
+    } else {
+      _remoteWords = [];
+      if (_selectedLevel == VowelHandLevel.ccvc) {
+        _loadRemoteWords('CCVC');
+      } else if (_selectedLevel == VowelHandLevel.cvcc) {
+        _loadRemoteWords('CVCC');
+      }
+      _selectRandomPuzzle();
+    }
+
+    notifyListeners();
+  }
+
   /// Starts the game with the specified level.
   ///
   /// [level] is the game level to play. If null, uses the currently selected level.
@@ -181,6 +237,7 @@ class VowelHandProvider extends ChangeNotifier {
     _score = 0;
     _remainingSeconds = VowelHandConstants.gameDurationSeconds;
     _hasScored = false;
+    _lastResult = null;
     _isInputLocked = false;
     _guessedVowel = null;
     _isGuessCorrect = null;
@@ -219,7 +276,14 @@ class VowelHandProvider extends ChangeNotifier {
     _isPointerVisible = false;
     _pointerPosition = null;
     _isInputLocked = false;
+    _lastResult = null;
     notifyListeners();
+    _statsService.recordGameResult(GameIds.vowelHand, _score, level: _selectedLevel.number).then((result) {
+      _lastResult = result;
+      notifyListeners();
+    }).catchError((e) {
+      debugPrint('recordGameResult error (vowelHand): $e');
+    });
   }
 
   /// Resets the game to the ready state (within current level).
@@ -280,15 +344,14 @@ class VowelHandProvider extends ChangeNotifier {
     required Offset position,
     required Size handSize,
   }) {
-    debugPrint('onTouchEnd called - position: $position, handSize: $handSize');
+    // debugPrint('onTouchEnd called - position: $position, handSize: $handSize');
     if (_gameState != VowelHandGameState.playing) {
       debugPrint('Game not playing, ignoring touch end');
       return;
     }
 
     // Handle input lock for word mode
-    if (_selectedLevel == VowelHandLevel.vowelWords && _isInputLocked) {
-      // Clear wrong answer immediately and process new tap
+    if (_selectedLevel != VowelHandLevel.vowelMatch && _isInputLocked) {
       _revertWrongAnswer();
     }
 
@@ -343,17 +406,18 @@ class VowelHandProvider extends ChangeNotifier {
     final distance = (position - targetPosition).distance;
 
     // Debug logging
-    debugPrint('=== HIT CHECK (VOWEL MODE) ===');
-    debugPrint('Current vowel: $_currentVowel');
-    debugPrint('Touch position: $position');
-    debugPrint('Hand size: $handSize');
-    debugPrint('Target position (normalized): ${target.normalizedPosition}');
-    debugPrint('Target position: $targetPosition');
-    debugPrint('Hit radius: $hitRadius');
-    debugPrint('Distance: $distance');
-    debugPrint('Hit: ${distance <= hitRadius}');
+    // debugPrint('=== HIT CHECK (VOWEL MODE) ===');
+    // debugPrint('Current vowel: $_currentVowel');
+    // debugPrint('Touch position: $position');
+    // debugPrint('Hand size: $handSize');
+    // debugPrint('Target position (normalized): ${target.normalizedPosition}');
+    // debugPrint('Target position: $targetPosition');
+    // debugPrint('Hit radius: $hitRadius');
+    // debugPrint('Distance: $distance');
+    // debugPrint('Hit: ${distance <= hitRadius}');
 
     if (distance <= hitRadius) {
+      AudioService.playCorrect('vowel_hand');
       _score++;
       _hasScored = true;
       _showScoreAnimation = true;
@@ -431,18 +495,20 @@ class VowelHandProvider extends ChangeNotifier {
   ///
   /// Shows green feedback, increments score, and moves to next word.
   void _handleCorrectWordGuess() {
+    final word = _currentPuzzle!.word;
     _isGuessCorrect = true;
     _score++;
     _showScoreAnimation = true;
     notifyListeners();
 
-    // After 300ms, clear feedback and show next word
+    // After 300ms, clear feedback, speak the completed word, and show next word
     _scoreAnimationTimer?.cancel();
     _scoreAnimationTimer = Timer(const Duration(milliseconds: 300), () {
       _showScoreAnimation = false;
       _guessedVowel = null;
       _isGuessCorrect = null;
       _selectRandomPuzzle();
+      AudioService.speak(word);
       notifyListeners();
     });
   }
@@ -454,6 +520,7 @@ class VowelHandProvider extends ChangeNotifier {
   void _handleWrongWordGuess() {
     _isGuessCorrect = false;
     _isInputLocked = true;
+    onAnswerResult?.call(false);
     notifyListeners();
 
     // Start 3-second timer to revert
@@ -491,26 +558,66 @@ class VowelHandProvider extends ChangeNotifier {
     } while (newVowel == _currentVowel && vowels.length > 1);
 
     _currentVowel = newVowel;
+    if (_gameState == VowelHandGameState.playing) {
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (_gameState == VowelHandGameState.playing && _currentVowel == newVowel) {
+          AudioService.playLetterMp3(newVowel);
+        }
+      });
+    }
   }
 
-  /// Selects a new random word puzzle, avoiding recently used words (Level 2).
+  /// Selects a new random word puzzle, avoiding recently used words.
+  ///
+  /// Levels 2 uses the local CVC word list.
+  /// Levels 3 and 4 use words fetched from Supabase.
   void _selectRandomPuzzle() {
-    _currentPuzzle = WordPuzzleConstants.getRandomPuzzle(
-      random: _random,
-      recentWords: _recentWords,
-      vowels: VowelHandConstants.vowels,
-    );
+    if (_selectedLevel == VowelHandLevel.ccvc ||
+        _selectedLevel == VowelHandLevel.cvcc) {
+      if (_remoteWords.isEmpty) {
+        _currentPuzzle = null;
+        return;
+      }
+      final available =
+          _remoteWords.where((w) => !_recentWords.contains(w)).toList();
+      final candidates = available.isNotEmpty ? available : _remoteWords;
+      final word = candidates[_random.nextInt(candidates.length)];
+      _currentPuzzle = WordPuzzle(word: word);
+    } else {
+      _currentPuzzle = WordPuzzleConstants.getRandomPuzzle(
+        random: _random,
+        recentWords: _recentWords,
+        vowels: VowelHandConstants.vowels,
+      );
+    }
 
-    // Track this word to avoid repeats
     _recentWords.add(_currentPuzzle!.word);
     if (_recentWords.length > WordPuzzleConstants.maxRecentWords) {
       _recentWords.removeAt(0);
     }
   }
 
+  /// Fetches words for [pattern] from Supabase.
+  ///
+  /// Called during intro so words are ready before the game starts.
+  /// If the fetch completes after [startGame] and no puzzle is loaded yet,
+  /// immediately selects the first puzzle.
+  Future<void> _loadRemoteWords(String pattern) async {
+    _remoteWords = await _wordsService.fetchWordsByPattern(pattern);
+    if (_currentPuzzle == null &&
+        _gameState != VowelHandGameState.finished &&
+        _remoteWords.isNotEmpty) {
+      _selectRandomPuzzle();
+      notifyListeners();
+    }
+  }
+
   // -------------------------
   // Utility Methods
   // -------------------------
+
+  /// The current vowel letter shown at the top of the screen (Level 1 only).
+  String get displayLetter => _currentVowel;
 
   /// Formats the remaining time as MM:SS string.
   String get formattedTime {

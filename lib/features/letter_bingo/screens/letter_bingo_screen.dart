@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
-import '../../../core/tts_helper.dart';
+import '../../../shared/services/audio_service.dart';
+import '../../../shared/services/auth_provider.dart';
+import '../../../shared/widgets/game_app_bar.dart';
+import '../../../shared/widgets/game_header_bar.dart';
+import '../../../shared/widgets/level_select_screen.dart';
 import '../providers/letter_bingo_provider.dart';
 import '../widgets/bingo_celebration.dart';
 import '../widgets/bingo_tile.dart';
@@ -28,44 +30,31 @@ class LetterBingoScreen extends StatefulWidget {
 }
 
 class _LetterBingoScreenState extends State<LetterBingoScreen> {
-  /// TTS engine for game instructions
-  FlutterTts? _tts;
-
-  /// Tracks the last phase to detect transitions to playing
   LetterBingoPhase? _lastPhase;
+  Future<void>? _introFuture;
+  bool _showTryAgain = false;
 
   @override
   void initState() {
     super.initState();
-    _initTts();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<LetterBingoProvider>();
+      provider.onCorrect = () => AudioService.playCorrect('letter_bingo');
+      provider.onWrongTap = _handleWrongTap;
+    });
   }
 
-  /// Initializes the TTS engine with a British female voice.
-  Future<void> _initTts() async {
-    try {
-      _tts = FlutterTts();
-      await TtsHelper.configure(_tts!);
-    } catch (e) {
-      debugPrint('TTS initialization failed: $e');
-    }
-  }
-
-  /// Speaks game instructions when a level starts.
-  void _speakInstructions() {
-    try {
-      _tts?.speak(
-        'Find the letters. Get all the letters in a row for Bingo!',
-      );
-    } catch (e) {
-      debugPrint('TTS speak failed: $e');
-    }
+  void _handleWrongTap() {
+    if (!mounted) return;
+    setState(() => _showTryAgain = true);
+    AudioService.speak('Try again');
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showTryAgain = false);
+    });
   }
 
   @override
   void dispose() {
-    try {
-      _tts?.stop();
-    } catch (_) {}
     super.dispose();
   }
 
@@ -73,38 +62,23 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
   Widget build(BuildContext context) {
     return Consumer<LetterBingoProvider>(
       builder: (context, provider, _) {
-        // Detect transition to playing phase and speak instructions
+        // Detect transition to playing phase and play intro
         if (provider.phase == LetterBingoPhase.playing &&
             _lastPhase != LetterBingoPhase.playing) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _speakInstructions();
-          });
+          _introFuture = AudioService.playIntroAndWait('letter_bingo');
         }
         _lastPhase = provider.phase;
 
+        final auth = context.read<AuthProvider>();
+
         return Scaffold(
           extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            centerTitle: true,
-            title: Text(
-              provider.phase == LetterBingoPhase.levelSelect
-                  ? 'Letter Bingo'
-                  : 'Level ${provider.currentLevel?.number ?? ""}',
-              style: const TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: AppSizes.fontSizeLarge,
-                fontWeight: FontWeight.bold,
-                color: AppColors.accentWhite,
-              ),
-            ),
-            leading: IconButton(
-              icon:
-                  const Icon(Icons.arrow_back, color: AppColors.accentWhite),
-              onPressed: () => _handleBack(context, provider),
-            ),
-          ),
+          appBar: provider.phase == LetterBingoPhase.levelSelect
+              ? GameAppBar(
+                  title: 'Letter Bingo',
+                  onBack: () => Navigator.of(context).pop(),
+                )
+              : null,
           body: Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -113,8 +87,31 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
                 fit: BoxFit.cover,
               ),
             ),
-            child: SafeArea(
-              child: _buildBody(context, provider),
+            child: Stack(
+              children: [
+                SafeArea(
+                  child: _buildBody(context, provider),
+                ),
+                if (provider.phase == LetterBingoPhase.bingo)
+                  Positioned.fill(
+                    child: BingoCelebration(
+                      animal: auth.isAnonymous ? null : provider.rewardAnimal,
+                      playerId: auth.userId,
+                      levelNumber: provider.currentLevel?.number ?? 1,
+                      onPlayAgain: () {
+                        final levelNumber = provider.currentLevel?.number ?? 1;
+                        final isNarrow =
+                            MediaQuery.of(context).size.width < 441;
+                        provider.startLevel(
+                          levelNumber: levelNumber,
+                          tileCountOverride:
+                              (levelNumber == 1 && isNarrow) ? 3 : null,
+                        );
+                      },
+                      onChangeLevel: () => provider.showLevelSelection(),
+                    ),
+                  ),
+              ],
             ),
           ),
         );
@@ -122,19 +119,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
     );
   }
 
-  /// Handles the back button press.
-  ///
-  /// During gameplay, returns to level select.
-  /// During level select, pops back to home.
-  void _handleBack(BuildContext context, LetterBingoProvider provider) {
-    if (provider.phase == LetterBingoPhase.levelSelect) {
-      Navigator.of(context).pop();
-    } else {
-      provider.showLevelSelection();
-    }
-  }
-
-  /// Builds the appropriate body widget based on the current phase.
+/// Builds the appropriate body widget based on the current phase.
   Widget _buildBody(BuildContext context, LetterBingoProvider provider) {
     switch (provider.phase) {
       case LetterBingoPhase.levelSelect:
@@ -150,150 +135,48 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
   // ─────────────────────────────────────────
 
   /// Builds the level selection view with title and 2-column grid.
-  ///
-  /// Same visual pattern as Bubble Pop and BSL Maths level selectors.
   Widget _buildLevelSelect(
       BuildContext context, LetterBingoProvider provider) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSizes.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Title
-            const Text(
-              'Choose a Level',
-              style: TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: AppSizes.fontSizeTitle,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacingSmall),
-
-            // Subtitle
-            const Text(
-              'Match the BSL signs to the called letters!',
-              style: TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: AppSizes.fontSizeBody,
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSizes.spacingLarge),
-
-            // Level buttons in 2-column grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: AppSizes.spacingMedium,
-              crossAxisSpacing: AppSizes.spacingMedium,
-              childAspectRatio: 1.3,
-              children: [
-                _buildLevelButton(
-                  levelNumber: 1,
-                  name: 'Learning Level',
-                  subtitle: 'Letters a – e',
-                  color: AppColors.connectorGold,
-                  onTap: () => provider.startLevel(levelNumber: 1),
-                ),
-                _buildLevelButton(
-                  levelNumber: 2,
-                  name: 'a to i',
-                  subtitle: '2 × 3 grid',
-                  color: AppColors.abiPink,
-                  onTap: () => provider.startLevel(levelNumber: 2),
-                ),
-                _buildLevelButton(
-                  levelNumber: 3,
-                  name: 'a to o',
-                  subtitle: '3 × 3 grid',
-                  color: AppColors.accentNavyBlue,
-                  onTap: () => provider.startLevel(levelNumber: 3),
-                ),
-                _buildLevelButton(
-                  levelNumber: 4,
-                  name: 'a to u',
-                  subtitle: '4 × 4 grid',
-                  color: AppColors.schoolGreen,
-                  onTap: () => provider.startLevel(levelNumber: 4),
-                ),
-                _buildLevelButton(
-                  levelNumber: 5,
-                  name: 'a to z',
-                  subtitle: '4 × 4 grid',
-                  color: AppColors.accentPurple,
-                  onTap: () => provider.startLevel(levelNumber: 5),
-                ),
-              ],
-            ),
-          ],
+    return LevelSelectScreen(
+      subtitle: 'Match the B.S.L. signs to the called letters!',
+      levels: [
+        LevelSelectItem(
+          number: 1,
+          name: 'a to e',
+          color: levelColor(0),
+          onTap: () {
+            final isNarrow = MediaQuery.of(context).size.width < 441;
+            provider.startLevel(
+              levelNumber: 1,
+              tileCountOverride: isNarrow ? 3 : null,
+            );
+          },
         ),
-      ),
-    );
-  }
-
-  /// Builds a level selection button.
-  ///
-  /// Parameters:
-  /// - [levelNumber]: The level number to display
-  /// - [name]: The level name/description
-  /// - [subtitle]: Additional info text
-  /// - [color]: Background color for the button
-  /// - [onTap]: Callback when button is tapped
-  Widget _buildLevelButton({
-    required int levelNumber,
-    required String name,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.all(AppSizes.paddingMedium),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
+        LevelSelectItem(
+          number: 2,
+          name: 'a to i',
+          color: levelColor(1),
+          onTap: () => provider.startLevel(levelNumber: 2),
         ),
-        elevation: 2,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Level $levelNumber',
-            style: const TextStyle(
-              fontFamily: 'ComicRelief',
-              fontSize: AppSizes.fontSizeLarge,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: AppSizes.spacingXSmall),
-          Text(
-            name,
-            style: const TextStyle(
-              fontFamily: 'ComicRelief',
-              fontSize: AppSizes.fontSizeBody,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSizes.spacingXSmall),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontFamily: 'ComicRelief',
-              fontSize: AppSizes.fontSizeSmall,
-              color: Colors.white.withValues(alpha: 0.8),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        LevelSelectItem(
+          number: 3,
+          name: 'a to o',
+          color: levelColor(2),
+          onTap: () => provider.startLevel(levelNumber: 3),
+        ),
+        LevelSelectItem(
+          number: 4,
+          name: 'a to u',
+          color: levelColor(3),
+          onTap: () => provider.startLevel(levelNumber: 4),
+        ),
+        LevelSelectItem(
+          number: 5,
+          name: 'a to z',
+          color: levelColor(4),
+          onTap: () => provider.startLevel(levelNumber: 5),
+        ),
+      ],
     );
   }
 
@@ -304,7 +187,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
   /// Builds the gameplay view with tile grid and called letter display.
   ///
   /// Layout (Column):
-  /// - Expanded center: tile grid (Row of 5 for L1, GridView 2×3 for L2)
+  /// - Expanded center: tile grid (Row of 3 for L1, GridView 2×3 for L2)
   /// - Bottom: [CalledLetterDisplay] widget
   /// - Overlay: [BingoCelebration] when phase == bingo
   Widget _buildGameplay(BuildContext context, LetterBingoProvider provider) {
@@ -313,30 +196,66 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
         // Main gameplay content
         Column(
           children: [
-            // Tile grid area (expanded to fill available space)
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSizes.paddingLarge),
-                  child: _buildTileGrid(provider),
+            const SizedBox(height: 8),
+
+            // Header bar with back arrow and level number
+            GameHeaderBar(
+              onBack: () => provider.showLevelSelection(),
+              showScore: false,
+              levelNumber: provider.currentLevel?.number ?? 1,
+              centerContent: Center(
+                child: Text(
+                  provider.currentLevel?.name ?? '',
+                  style: const TextStyle(
+                    fontFamily: 'ComicRelief',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),
 
+            const SizedBox(height: 12),
+
+            // Tile grid area (expanded to fill available space)
+            Expanded(
+              child: SingleChildScrollView(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSizes.paddingLarge),
+                    child: _buildTileGrid(provider),
+                  ),
+                ),
+              ),
+            ),
+
+            // Wrong-tap feedback shown below the grid
+            if (_showTryAgain)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Try again!',
+                  style: TextStyle(
+                    fontFamily: 'ComicRelief',
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.red,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
             // Called letter display at bottom
             if (provider.calledLetter != null)
-              CalledLetterDisplay(letter: provider.calledLetter!),
+              CalledLetterDisplay(
+                letter: provider.calledLetter!,
+                introFuture: _introFuture,
+              ),
           ],
         ),
 
-        // BINGO celebration overlay
-        if (provider.phase == LetterBingoPhase.bingo)
-          Positioned.fill(
-            child: BingoCelebration(
-              onDismiss: () => provider.showLevelSelection(),
-              alignment: _bingoAlignment(provider),
-            ),
-          ),
       ],
     );
   }
@@ -364,7 +283,6 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
                 child: BingoTileWidget(
                   tile: tiles[index],
                   tileColor: tileColorForIndex(index),
-                  hideRevealedText: true,
                   onTap: () => provider.tapTile(index: index),
                 ),
               ),
@@ -395,22 +313,5 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
     }
   }
 
-  /// Determines the BINGO celebration alignment.
-  ///
-  /// - **Level 1**: Centered on screen.
-  /// - **Level 2**: Positioned towards the completed row
-  ///   (top half for row 0, bottom half for row 1).
-  Alignment _bingoAlignment(LetterBingoProvider provider) {
-    if (provider.currentLevel?.winByCompletingAllTiles == true) {
-      return Alignment.center;
-    }
 
-    // Level 2: align to the completed row
-    final completedRow = provider.completedRow;
-    if (completedRow == 0) {
-      return const Alignment(0, -0.3);
-    } else {
-      return const Alignment(0, 0.3);
-    }
-  }
 }

@@ -13,21 +13,44 @@ import '../../features/colouring/screens/colouring_screen.dart';
 import '../../features/colouring/providers/colouring_provider.dart';
 import '../../features/vowel_hand/screens/vowel_hand_screen.dart';
 import '../../features/vowel_hand/providers/vowel_hand_provider.dart';
+import '../../features/my_special_dog/screens/my_special_dog_screen.dart';
+import '../../features/my_special_dog/providers/my_special_dog_provider.dart';
 import '../../features/bsl_maths/screens/bsl_maths_screen.dart';
 import '../../features/bsl_maths/providers/bsl_maths_provider.dart';
 import '../../features/letter_quest/screens/letter_quest_screen.dart';
 import '../../features/letter_quest/screens/letter_quest_level_select_screen.dart';
 import '../../features/letter_quest/screens/outdoor_quest_screen.dart';
-import '../../features/letter_quest/screens/simple_quest_screen.dart';
+import '../../features/letter_quest/screens/level2_quest_screen.dart';
 import '../../features/letter_quest/screens/intro_quest_screen.dart';
 import '../../features/letter_quest/providers/letter_quest_provider.dart';
 import '../../features/character_id/screens/character_id_screen.dart';
 import '../../features/letter_bingo/screens/letter_bingo_screen.dart';
+import '../../features/letter_bingo/screens/animal_collection_screen.dart';
 import '../../features/letter_bingo/providers/letter_bingo_provider.dart';
 import '../../features/bsl_camera_vowels/screens/camera_vowels_screen.dart';
 import '../../features/bsl_camera_vowels/providers/camera_vowels_provider.dart';
 import '../../features/wave_hello/screens/wave_hello_screen.dart';
 import '../../features/wave_hello/providers/wave_hello_provider.dart';
+import '../../features/counting_game/screens/counting_game_screen.dart';
+import '../../features/counting_game/providers/counting_game_provider.dart';
+import '../../features/number_line/screens/number_line_screen.dart';
+import '../../features/number_line/providers/number_line_provider.dart';
+import '../../features/counting_back/screens/counting_back_screen.dart';
+import '../../features/counting_back/providers/counting_back_provider.dart';
+import '../../features/more_or_less/screens/more_or_less_screen.dart';
+import '../../features/more_or_less/providers/more_or_less_provider.dart';
+import '../../features/bsl_sprint/screens/bsl_sprint_screen.dart';
+import '../../features/bsl_sprint/providers/bsl_sprint_provider.dart';
+import '../../features/clothes_line/screens/clothes_line_screen.dart';
+import '../../features/clothes_line/providers/clothes_line_provider.dart';
+import '../../features/higher_or_lower/screens/higher_or_lower_screen.dart';
+import '../../features/higher_or_lower/providers/higher_or_lower_provider.dart';
+import '../../features/sudoku/screens/sudoku_screen.dart';
+import '../../features/privacy/screens/privacy_policy_screen.dart';
+import '../../features/profile/screens/link_account_screen.dart';
+import '../../features/sphere_runner/screens/sphere_runner_screen.dart';
+import '../../features/word_search/providers/word_search_provider.dart';
+import '../../features/word_search/screens/word_search_screen.dart';
 
 /// Named route constants for navigation throughout the app.
 ///
@@ -61,6 +84,9 @@ class AppRoutes {
   /// BSL vowel hand game
   static const String vowelHand = '/games/vowel-hand';
 
+  /// My Special Dog game
+  static const String mySpecialDog = '/games/my-special-dog';
+
   /// BSL maths game (addition with BSL number signs)
   static const String bslMaths = '/games/bsl-maths';
 
@@ -93,6 +119,45 @@ class AppRoutes {
 
   /// Wave Hello game (wave at camera, Catrin waves back)
   static const String waveHello = '/games/wave-hello';
+
+  /// Counting game
+  static const String countingGame = '/games/counting';
+
+  /// Number line game
+  static const String numberLineGame = '/games/number-line';
+
+  /// Counting back game
+  static const String countingBackGame = '/games/counting-back';
+
+  /// More or less game
+  static const String moreLessGame = '/games/more-or-less';
+
+  /// BSL Sprint endless-runner game
+  static const String bslSprint = '/games/bsl-sprint';
+
+  /// Clothes Line colour-learning game
+  static const String clothesLine = '/games/clothes-line';
+
+  /// BSL Sudoku game
+  static const String sudoku = '/games/sudoku';
+
+  /// Higher or Lower BSL number comparison game
+  static const String higherOrLower = '/games/higher-or-lower';
+
+  /// Sphere Runner endless-runner maths game
+  static const String sphereRunner = '/games/sphere-runner';
+
+  /// BSL Word Search game
+  static const String wordSearch = '/games/word-search';
+
+  /// Animal collection screen (Letter Bingo earned animals)
+  static const String animalCollection = '/games/letter-bingo/collection';
+
+  /// Privacy policy
+  static const String privacyPolicy = '/privacy-policy';
+
+  /// Link / manage player account
+  static const String linkAccount = '/profile/link-account';
 
   /// Initial route when app launches
   static const String initial = splash;
@@ -162,11 +227,19 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.vowelHand:
-      // Provide VowelHandProvider scoped to this route
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => VowelHandProvider(),
           child: const VowelHandScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.mySpecialDog:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => MySpecialDogProvider(),
+          child: const MySpecialDogScreen(),
         ),
         settings: settings,
       );
@@ -203,7 +276,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => LetterQuestProvider(),
-          child: const SimpleQuestScreen(),
+          child: const Level2QuestScreen(),
         ),
         settings: settings,
       );
@@ -274,6 +347,108 @@ Route<dynamic> generateRoute(RouteSettings settings) {
           create: (_) => WaveHelloProvider(),
           child: const WaveHelloScreen(),
         ),
+        settings: settings,
+      );
+
+    case AppRoutes.countingGame:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => CountingGameProvider(),
+          child: const CountingGameScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.numberLineGame:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => NumberLineGameProvider(),
+          child: const NumberLineGameScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.countingBackGame:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => CountingBackProvider(),
+          child: const CountingBackScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.moreLessGame:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => MoreLessProvider(),
+          child: const MoreOrLessScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.bslSprint:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => BslSprintProvider(),
+          child: const BslSprintScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.clothesLine:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => ClothesLineProvider(),
+          child: const ClothesLineScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.sudoku:
+      return MaterialPageRoute(
+        builder: (_) => const SudokuScreen(),
+        settings: settings,
+      );
+
+    case AppRoutes.higherOrLower:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => HigherOrLowerProvider(),
+          child: const HigherOrLowerScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.sphereRunner:
+      return MaterialPageRoute(
+        builder: (_) => const SphereRunnerScreen(),
+        settings: settings,
+      );
+
+    case AppRoutes.wordSearch:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => WordSearchProvider(),
+          child: const WordSearchScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.animalCollection:
+      return MaterialPageRoute(
+        builder: (_) => const AnimalCollectionScreen(),
+        settings: settings,
+      );
+
+    case AppRoutes.privacyPolicy:
+      return MaterialPageRoute(
+        builder: (_) => const PrivacyPolicyScreen(),
+        settings: settings,
+      );
+
+    case AppRoutes.linkAccount:
+      return MaterialPageRoute(
+        builder: (_) => const LinkAccountScreen(),
         settings: settings,
       );
 

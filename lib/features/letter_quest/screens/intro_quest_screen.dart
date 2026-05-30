@@ -1,9 +1,8 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-
-import '../../../core/tts_helper.dart';
 import 'package:provider/provider.dart';
+
+import '../../../shared/services/audio_service.dart';
 
 import '../game/intro_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
@@ -30,9 +29,6 @@ class _IntroQuestScreenState extends State<IntroQuestScreen> {
   /// The Flame game instance
   late final IntroQuestGame _game;
 
-  /// TTS engine for level instruction
-  FlutterTts? _tts;
-
   @override
   void initState() {
     super.initState();
@@ -42,28 +38,7 @@ class _IntroQuestScreenState extends State<IntroQuestScreen> {
     provider.initializeGame(wordCount: 3);
     _game = IntroQuestGame(provider: provider);
 
-    _speakInstruction();
-  }
-
-  /// Speaks the Level 1 instruction using a British female TTS voice.
-  Future<void> _speakInstruction() async {
-    try {
-      _tts = FlutterTts();
-      await TtsHelper.configure(_tts!);
-      await _tts!.speak(
-        'Move the dog to find the letters to spell the word at the bottom of the screen',
-      );
-    } catch (e) {
-      debugPrint('TTS speak failed: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    try {
-      _tts?.stop();
-    } catch (_) {}
-    super.dispose();
+    AudioService.playIntro('letter_quest_1');
   }
 
   @override
@@ -74,7 +49,7 @@ class _IntroQuestScreenState extends State<IntroQuestScreen> {
         overlayBuilderMap: {
           // Top HUD with back button, progress, and stars
           'hud': (BuildContext context, IntroQuestGame game) {
-            return const GameHud();
+            return const GameHud(levelNumber: 1);
           },
           // Bottom word progress bar with letter tiles
           'wordProgress': (BuildContext context, IntroQuestGame game) {

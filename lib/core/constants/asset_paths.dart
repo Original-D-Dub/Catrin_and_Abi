@@ -20,6 +20,7 @@ class AssetPaths {
   static const String _logos = 'assets/logos';
   static const String _characters = 'assets/characters';
   static const String _bslAlphabet = 'assets/bsl_alphabet';
+  static const String _bslAlphabetSvg = 'assets/bsl_alphabet_svg';
   static const String _games = 'assets/games';
   static const String _backgrounds = 'assets/backgrounds';
 
@@ -107,6 +108,14 @@ class AssetPaths {
     return '$_bslAlphabet/${letter.toUpperCase()}.png';
   }
 
+  /// Gets the asset path for a BSL letter sign SVG.
+  static String bslLetterSvg(String letter) {
+    if (letter.length != 1) {
+      throw ArgumentError('bslLetterSvg expects a single letter, got: $letter');
+    }
+    return '$_bslAlphabetSvg/${letter.toLowerCase()}.svg';
+  }
+
   // -------------------------
   // BSL Numbers (for maths game)
   // -------------------------
@@ -131,6 +140,9 @@ class AssetPaths {
     }
     return '$_bslNumbers/$number.svg';
   }
+
+  /// Single Rive file for BSL teen numbers 13–19 (one artboard, ViewModel1).
+  static const String bslNumbers1319Riv = '$_bslNumbers/numbers13-19.riv';
 
   // -------------------------
   // Game Assets
@@ -189,6 +201,12 @@ class AssetPaths {
 
   /// Pointy finger SVG - cursor that follows player touch position
   static const String vowelHandPointer = '$_vowelHand/pointy_finger_right.svg';
+
+  /// Base directory for My Special Dog game SVGs
+  static const String _mySpecialDog = '$_games/my_special_dog';
+
+  static const String mySpecialDogOpen = '$_mySpecialDog/open_hand_left.svg';
+  static const String mySpecialDogPointer = '$_mySpecialDog/pointy_finger_right.svg';
 
   // -------------------------
   // Letter Quest Audio (RPG game sound effects)

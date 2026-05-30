@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
-import '../../../core/tts_helper.dart';
+import '../../../shared/services/audio_service.dart';
 
 
 /// Displays the currently called letter at the bottom of the screen.
@@ -18,13 +17,19 @@ import '../../../core/tts_helper.dart';
 ///
 /// Parameters:
 /// - [letter]: The currently called letter (lowercase)
+/// - [introFuture]: When provided, the first "Find the letter" is held until
+///   this future completes (e.g. after the intro instructions finish).
 class CalledLetterDisplay extends StatefulWidget {
   /// The letter currently being called (lowercase, e.g. 'a')
   final String letter;
 
+  /// Optional future to await before speaking the first letter.
+  final Future<void>? introFuture;
+
   const CalledLetterDisplay({
     super.key,
     required this.letter,
+    this.introFuture,
   });
 
   @override
@@ -32,114 +37,91 @@ class CalledLetterDisplay extends StatefulWidget {
 }
 
 class _CalledLetterDisplayState extends State<CalledLetterDisplay> {
-  /// Text-to-speech engine instance
-  late final FlutterTts _tts;
-
-  /// Whether TTS has been initialized
-  bool _ttsReady = false;
-
   @override
   void initState() {
     super.initState();
-    _initTts();
+    _waitForIntroThenSpeak();
   }
 
-  /// Initializes the TTS engine with a British female voice.
-  Future<void> _initTts() async {
-    _tts = FlutterTts();
-    try {
-      await TtsHelper.configure(_tts);
-      _ttsReady = true;
-      // Speak the initial letter
-      _speakLetter(widget.letter);
-    } catch (e) {
-      // TTS may not be available on all platforms — game continues without
-      debugPrint('TTS initialization failed: $e');
-    }
+  Future<void> _waitForIntroThenSpeak() async {
+    await widget.introFuture;
+    if (mounted) _speakLetter(widget.letter);
   }
 
   @override
   void didUpdateWidget(CalledLetterDisplay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Speak the new letter when it changes
     if (oldWidget.letter != widget.letter) {
       _speakLetter(widget.letter);
     }
   }
 
-  /// Speaks "Find the letter [X]" using TTS.
-  ///
-  /// Silently fails if TTS is not available.
-  Future<void> _speakLetter(String letter) async {
-    if (!_ttsReady) return;
-    try {
-      await _tts.speak('Find the letter ${letter.toUpperCase()}');
-    } catch (e) {
-      debugPrint('TTS speak failed: $e');
-    }
+  void _speakLetter(String letter) {
+    AudioService.speak('Find the letter, ${letter.toUpperCase()}');
   }
 
   @override
   void dispose() {
-    try {
-      _tts.stop();
-    } catch (e) {
-      // Ignore disposal errors
-    }
+    AudioService.stopTts();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.paddingLarge,
-        vertical: AppSizes.paddingMedium,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppSizes.borderRadiusXLarge),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            offset: const Offset(0, -2),
-            blurRadius: 8,
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.spacingMedium),
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: ScaleTransition(scale: animation, child: child),
-          );
-        },
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(scale: animation, child: child),
+        ),
         child: Column(
           key: ValueKey(widget.letter),
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Label
-            const Text(
-              'Find the letter:',
-              style: TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: AppSizes.fontSizeLarge,
-                color: AppColors.textPrimary,
+            // Letter in white bordered box (mirrors BSL sign box in Bubble Pop)
+            Container(
+              width: 120,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.headerBorderDark,
+                  width: 4,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  widget.letter.toLowerCase(),
+                  style: const TextStyle(
+                    fontFamily: 'ComicRelief',
+                    fontWeight: FontWeight.w900,
+                    fontSize: AppSizes.fontSizeTitle,
+                    color: AppColors.accentNavyBlue,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: AppSizes.spacingXSmall),
 
-            // Called letter (lowercase only)
-            Text(
-              widget.letter.toLowerCase(),
-              style: const TextStyle(
-                fontFamily: 'ComicRelief',
-                fontWeight: FontWeight.bold,
-                fontSize: AppSizes.fontSizeTitle,
-                color: AppColors.accentNavyBlue,
+            const SizedBox(height: 4),
+
+            // "Find the letter" purple pill label
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.accentPurple,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Text(
+                'Find the letter',
+                style: TextStyle(
+                  fontFamily: 'ComicRelief',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],

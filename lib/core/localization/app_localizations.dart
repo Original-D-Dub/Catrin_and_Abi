@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import 'translations_en.dart';
 import 'translations_cy.dart';
 
@@ -54,6 +56,19 @@ class AppLocalizations {
 
   /// Returns true if the current locale is English
   bool get isEnglish => locale == 'en';
+
+  /// Returns an [AppLocalizations] for the locale of the nearest [Localizations]
+  /// ancestor in [context]. Falls back to English if the locale is unsupported.
+  static AppLocalizations of(BuildContext context) {
+    try {
+      final code = Localizations.localeOf(context).languageCode;
+      return AppLocalizations(
+        locale: supportedLocales.contains(code) ? code : 'en',
+      );
+    } catch (_) {
+      return AppLocalizations(locale: 'en');
+    }
+  }
 
   /// List of supported locale codes
   static const List<String> supportedLocales = ['en', 'cy'];

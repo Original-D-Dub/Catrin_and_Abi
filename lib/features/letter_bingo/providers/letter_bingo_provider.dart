@@ -1,5 +1,11 @@
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
+import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+
+import '../../../shared/services/game_stats_service.dart';
+import '../models/animal_model.dart';
 import '../models/letter_bingo_level.dart';
 
 /// Game phases for Letter Bingo.
@@ -10,7 +16,7 @@ enum LetterBingoPhase {
   /// Actively playing a level
   playing,
 
-  /// Player has achieved BINGO
+  /// Player has achieved BINGO (shows BingoCelebration)
   bingo,
 }
 
@@ -21,11 +27,13 @@ enum LetterBingoPhase {
 /// 2. Board generation (tiles with BSL letters)
 /// 3. Random letter calling
 /// 4. Tile matching and reveal
-/// 5. Win detection (all cleared for L1, row complete for L2)
+/// 5. Win detection (all cleared for L1, row complete for L2+)
+/// 6. Animal reward selection (logged-in users only)
 ///
 /// Uses [ChangeNotifier] for reactive UI updates via Provider.
 class LetterBingoProvider extends ChangeNotifier {
-  /// Current game phase
+  final GameStatsService _statsService = GameStatsService();
+
   LetterBingoPhase _phase = LetterBingoPhase.levelSelect;
   LetterBingoPhase get phase => _phase;
 
@@ -44,35 +52,69 @@ class LetterBingoProvider extends ChangeNotifier {
   /// Queue of letters still to be called (shuffled order)
   List<String> _callQueue = [];
 
-  /// The row index that completed BINGO (Level 2 only, null for Level 1)
+  /// The row index that completed BINGO (Level 2+ only, null for Level 1)
   int? _completedRow;
   int? get completedRow => _completedRow;
 
+  /// Called when the player successfully reveals a tile.
+  VoidCallback? onCorrect;
+
+  /// Called when the player taps a tile that doesn't match the called letter.
+  VoidCallback? onWrongTap;
+
+  /// Overrides how many tiles are generated for Level 1 (null = use all).
+  int? _tileCountOverride;
+
+  // ── Animal reward ──────────────────────────────────────────────────────────
+
+  /// Lowercase letters the player has correctly tapped this round.
+  final Set<String> _tappedLetters = {};
+  Set<String> get tappedLetters => Set.unmodifiable(_tappedLetters);
+
+  /// The animal selected as the round reward (null if none available).
+  Animal? _rewardAnimal;
+  Animal? get rewardAnimal => _rewardAnimal;
+
+  /// All animals loaded from assets/data/animals.json.
+  List<Animal> _allAnimals = [];
+
+  final _rng = Random();
+
+  LetterBingoProvider() {
+    _loadAnimals();
+  }
+
+  Future<void> _loadAnimals() async {
+    try {
+      final json = await rootBundle.loadString('assets/data/animals.json');
+      final list = jsonDecode(json) as List<dynamic>;
+      _allAnimals =
+          list.map((e) => Animal.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      debugPrint('LetterBingoProvider: failed to load animals.json — $e');
+    }
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+
   /// Sets the level and starts the game.
-  ///
-  /// Generates the tile board and shuffles the call queue,
-  /// then automatically calls the first letter.
-  ///
-  /// Parameters:
-  /// - [levelNumber]: 1–5
-  void startLevel({required int levelNumber}) {
-    _currentLevel = LetterBingoLevel.allLevels
-        .firstWhere((l) => l.number == levelNumber);
+  void startLevel({required int levelNumber, int? tileCountOverride}) {
+    _currentLevel =
+        LetterBingoLevel.allLevels.firstWhere((l) => l.number == levelNumber);
+    _tileCountOverride = tileCountOverride;
     _completedRow = null;
+    _tappedLetters.clear();
+    _rewardAnimal = null;
 
     _generateTiles();
     _buildCallQueue();
     _phase = LetterBingoPhase.playing;
 
-    // Auto-call the first letter
     callNextLetter();
-
     notifyListeners();
   }
 
-  /// Returns to the level selection screen.
-  ///
-  /// Resets all game state and sets phase to [LetterBingoPhase.levelSelect].
+  /// Returns to the level selection screen and resets all state.
   void showLevelSelection() {
     _phase = LetterBingoPhase.levelSelect;
     _currentLevel = null;
@@ -80,74 +122,70 @@ class LetterBingoProvider extends ChangeNotifier {
     _calledLetter = null;
     _callQueue = [];
     _completedRow = null;
+    _tileCountOverride = null;
+    _tappedLetters.clear();
+    _rewardAnimal = null;
     notifyListeners();
   }
 
   /// Resets the current level and starts a new game.
-  ///
-  /// Keeps the same level but regenerates tiles and call queue.
   void resetGame() {
     if (_currentLevel == null) return;
-    startLevel(levelNumber: _currentLevel!.number);
+    startLevel(
+      levelNumber: _currentLevel!.number,
+      tileCountOverride: _tileCountOverride,
+    );
   }
 
   /// Handles a player tap on a tile.
   ///
-  /// If the tapped tile's letter matches the [calledLetter]:
-  /// 1. Reveals the tile (shows placeholder object)
-  /// 2. Checks for win condition
-  /// 3. If not won, calls the next letter
-  ///
-  /// If the tile doesn't match or is already revealed, does nothing.
-  ///
-  /// Parameters:
-  /// - [index]: The index of the tapped tile in the [tiles] list
+  /// Accepts only taps matching [calledLetter]. On a correct tap the tile is
+  /// revealed, the letter recorded, and win condition checked. On win,
+  /// transitions to [LetterBingoPhase.reward] if an animal reward can be
+  /// selected, otherwise directly to [LetterBingoPhase.bingo].
   void tapTile({required int index}) {
     if (_phase != LetterBingoPhase.playing) return;
     if (index < 0 || index >= _tiles.length) return;
 
     final tile = _tiles[index];
-
-    // Ignore taps on already-revealed tiles
     if (tile.isRevealed) return;
+    if (tile.letter != _calledLetter) {
+      onWrongTap?.call();
+      return;
+    }
 
-    // Only accept taps matching the called letter
-    if (tile.letter != _calledLetter) return;
-
-    // Reveal the tile
     tile.isRevealed = true;
+    _tappedLetters.add(tile.letter);
+    onCorrect?.call();
     notifyListeners();
 
-    // Check for win condition
     if (_checkWin()) {
+      _statsService.recordGameResult(
+        GameIds.letterBingo,
+        _tiles.where((t) => t.isRevealed).length,
+        level: _currentLevel!.number,
+      );
+      _rewardAnimal = _selectRewardAnimal();
       _phase = LetterBingoPhase.bingo;
       notifyListeners();
       return;
     }
 
-    // Call the next letter after a short delay for the reveal animation
     Future.delayed(const Duration(milliseconds: 800), () {
-      if (_phase == LetterBingoPhase.playing) {
-        callNextLetter();
-      }
+      if (_phase == LetterBingoPhase.playing) callNextLetter();
     });
   }
 
   /// Calls the next letter from the shuffled queue.
-  ///
-  /// Pops the first letter from [_callQueue] and sets it as
-  /// the [calledLetter]. If the queue is empty, reshuffles
-  /// unrevealed tile letters.
   void callNextLetter() {
     if (_phase != LetterBingoPhase.playing) return;
 
-    // If queue is empty, rebuild from unrevealed tiles
     if (_callQueue.isEmpty) {
       _callQueue = _tiles
           .where((t) => !t.isRevealed)
           .map((t) => t.letter)
           .toList()
-        ..shuffle();
+        ..shuffle(_rng);
     }
 
     if (_callQueue.isNotEmpty) {
@@ -156,11 +194,68 @@ class LetterBingoProvider extends ChangeNotifier {
     }
   }
 
-  /// Generates tiles for the current level.
+  // ── Animal reward selection ────────────────────────────────────────────────
+
+  /// Picks a weighted-random animal whose letter the player tapped this round.
   ///
-  /// - **Level 1**: Uses all 5 letters (a–e) in a single row.
-  /// - **Level 2**: Randomly selects 6 letters from a–i,
-  ///   arranged in a 2×3 grid.
+  /// Level weighting (letters listed as uppercase in JSON but compared
+  /// case-insensitively):
+  /// - L1: a–e (1×)
+  /// - L2: a–e (1×), f–i (2×)
+  /// - L3: a–i (1×), j–o (2×)
+  /// - L4: a–o (1×), p–u (2×)
+  /// - L5: a–u (1×), v–z (2×)
+  Animal? _selectRewardAnimal() {
+    if (_allAnimals.isEmpty ||
+        _currentLevel == null ||
+        _tappedLetters.isEmpty) {
+      return null;
+    }
+
+    final level = _currentLevel!.number;
+    final pool = <Animal>[];
+
+    for (final animal in _allAnimals) {
+      final letter = animal.letter.toLowerCase();
+      if (!_tappedLetters.contains(letter)) continue;
+      final weight = _weightForLetter(letter, level);
+      for (int i = 0; i < weight; i++) {
+        pool.add(animal);
+      }
+    }
+
+    if (pool.isEmpty) return null;
+    return pool[_rng.nextInt(pool.length)];
+  }
+
+  /// Returns the selection weight (0 = excluded) for [letter] at [level].
+  int _weightForLetter(String letter, int level) {
+    final code = letter.codeUnitAt(0) - 'a'.codeUnitAt(0); // 0=a … 25=z
+    switch (level) {
+      case 1: // a–e only
+        return code <= 4 ? 1 : 0;
+      case 2: // a–e (1×), f–i (2×)
+        if (code <= 4) return 1;
+        if (code <= 8) return 2;
+        return 0;
+      case 3: // a–i (1×), j–o (2×)
+        if (code <= 8) return 1;
+        if (code <= 14) return 2;
+        return 0;
+      case 4: // a–o (1×), p–u (2×)
+        if (code <= 14) return 1;
+        if (code <= 20) return 2;
+        return 0;
+      case 5: // a–u (1×), v–z (2×)
+        if (code <= 20) return 1;
+        return 2;
+      default:
+        return 0;
+    }
+  }
+
+  // ── Internal helpers ───────────────────────────────────────────────────────
+
   void _generateTiles() {
     final level = _currentLevel!;
     _tiles = [];
@@ -168,56 +263,41 @@ class LetterBingoProvider extends ChangeNotifier {
     List<String> selectedLetters;
 
     if (level.winByCompletingAllTiles) {
-      // Level 1: use all available letters, shuffled
-      selectedLetters = List<String>.from(level.availableLetters)..shuffle();
+      final pool = List<String>.from(level.availableLetters)..shuffle(_rng);
+      final count = _tileCountOverride ?? pool.length;
+      selectedLetters = pool.take(count).toList();
     } else {
-      // Level 2: randomly select tileCount letters from available
-      final pool = List<String>.from(level.availableLetters)..shuffle();
-      selectedLetters = pool.take(level.tileCount).toList()..shuffle();
+      final pool = List<String>.from(level.availableLetters)..shuffle(_rng);
+      selectedLetters = pool.take(level.tileCount).toList()..shuffle(_rng);
     }
 
-    // Create tiles with row/col positions
     for (int i = 0; i < selectedLetters.length; i++) {
-      final row = i ~/ level.cols;
-      final col = i % level.cols;
       _tiles.add(BingoTile(
         letter: selectedLetters[i],
-        row: row,
-        col: col,
+        row: i ~/ level.cols,
+        col: i % level.cols,
       ));
     }
   }
 
-  /// Builds the call queue by shuffling the tile letters.
-  ///
-  /// For Level 1, all 5 letters are queued.
-  /// For Level 2, all 6 placed letters are queued.
   void _buildCallQueue() {
-    _callQueue = _tiles.map((t) => t.letter).toList()..shuffle();
+    _callQueue = _tiles.map((t) => t.letter).toList()..shuffle(_rng);
   }
 
-  /// Checks if the current board state satisfies the win condition.
-  ///
-  /// - **Level 1**: All tiles must be revealed.
-  /// - **Level 2**: Any complete row (all 3 tiles in a row revealed).
-  ///
-  /// Returns true if the player has won.
   bool _checkWin() {
     final level = _currentLevel!;
 
     if (level.winByCompletingAllTiles) {
-      // Level 1: all tiles must be revealed
       return _tiles.every((t) => t.isRevealed);
-    } else {
-      // Level 2: check each row for completion
-      for (int row = 0; row < level.rows; row++) {
-        final rowTiles = _tiles.where((t) => t.row == row).toList();
-        if (rowTiles.isNotEmpty && rowTiles.every((t) => t.isRevealed)) {
-          _completedRow = row;
-          return true;
-        }
-      }
-      return false;
     }
+
+    for (int row = 0; row < level.rows; row++) {
+      final rowTiles = _tiles.where((t) => t.row == row).toList();
+      if (rowTiles.isNotEmpty && rowTiles.every((t) => t.isRevealed)) {
+        _completedRow = row;
+        return true;
+      }
+    }
+    return false;
   }
 }

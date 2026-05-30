@@ -6,6 +6,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/tts_helper.dart';
+import '../../../shared/services/game_stats_service.dart';
 import '../models/hand_landmark_data.dart';
 import '../services/hand_tracking_service.dart';
 
@@ -56,9 +57,9 @@ class CameraVowelsProvider extends ChangeNotifier {
 
   // ── Services ──────────────────────────────────────────────────────────────
 
-  late final HandTrackingService _trackingService =
-  HandTrackingService.create();
+  late final HandTrackingService _trackingService = HandTrackingService.create();
   final FlutterTts _tts = FlutterTts();
+  final GameStatsService _statsService = GameStatsService();
   StreamSubscription<List<HandLandmarkData>>? _landmarkSub;
 
   // ── Level / screen state ──────────────────────────────────────────────────
@@ -123,6 +124,9 @@ class CameraVowelsProvider extends ChangeNotifier {
   // ── Public API ────────────────────────────────────────────────────────────
 
   void showLevelSelection() {
+    if (_gameState == CameraVowelsGameState.playing && _score > 0) {
+      _statsService.recordGameResult(GameIds.cameraVowels, _score);
+    }
     _stopTracking();
     _showLevelSelect = true;
     _gameState = CameraVowelsGameState.idle;

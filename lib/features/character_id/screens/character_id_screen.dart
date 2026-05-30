@@ -1,10 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:rive/rive.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
-import '../../card_matching/widgets/confetti_overlay.dart';
-import '../models/mixed_character.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../shared/services/audio_service.dart';
+import '../../../shared/widgets/circular_video_container.dart';
+import '../../../shared/widgets/game_app_bar.dart';
+import '../../../shared/widgets/game_header_bar.dart';
+import '../../../shared/widgets/level_select_screen.dart';
+import '../../../shared/widgets/game_intro_countdown.dart';
+import '../../../shared/widgets/game_success_overlay.dart';
 import '../providers/character_id_provider.dart';
 import '../widgets/mixed_character_display.dart';
 
@@ -18,8 +27,15 @@ import '../widgets/mixed_character_display.dart';
 /// - Level 4: Compare Characters (10 to win)
 ///
 /// The player must answer questions about the character to score points.
-class CharacterIdScreen extends StatelessWidget {
+class CharacterIdScreen extends StatefulWidget {
   const CharacterIdScreen({super.key});
+
+  @override
+  State<CharacterIdScreen> createState() => _CharacterIdScreenState();
+}
+
+class _CharacterIdScreenState extends State<CharacterIdScreen> {
+  bool _showingIntro = false;
 
   @override
   Widget build(BuildContext context) {
@@ -27,27 +43,20 @@ class CharacterIdScreen extends StatelessWidget {
       create: (_) => CharacterIdProvider(),
       child: Consumer<CharacterIdProvider>(
         builder: (context, provider, child) {
+          final localizer = AppLocalizations.of(context);
+          provider.onAnswerResult ??= (isCorrect) {
+            if (isCorrect) {
+              AudioService.playCorrect('character_id');
+            } else {
+              AudioService.playWrong('character_id');
+            }
+          };
           return Scaffold(
             extendBodyBehindAppBar: true,
             appBar: provider.showLevelSelect
-                ? AppBar(
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    centerTitle: true,
-                    title: const Text(
-                      'Character ID',
-                      style: TextStyle(
-                        fontFamily: 'ComicRelief',
-                        fontSize: AppSizes.fontSizeLarge,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.accentWhite,
-                      ),
-                    ),
-                    leading: IconButton(
-                      icon: const Icon(Icons.arrow_back,
-                          color: AppColors.accentWhite),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                ? GameAppBar(
+                    title: 'Character ID',
+                    onBack: () => Navigator.pop(context),
                   )
                 : null,
             body: Container(
@@ -58,48 +67,80 @@ class CharacterIdScreen extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-              child: SafeArea(
-                child: provider.showLevelSelect
-                    ? _buildBody(context, provider)
-                    : Stack(
-                        children: [
-                          Column(
+              child: Stack(
+                children: [
+                  SafeArea(
+                    child: provider.showLevelSelect
+                        ? _buildBody(context, provider)
+                        : Column(
                             children: [
                               const SizedBox(height: 8),
-                              _buildHeaderBar(provider),
+                              GameHeaderBar(
+                                onBack: () => provider.showLevelSelection(),
+                                scoreValue: '${provider.score}',
+                                levelNumber: provider.currentLevel.number,
+                                centerContent: provider.isLevel3
+                                    ? GameTimerDisplay(
+                                        formattedTime: _formatTime(
+                                          provider.remainingSeconds,
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          localizer('character_id.level${provider.currentLevel.number}.name'),
+                                          style: const TextStyle(
+                                            fontFamily: 'ComicRelief',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                              ),
                               const SizedBox(height: 12),
                               Expanded(
                                 child: _buildBody(context, provider),
                               ),
                             ],
                           ),
-
-                          // Victory overlay for all levels
-                          if (provider.gameState ==
-                              CharacterIdGameState.finished)
-                            ConfettiOverlay(
-                              message: provider.isLevel3
-                                  ? "Time's Up!\nYou got ${provider.score} correct!"
-                                  : 'Well Done!\nYou got ${provider.score} correct!',
-                              playAgainLabel: 'Play Again',
-                              homeLabel: 'Home',
-                              onPlayAgain: () => provider.resetGame(),
-                              onHome: () => Navigator.pop(context),
-                              onChangeLevel: () => provider.showLevelSelection(),
-                            ),
-
-                          // Back button overlay (top-left)
-                          Positioned(
-                            top: 4,
-                            left: 4,
-                            child: IconButton(
-                              icon: const Icon(Icons.arrow_back,
-                                  color: Colors.white),
-                              onPressed: () => provider.showLevelSelection(),
-                            ),
-                          ),
-                        ],
+                  ),
+                  if (_showingIntro)
+                    GameIntroCountdown(
+                      gameId: 'character_id',
+                      onComplete: () {
+                        setState(() => _showingIntro = false);
+                        provider.startSpeedRound();
+                      },
+                    ),
+                  if (!provider.showLevelSelect &&
+                      provider.gameState == CharacterIdGameState.finished)
+                    Positioned.fill(
+                      child: GameSuccessOverlay(
+                        gameId: 'character_id',
+                        scoreStyle: provider.isLevel3
+                            ? SuccessScoreStyle.youScored
+                            : SuccessScoreStyle.got10Correct,
+                        score: provider.score,
+                        showPersonalBest: provider.isLevel3,
+                        isNewPersonalBest:
+                            provider.lastResult?.isNewPersonalBest ?? false,
+                        personalBest: provider.lastResult?.personalBest,
+                        onPlayAgain: () {
+                          provider.resetGame();
+                          if (provider.isLevel3) {
+                            setState(() => _showingIntro = true);
+                          }
+                        },
+                        onNextLevel: provider.currentLevel.number <
+                                CharacterIdLevel.all.length
+                            ? () => provider.selectLevel(
+                                provider.currentLevel.number + 1)
+                            : null,
+                        onChangeLevel: () => provider.showLevelSelection(),
                       ),
+                    ),
+                ],
               ),
             ),
           );
@@ -115,196 +156,6 @@ class CharacterIdScreen extends StatelessWidget {
     return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
-  /// Builds the game header bar with score circle, optional timer, and level.
-  Widget _buildHeaderBar(CharacterIdProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16),
-      child: SizedBox(
-        height: 88,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Purple header rectangle
-            Positioned(
-              left: 40,
-              right: 0,
-              top: 8,
-              bottom: 8,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: AppColors.headerBackgroundLight,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: AppColors.headerBorderDark,
-                    width: 2,
-                  ),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.headerBackground,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.headerBorderDark,
-                      width: 2,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      // Spacer for score circle area
-                      const SizedBox(width: 48),
-
-                      // Centre section: timer for Level 3, level name otherwise
-                      if (provider.isLevel3)
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'Time',
-                                style: TextStyle(
-                                  fontFamily: 'ComicRelief',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.timeContainer,
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                child: Text(
-                                  _formatTime(provider.remainingSeconds),
-                                  style: const TextStyle(
-                                    fontFamily: 'ComicRelief',
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (provider.currentLevel.name.isNotEmpty)
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              provider.currentLevel.name,
-                              style: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        )
-                      else
-                        const Spacer(),
-
-                      // Level section (right)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 16),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Level',
-                              style: TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              '${provider.currentLevel.number}',
-                              style: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Score circle (overlapping left edge)
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Container(
-                  width: 104,
-                  height: 104,
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.headerBackgroundLight,
-                    border: Border.all(
-                      color: AppColors.headerBorderDark,
-                      width: 2,
-                    ),
-                  ),
-                  child: Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.headerBackground,
-                      border: Border.all(
-                        color: AppColors.headerBorderDark,
-                        width: 2,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Score',
-                          style: TextStyle(
-                            fontFamily: 'ComicRelief',
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          '${provider.score}',
-                          style: const TextStyle(
-                            fontFamily: 'ComicRelief',
-                            fontSize: 44,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            height: 1.0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   /// Builds the main body content.
   Widget _buildBody(BuildContext context, CharacterIdProvider provider) {
@@ -361,105 +212,23 @@ class CharacterIdScreen extends StatelessWidget {
   /// Builds the level selection screen.
   Widget _buildLevelSelectScreen(
       BuildContext context, CharacterIdProvider provider) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSizes.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Title
-            const Text(
-              'Choose a Level',
-              style: TextStyle(
-                fontSize: AppSizes.fontSizeTitle,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            
-            const SizedBox(height: AppSizes.spacingLarge),
-
-            // Level buttons in grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: AppSizes.spacingMedium,
-              crossAxisSpacing: AppSizes.spacingMedium,
-              childAspectRatio: 1.3,
-              children: CharacterIdLevel.all.map((level) {
-                return _buildLevelButton(
-                  levelNumber: level.number,
-                  name: level.name,
-                  description: level.description,
-                  color: _getLevelColor(level.number),
-                  onTap: () => provider.selectLevel(level.number),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Returns the color for a level button.
-  Color _getLevelColor(int levelNumber) {
-    switch (levelNumber) {
-      case 1:
-        return AppColors.abiPink;
-      case 2:
-        return AppColors.accentPurple;
-      case 3:
-        return AppColors.accentOrange;
-      case 4:
-        return AppColors.accentLimeGreen;
-      default:
-        return AppColors.accentOrange;
-    }
-  }
-
-  /// Builds a level selection button.
-  Widget _buildLevelButton({
-    required int levelNumber,
-    required String name,
-    required String description,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.all(AppSizes.paddingMedium),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
-        ),
-        elevation: 2,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Level $levelNumber',
-            style: const TextStyle(
-              fontSize: AppSizes.fontSizeLarge,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: AppSizes.spacingXSmall),
-          Text(
-            name,
-            style: const TextStyle(
-              fontSize: AppSizes.fontSizeBody,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
+    final localizer = AppLocalizations.of(context);
+    return LevelSelectScreen(
+      levels: CharacterIdLevel.all.map((level) {
+        return LevelSelectItem(
+          number: level.number,
+          name: localizer('character_id.level${level.number}.name'),
+          // description: localizer('character_id.level${level.number}.description'),
+          color: levelColor(level.number - 1),
+          onTap: () {
+            provider.selectLevel(level.number);
+            if (level.number == 3) {
+              setState(() => _showingIntro = true);
+            }
+            AudioService.playIntro('character_id');
+          },
+        );
+      }).toList(),
     );
   }
 
@@ -478,108 +247,99 @@ class CharacterIdScreen extends StatelessWidget {
         final isCompact = constraints.maxHeight < 500;
 
         if (isLandscape) {
-          // Landscape: character on left, question and buttons on right
-          return Row(
+          return Stack(
+            fit: StackFit.expand,
             children: [
-              // Character display
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                  child: MixedCharacterDisplay(
-                    character: provider.currentMixedCharacter!,
-                  ),
-                ),
-              ),
-
-              // Question, feedback, and buttons
-              Expanded(
-                flex: 1,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Question
-                    Padding(
+              Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Padding(
                       padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                      child: Text(
-                        provider.currentQuestion,
-                        style: const TextStyle(
-                          fontSize: AppSizes.fontSizeLarge,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                        textAlign: TextAlign.center,
+                      child: MixedCharacterDisplay(
+                        character: provider.currentMixedCharacter!,
                       ),
                     ),
-
-                    // Feedback message
-                    SizedBox(
-                      height: 50,
-                      child: _buildFeedback(provider),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                          child: Text(
+                            provider.currentQuestion,
+                            style: const TextStyle(
+                              fontSize: AppSizes.fontSizeLarge,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                            child: _buildColorChoiceButtons(provider),
+                          ),
+                        ),
+                      ],
                     ),
-
-                    // Color choice buttons
-                    Padding(
-                      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                      child: _buildColorChoiceButtons(provider),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              _FeedbackOverlay(gameState: provider.gameState),
             ],
           );
         }
 
         // Portrait layout
-        return Column(
+        return Stack(
+          fit: StackFit.expand,
           children: [
-            // Question (alternates between trousers and shoes)
-            Padding(
-              padding: EdgeInsets.all(
-                isCompact ? AppSizes.paddingSmall : AppSizes.paddingMedium,
-              ),
-              child: Text(
-                provider.currentQuestion,
-                style: TextStyle(
-                  fontSize:
-                      isCompact ? AppSizes.fontSizeBody : AppSizes.fontSizeLarge,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
-            // Mixed character display (randomised body parts)
-            Expanded(
-              flex: isCompact ? 2 : 3,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingMedium,
+            Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(
+                    isCompact ? AppSizes.paddingSmall : AppSizes.paddingMedium,
                   ),
-                  child: MixedCharacterDisplay(
-                    character: provider.currentMixedCharacter!,
+                  child: Text(
+                    provider.currentQuestion,
+                    style: TextStyle(
+                      fontSize: isCompact
+                          ? AppSizes.fontSizeBody
+                          : AppSizes.fontSizeLarge,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ),
+                Expanded(
+                  flex: isCompact ? 2 : 3,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.paddingMedium,
+                      ),
+                      child: MixedCharacterDisplay(
+                        character: provider.currentMixedCharacter!,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: EdgeInsets.all(
+                      isCompact ? AppSizes.paddingSmall : AppSizes.paddingMedium,
+                    ),
+                    child: _buildColorChoiceButtons(provider),
+                  ),
+                ),
+              ],
             ),
-
-            // Feedback message
-            SizedBox(
-              height: isCompact ? 40 : 50,
-              child: _buildFeedback(provider),
-            ),
-
-            // Color choice buttons
-            Padding(
-              padding: EdgeInsets.all(
-                isCompact ? AppSizes.paddingSmall : AppSizes.paddingMedium,
-              ),
-              child: _buildColorChoiceButtons(provider),
-            ),
-
-            SizedBox(height: isCompact ? 0 : AppSizes.spacingSmall),
+            _FeedbackOverlay(gameState: provider.gameState),
           ],
         );
       },
@@ -587,34 +347,62 @@ class CharacterIdScreen extends StatelessWidget {
   }
 
   /// Builds the color choice buttons for Levels 1, 2, and 3.
+  ///
+  /// Narrow screens (<600 px): 2 buttons (1 correct + 1 wrong), 2-column layout.
+  /// Wide screens (≥600 px): 3 buttons, 3-column layout.
   Widget _buildColorChoiceButtons(CharacterIdProvider provider) {
-    final choices = provider.answerChoices;
-    final isDisabled = provider.gameState != CharacterIdGameState.playing;
-    // Level 1 shows colour hints, Level 2 and 3 do not
-    final showColourHint = provider.isLevel1;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 600;
+        final choices = isNarrow
+            ? _twoChoices(provider)
+            : provider.answerChoices;
+        final isDisabled = provider.gameState != CharacterIdGameState.playing;
+        final showColourHint = provider.isLevel1;
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: AppSizes.spacingMedium,
-      runSpacing: AppSizes.spacingMedium,
-      children: choices.map((color) {
-        final isSelected = provider.selectedAnswer == color;
-        final isCorrect = provider.gameState == CharacterIdGameState.correct &&
-            isSelected;
-        final isWrong =
-            provider.gameState == CharacterIdGameState.wrong && isSelected;
-
-        return _buildColorButton(
-          colorName: color,
-          isSelected: isSelected,
-          isCorrect: isCorrect,
-          isWrong: isWrong,
-          isDisabled: isDisabled,
-          showColourHint: showColourHint,
-          onPressed: () => provider.selectLevel1Answer(color),
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (int i = 0; i < choices.length; i++) ...[
+              if (i > 0) const SizedBox(width: AppSizes.spacingMedium),
+              Expanded(
+                child: _buildColorButton(
+                  colorName: choices[i],
+                  isSelected: provider.selectedAnswer == choices[i],
+                  isCorrect: provider.gameState == CharacterIdGameState.correct &&
+                      provider.selectedAnswer == choices[i],
+                  isWrong: provider.gameState == CharacterIdGameState.wrong &&
+                      provider.selectedAnswer == choices[i],
+                  isDisabled: isDisabled,
+                  showColourHint: showColourHint,
+                  onPressed: () => provider.selectLevel1Answer(choices[i]),
+                ),
+              ),
+            ],
+          ],
         );
-      }).toList(),
+      },
     );
+  }
+
+  /// Returns 2 choices (the correct answer + one wrong) in their original
+  /// shuffled order, so the correct position is still random.
+  List<String> _twoChoices(CharacterIdProvider provider) {
+    final choices = provider.answerChoices;
+    if (choices.length <= 2) return choices;
+    final correct = provider.correctAnswer;
+    final result = <String>[];
+    bool wrongAdded = false;
+    for (final c in choices) {
+      if (c == correct) {
+        result.add(c);
+      } else if (!wrongAdded) {
+        result.add(c);
+        wrongAdded = true;
+      }
+      if (result.length == 2) break;
+    }
+    return result;
   }
 
   /// Builds a single color choice button with BSL image.
@@ -634,20 +422,18 @@ class CharacterIdScreen extends StatelessWidget {
     Color borderColor;
 
     if (isCorrect) {
-      backgroundColor = AppColors.success.withValues(alpha: 0.2);
+      backgroundColor = AppColors.success;
       borderColor = AppColors.success;
     } else if (isWrong) {
-      backgroundColor = AppColors.accentRed.withValues(alpha: 0.2);
+      backgroundColor = AppColors.accentRed;
       borderColor = AppColors.accentRed;
     } else if (showColourHint) {
-      // Level 1: Show colour-coded background and border
       final buttonColor = _getColorFromName(colorName);
-      backgroundColor = buttonColor.withValues(alpha: 0.15);
+      backgroundColor = buttonColor;
       borderColor = buttonColor;
     } else {
-      // Level 2 and 3: Neutral styling without colour hints
       backgroundColor = Colors.white;
-      borderColor = AppColors.catrinBlue.withValues(alpha: 0.5);
+      borderColor = AppColors.catrinBlue;
     }
 
     // Build the BSL image path from the color name
@@ -670,6 +456,7 @@ class CharacterIdScreen extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
+          alignment: Alignment.center,
           padding: buttonPadding,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
@@ -691,29 +478,26 @@ class CharacterIdScreen extends StatelessWidget {
           ),
           child: Opacity(
             opacity: isDisabled && !isSelected ? 0.5 : 1.0,
-            child: SizedBox(
-              width: 80,
-              height: 80,
-              child: Image.asset(
-                imagePath,
-                fit: imageFit,
-                errorBuilder: (context, error, stackTrace) {
-                  // Fallback to text if image not found
-                  return Center(
-                    child: Text(
-                      _capitalise(colorName),
-                      style: TextStyle(
-                        fontSize: AppSizes.fontSizeBody,
-                        fontWeight: FontWeight.bold,
-                        color: showColourHint
-                            ? _getColorFromName(colorName)
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            child: const {'green', 'blue', 'pink', 'purple'}.contains(colorName.toLowerCase())
+                ? _BslColourRiveWidget(key: ValueKey(colorName.toLowerCase()), colourName: colorName.toLowerCase())
+                : Image.asset(
+                    imagePath,
+                    fit: imageFit,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Text(
+                          _capitalise(colorName),
+                          style: TextStyle(
+                            fontSize: AppSizes.fontSizeBody,
+                            fontWeight: FontWeight.bold,
+                            color: showColourHint
+                                ? _getColorFromName(colorName)
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ),
       ),
@@ -724,7 +508,7 @@ class CharacterIdScreen extends StatelessWidget {
   Color _getColorFromName(String name) {
     switch (name.toLowerCase()) {
       case 'pink':
-        return Colors.pink;
+        return AppColors.lightPink;
       case 'blue':
         return Colors.blue;
       case 'navy':
@@ -772,165 +556,137 @@ class CharacterIdScreen extends StatelessWidget {
     final char1 = provider.currentMixedCharacter!;
     final char2 = provider.secondMixedCharacter!;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxHeight < 500;
-        final isVeryWide = constraints.maxWidth > 600;
-
-        return Column(
-          children: [
-            // Question
-            Padding(
-              padding: EdgeInsets.all(
-                isCompact ? AppSizes.paddingSmall : AppSizes.paddingMedium,
-              ),
-              child: Text(
-                provider.level4Question,
-                style: TextStyle(
-                  fontSize: isCompact
-                      ? AppSizes.fontSizeBody
-                      : AppSizes.fontSizeLarge,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
-            // Two characters side by side
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isVeryWide
-                      ? constraints.maxWidth * 0.1
-                      : AppSizes.paddingSmall,
-                ),
-                child: Row(
-                  children: [
-                    // First character with name label
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.paddingSmall,
-                        ),
-                        child: Column(
-                          children: [
-                            // Character name label
-                            Text(
-                              char1.identityName,
-                              style: TextStyle(
-                                fontSize: isCompact
-                                    ? AppSizes.fontSizeSmall
-                                    : AppSizes.fontSizeBody,
-                                fontWeight: FontWeight.bold,
-                                color: _getButtonColour(char1.identityName),
-                              ),
-                            ),
-                            SizedBox(
-                              height: isCompact
-                                  ? AppSizes.spacingXSmall
-                                  : AppSizes.spacingSmall,
-                            ),
-                            // Character display
-                            Expanded(
-                              child: MixedCharacterDisplay(
-                                character: char1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Second character with name label
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.paddingSmall,
-                        ),
-                        child: Column(
-                          children: [
-                            // Character name label
-                            Text(
-                              char2.identityName,
-                              style: TextStyle(
-                                fontSize: isCompact
-                                    ? AppSizes.fontSizeSmall
-                                    : AppSizes.fontSizeBody,
-                                fontWeight: FontWeight.bold,
-                                color: _getButtonColour(char2.identityName),
-                              ),
-                            ),
-                            SizedBox(
-                              height: isCompact
-                                  ? AppSizes.spacingXSmall
-                                  : AppSizes.spacingSmall,
-                            ),
-                            // Character display
-                            Expanded(
-                              child: MixedCharacterDisplay(
-                                character: char2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Feedback message
-            SizedBox(
-              height: isCompact ? 40 : 50,
-              child: _buildFeedback(provider),
-            ),
-
-            // Two answer buttons with character names
-            Padding(
-              padding: EdgeInsets.all(
-                isCompact ? AppSizes.paddingSmall : AppSizes.paddingMedium,
-              ),
-              child: _buildLevel4AnswerButtons(provider, char1, char2),
-            ),
-
-            SizedBox(height: isCompact ? 0 : AppSizes.spacingSmall),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Builds the two answer buttons for Level 4.
-  Widget _buildLevel4AnswerButtons(
-    CharacterIdProvider provider,
-    MixedCharacter char1,
-    MixedCharacter char2,
-  ) {
-    final isDisabled = provider.gameState != CharacterIdGameState.playing;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        _buildLevel4AnswerButton(
-          name: char1.identityName,
-          isSelected: provider.selectedName == char1.identityName,
-          isCorrect: provider.gameState == CharacterIdGameState.correct &&
-              provider.selectedName == char1.identityName,
-          isWrong: provider.gameState == CharacterIdGameState.wrong &&
-              provider.selectedName == char1.identityName,
-          isDisabled: isDisabled,
-          onPressed: () => provider.selectLevel4Answer(char1.identityName),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxHeight < 500;
+            final isVeryWide = constraints.maxWidth > 600;
+
+            return Column(
+              children: [
+                // Question
+                Padding(
+                  padding: EdgeInsets.all(
+                    isCompact ? AppSizes.paddingSmall : AppSizes.paddingMedium,
+                  ),
+                  child: Text(
+                    provider.level4Question,
+                    style: TextStyle(
+                      fontSize: isCompact
+                          ? AppSizes.fontSizeBody
+                          : AppSizes.fontSizeLarge,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                // Two characters side by side with buttons below each
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isVeryWide
+                          ? constraints.maxWidth * 0.1
+                          : AppSizes.paddingSmall,
+                    ),
+                    child: Row(
+                      children: [
+                        // First character
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSizes.paddingSmall,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: MixedCharacterDisplay(
+                                    character: char1,
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: isCompact
+                                      ? AppSizes.spacingXSmall
+                                      : AppSizes.spacingSmall,
+                                ),
+                                _buildLevel4AnswerButton(
+                                  name: char1.identityName,
+                                  isSelected: provider.selectedName == char1.identityName,
+                                  isCorrect: provider.gameState == CharacterIdGameState.correct &&
+                                      provider.selectedName == char1.identityName,
+                                  isWrong: provider.gameState == CharacterIdGameState.wrong &&
+                                      provider.selectedName == char1.identityName,
+                                  isDisabled: provider.gameState != CharacterIdGameState.playing,
+                                  onPressed: () => provider.selectLevel4Answer(char1.identityName),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // Second character
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSizes.paddingSmall,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: MixedCharacterDisplay(
+                                    character: char2,
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: isCompact
+                                      ? AppSizes.spacingXSmall
+                                      : AppSizes.spacingSmall,
+                                ),
+                                _buildLevel4AnswerButton(
+                                  name: char2.identityName,
+                                  isSelected: provider.selectedName == char2.identityName,
+                                  isCorrect: provider.gameState == CharacterIdGameState.correct &&
+                                      provider.selectedName == char2.identityName,
+                                  isWrong: provider.gameState == CharacterIdGameState.wrong &&
+                                      provider.selectedName == char2.identityName,
+                                  isDisabled: provider.gameState != CharacterIdGameState.playing,
+                                  onPressed: () => provider.selectLevel4Answer(char2.identityName),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Bottom zone: feedback on left, video circle overlays on right
+                Container(
+                  height: isCompact ? 96 : 140,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.only(left: AppSizes.paddingMedium),
+                  child: _buildFeedback(provider),
+                ),
+              ],
+            );
+          },
         ),
-        _buildLevel4AnswerButton(
-          name: char2.identityName,
-          isSelected: provider.selectedName == char2.identityName,
-          isCorrect: provider.gameState == CharacterIdGameState.correct &&
-              provider.selectedName == char2.identityName,
-          isWrong: provider.gameState == CharacterIdGameState.wrong &&
-              provider.selectedName == char2.identityName,
-          isDisabled: isDisabled,
-          onPressed: () => provider.selectLevel4Answer(char2.identityName),
+
+        // Circular video — placeholder until assets are added
+        Positioned(
+          bottom: -50,
+          right: -20,
+          child: CircularVideoContainer(
+            size: 200,
+            videoAssetPath: null,
+            label: 'BSL',
+            autoPlay: false,
+          ),
         ),
       ],
     );
@@ -945,63 +701,68 @@ class CharacterIdScreen extends StatelessWidget {
     required bool isDisabled,
     required VoidCallback onPressed,
   }) {
-    Color backgroundColor;
+    Color outerColor;
+    Color innerColor;
     Color borderColor;
     Color textColor;
 
     if (isCorrect) {
-      backgroundColor = AppColors.success.withValues(alpha: 0.2);
+      outerColor = AppColors.success.withValues(alpha: 0.4);
+      innerColor = AppColors.success.withValues(alpha: 0.2);
       borderColor = AppColors.success;
       textColor = AppColors.success;
     } else if (isWrong) {
-      backgroundColor = AppColors.accentRed.withValues(alpha: 0.2);
+      outerColor = AppColors.accentRed.withValues(alpha: 0.4);
+      innerColor = AppColors.accentRed.withValues(alpha: 0.2);
       borderColor = AppColors.accentRed;
       textColor = AppColors.accentRed;
     } else {
-      backgroundColor = _getButtonColour(name).withValues(alpha: 0.15);
-      borderColor = _getButtonColour(name);
-      textColor = AppColors.textPrimary;
+      outerColor = AppColors.headerBackgroundLight;
+      innerColor = AppColors.headerBackground;
+      borderColor = AppColors.headerBorderDark;
+      textColor = Colors.white;
     }
 
-    // Scale up when correct or wrong to provide visual feedback without layout shift
-    final scale = (isCorrect || isWrong) ? 1.1 : 1.0;
+    final scale = (isCorrect || isWrong) ? 1.05 : 1.0;
 
     return GestureDetector(
       onTap: isDisabled ? null : onPressed,
       child: AnimatedScale(
         scale: scale,
         duration: const Duration(milliseconds: 200),
-        child: AnimatedContainer(
+        child: AnimatedOpacity(
+          opacity: isDisabled && !isSelected ? 0.5 : 1.0,
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.paddingLarge * 1.5,
-            vertical: AppSizes.paddingMedium,
-          ),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
-            border: Border.all(
-              color: borderColor,
-              width: 2,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: double.infinity,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: outerColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: borderColor, width: 2),
             ),
-            boxShadow: isDisabled
-                ? null
-                : [
-                    BoxShadow(
-                      color: borderColor.withValues(alpha: 0.2),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-          ),
-          child: Opacity(
-            opacity: isDisabled && !isSelected ? 0.5 : 1.0,
-            child: Text(
-              name,
-              style: TextStyle(
-                fontSize: AppSizes.fontSizeLarge,
-                fontWeight: FontWeight.bold,
-                color: textColor,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.spacingMedium,
+                vertical: AppSizes.spacingSmall,
+              ),
+              decoration: BoxDecoration(
+                color: innerColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: borderColor, width: 2),
+              ),
+              child: Text(
+                name,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'ComicRelief',
+                  fontSize: AppSizes.fontSizeLarge,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
               ),
             ),
           ),
@@ -1014,7 +775,7 @@ class CharacterIdScreen extends StatelessWidget {
   Widget _buildFeedback(CharacterIdProvider provider) {
     if (provider.gameState == CharacterIdGameState.correct) {
       return const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.check_circle, color: AppColors.success, size: 28),
           SizedBox(width: AppSizes.spacingSmall),
@@ -1032,7 +793,7 @@ class CharacterIdScreen extends StatelessWidget {
 
     if (provider.gameState == CharacterIdGameState.wrong) {
       return const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.cancel, color: AppColors.accentRed, size: 28),
           SizedBox(width: AppSizes.spacingSmall),
@@ -1051,21 +812,179 @@ class CharacterIdScreen extends StatelessWidget {
     return const SizedBox.shrink();
   }
 
-  /// Returns a colour associated with a character name for buttons.
-  Color _getButtonColour(String name) {
-    switch (name.toLowerCase()) {
-      case 'catrin':
-        return AppColors.catrinBlue;
-      case 'abi':
-        return AppColors.abiPink;
-      case 'chris':
-        return Colors.amber;
-      case 'jo':
-        return Colors.orange;
-      case 'robin':
-        return Colors.green;
-      default:
-        return AppColors.catrinBlue;
+
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BSL colour Rive widget
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Displays a BSL colour sign from a Rive file and re-triggers the animation
+/// every 6 seconds so the sign replays periodically.
+///
+/// ## Rive spec
+/// - File:          `assets/images/colours_BSL/{colourName}.riv`
+/// - Artboard:      `{colourName}` (e.g. `green`, `blue`, `pink`, `purple`)
+/// - State machine: `{colourName}_state_machine`
+/// - Trigger input: `play_{colourName}`
+class _BslColourRiveWidget extends StatefulWidget {
+  const _BslColourRiveWidget({super.key, required this.colourName});
+
+  final String colourName;
+
+  @override
+  State<_BslColourRiveWidget> createState() => _BslColourRiveWidgetState();
+}
+
+class _BslColourRiveWidgetState extends State<_BslColourRiveWidget> {
+  late final FileLoader _fileLoader;
+  TriggerInput? _playTrigger;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _fileLoader = FileLoader.fromAsset(
+      'assets/images/colours_BSL/${widget.colourName}.riv',
+      riveFactory: Factory.flutter,
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _fileLoader.dispose();
+    super.dispose();
+  }
+
+  void _onLoaded(RiveLoaded state) {
+    // ignore: deprecated_member_use
+    _playTrigger = state.controller.stateMachine.trigger('play_${widget.colourName}');
+    _triggerAnimation();
+    _timer = Timer.periodic(
+      const Duration(seconds: 6),
+      (_) => _triggerAnimation(),
+    );
+  }
+
+  void _triggerAnimation() {
+    _playTrigger?.fire();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RiveWidgetBuilder(
+      fileLoader: _fileLoader,
+      artboardSelector: ArtboardSelector.byName(widget.colourName),
+      stateMachineSelector: StateMachineSelector.byName('${widget.colourName}_state_machine'),
+      onLoaded: _onLoaded,
+      builder: (context, state) => switch (state) {
+        RiveLoading() => const SizedBox.shrink(),
+        RiveFailed() => const SizedBox.shrink(),
+        RiveLoaded() => RiveWidget(
+            controller: state.controller,
+            fit: Fit.contain,
+          ),
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Feedback overlay
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Centred pill overlay that shows "Correct!" or "Try again!" for 3.5 seconds
+/// whenever the game transitions into a correct or wrong state.
+///
+/// Uses [IgnorePointer] so it never blocks taps on the buttons beneath it,
+/// and [AnimatedOpacity] for a smooth fade-out.
+class _FeedbackOverlay extends StatefulWidget {
+  const _FeedbackOverlay({required this.gameState});
+
+  final CharacterIdGameState gameState;
+
+  @override
+  State<_FeedbackOverlay> createState() => _FeedbackOverlayState();
+}
+
+class _FeedbackOverlayState extends State<_FeedbackOverlay> {
+  bool _visible = false;
+  bool _isCorrect = false;
+  Timer? _hideTimer;
+
+  @override
+  void didUpdateWidget(_FeedbackOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.gameState == CharacterIdGameState.correct &&
+        oldWidget.gameState != CharacterIdGameState.correct) {
+      _show(correct: true);
+    } else if (widget.gameState == CharacterIdGameState.wrong &&
+        oldWidget.gameState != CharacterIdGameState.wrong) {
+      _show(correct: false);
     }
+  }
+
+  void _show({required bool correct}) {
+    _hideTimer?.cancel();
+    setState(() {
+      _visible = true;
+      _isCorrect = correct;
+    });
+    _hideTimer = Timer(const Duration(milliseconds: 3500), () {
+      if (mounted) setState(() => _visible = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        opacity: _visible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            decoration: BoxDecoration(
+              color: _isCorrect ? AppColors.success : AppColors.accentRed,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _isCorrect ? Icons.check_circle : Icons.cancel,
+                  color: Colors.white,
+                  size: 28,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _isCorrect ? 'Correct!' : 'Try again!',
+                  style: const TextStyle(
+                    fontFamily: 'ComicRelief',
+                    fontSize: AppSizes.fontSizeLarge,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

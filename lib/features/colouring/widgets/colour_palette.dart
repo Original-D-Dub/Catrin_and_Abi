@@ -28,11 +28,15 @@ class ColourPalette extends StatelessWidget {
   /// Callback when a colour is tapped
   final ValueChanged<Color> onColourSelected;
 
+  /// Diameter of each colour button. Increase for tablet layouts.
+  final double buttonSize;
+
   const ColourPalette({
     super.key,
     required this.colourRows,
     required this.selectedColour,
     required this.onColourSelected,
+    this.buttonSize = 36.0,
   });
 
   @override
@@ -55,25 +59,23 @@ class ColourPalette extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: colourRows.map((row) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: row.map((colour) {
-                  final isSelected = _coloursEqual(colour, selectedColour);
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: _ColourButton(
-                      colour: colour,
-                      isSelected: isSelected,
-                      onTap: () => onColourSelected(colour),
-                    ),
-                  );
-                }).toList(),
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: row.map((colour) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _ColourButton(
+                    colour: colour,
+                    isSelected: _coloursEqual(colour, selectedColour),
+                    onTap: () => onColourSelected(colour),
+                    buttonSize: buttonSize,
+                  ),
+                );
+              }).toList(),
             ),
           );
         }).toList(),
@@ -98,13 +100,14 @@ class _ColourButton extends StatelessWidget {
   /// Callback when button is tapped
   final VoidCallback onTap;
 
-  /// Size of the colour button
-  static const double _buttonSize = 36.0;
+  /// Diameter of this button
+  final double buttonSize;
 
   const _ColourButton({
     required this.colour,
     required this.isSelected,
     required this.onTap,
+    this.buttonSize = 36.0,
   });
 
   @override
@@ -113,8 +116,8 @@ class _ColourButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        width: _buttonSize,
-        height: _buttonSize,
+        width: buttonSize,
+        height: buttonSize,
         decoration: BoxDecoration(
           color: colour,
           shape: BoxShape.circle,
@@ -136,7 +139,7 @@ class _ColourButton extends StatelessWidget {
         child: colour == Colors.white
             ? ClipOval(
                 child: CustomPaint(
-                  size: const Size(_buttonSize - 2, _buttonSize - 2),
+                  size: Size(buttonSize - 2, buttonSize - 2),
                   painter: _CheckerPainter(),
                 ),
               )

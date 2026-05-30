@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../shared/services/game_stats_service.dart';
 import '../models/game_character.dart';
 import '../models/mixed_character.dart';
 
@@ -44,37 +45,15 @@ enum Level1QuestionType {
 /// Represents a level in the Character Identification game.
 class CharacterIdLevel {
   final int number;
-  final String name;
-  final String description;
 
-  const CharacterIdLevel({
-    required this.number,
-    required this.name,
-    required this.description,
-  });
+  const CharacterIdLevel({required this.number});
 
   /// All available levels.
   static const List<CharacterIdLevel> all = [
-    CharacterIdLevel(
-      number: 1,
-      name: 'Clothing Colours',
-      description: 'Get 10 correct to win!',
-    ),
-    CharacterIdLevel(
-      number: 2,
-      name: 'Clothing Colours',
-      description: 'Get 10 correct to win!',
-    ),
-    CharacterIdLevel(
-      number: 3,
-      name: 'Speed Round',
-      description: 'How many can you get in 60 seconds?',
-    ),
-    CharacterIdLevel(
-      number: 4,
-      name: 'Compare Characters',
-      description: 'Get 10 correct to win!',
-    ),
+    CharacterIdLevel(number: 1),
+    CharacterIdLevel(number: 2),
+    CharacterIdLevel(number: 3),
+    CharacterIdLevel(number: 4),
   ];
 }
 
@@ -82,8 +61,9 @@ class CharacterIdLevel {
 class _Level4Question {
   final String questionText;
   final String correctCharacterName;
+  final String questionColour;
 
-  const _Level4Question(this.questionText, this.correctCharacterName);
+  const _Level4Question(this.questionText, this.correctCharacterName, this.questionColour);
 }
 
 /// Provider for managing the Character Identification game state.
@@ -120,6 +100,13 @@ class CharacterIdProvider extends ChangeNotifier {
   // -------------------------
 
   final Random _random = Random();
+  final GameStatsService _statsService = GameStatsService();
+
+  /// Called after answer checking with `true` for correct, `false` for wrong.
+  Function(bool isCorrect)? onAnswerResult;
+
+  GameResult? _lastResult;
+  GameResult? get lastResult => _lastResult;
 
   /// Current game state
   CharacterIdGameState _gameState = CharacterIdGameState.loading;
@@ -149,8 +136,12 @@ class CharacterIdProvider extends ChangeNotifier {
   String _level4Question = '';
   String get level4Question => _level4Question;
 
-  /// The correct character name for Level 3
+  /// The correct character name for Level 4
   String? _level4CorrectName;
+
+  /// The colour being asked about in the current Level 4 question
+  String? _level4QuestionColour;
+  String? get level4QuestionColour => _level4QuestionColour;
 
   /// The answer choices for Level 1 (clothing colors)
   List<String> _answerChoices = [];
@@ -273,10 +264,9 @@ class CharacterIdProvider extends ChangeNotifier {
       // Levels 1, 2, and 3 use the same clothing colour questions
       _generateLevel1Round();
 
-      // Start timer for Level 3 (Speed Round)
+      // Reset timer display for Level 3 — timer starts via startSpeedRound()
       if (isLevel3) {
         _remainingSeconds = level3TimeLimitSeconds;
-        _startTimer();
       }
     } else {
       // Level 4: Compare Characters
@@ -293,10 +283,22 @@ class CharacterIdProvider extends ChangeNotifier {
 
       if (_remainingSeconds <= 0) {
         _stopTimer();
+        _lastResult = null;
         _gameState = CharacterIdGameState.finished;
         notifyListeners();
+        _statsService.recordGameResult(GameIds.characterId, _score, level: _currentLevel.number).then((result) {
+          _lastResult = result;
+          notifyListeners();
+        });
       }
     });
+  }
+
+  /// Called by the screen after the intro countdown completes.
+  void startSpeedRound() {
+    if (!isLevel3) return;
+    _startTimer();
+    notifyListeners();
   }
 
   /// Stops the countdown timer.
@@ -574,6 +576,7 @@ class CharacterIdProvider extends ChangeNotifier {
     final question = validQuestions[_random.nextInt(validQuestions.length)];
     _level4Question = question.questionText;
     _level4CorrectName = question.correctCharacterName;
+    _level4QuestionColour = question.questionColour;
     _selectedName = null;
   }
 
@@ -590,16 +593,17 @@ class CharacterIdProvider extends ChangeNotifier {
     final trousers1 = _getColour(char1.legs, 'trousers');
     final trousers2 = _getColour(char2.legs, 'trousers');
     if (trousers1 != null && trousers2 != null && trousers1 != trousers2) {
-      // Both have trousers but different colours - valid question
       if (_random.nextBool()) {
         questions.add(_Level4Question(
           'Which character has $trousers1 trousers?',
           char1.identityName,
+          trousers1,
         ));
       } else {
         questions.add(_Level4Question(
           'Which character has $trousers2 trousers?',
           char2.identityName,
+          trousers2,
         ));
       }
     }
@@ -612,11 +616,13 @@ class CharacterIdProvider extends ChangeNotifier {
         questions.add(_Level4Question(
           'Which character has $shoes1 shoes?',
           char1.identityName,
+          shoes1,
         ));
       } else {
         questions.add(_Level4Question(
           'Which character has $shoes2 shoes?',
           char2.identityName,
+          shoes2,
         ));
       }
     }
@@ -626,28 +632,30 @@ class CharacterIdProvider extends ChangeNotifier {
       final colour1 = _getColour(char1.torso, attr);
       final colour2 = _getColour(char2.torso, attr);
 
-      // Only valid if exactly one character has this attribute with a colour
-      // or both have it but with different colours
       if (colour1 != null && colour2 == null) {
         questions.add(_Level4Question(
           'Which character has the $colour1 $attr?',
           char1.identityName,
+          colour1,
         ));
       } else if (colour2 != null && colour1 == null) {
         questions.add(_Level4Question(
           'Which character has the $colour2 $attr?',
           char2.identityName,
+          colour2,
         ));
       } else if (colour1 != null && colour2 != null && colour1 != colour2) {
         if (_random.nextBool()) {
           questions.add(_Level4Question(
             'Which character has the $colour1 $attr?',
             char1.identityName,
+            colour1,
           ));
         } else {
           questions.add(_Level4Question(
             'Which character has the $colour2 $attr?',
             char2.identityName,
+            colour2,
           ));
         }
       }
@@ -734,6 +742,7 @@ class CharacterIdProvider extends ChangeNotifier {
     _score++;
     _roundsPlayed++;
     _gameState = CharacterIdGameState.correct;
+    onAnswerResult?.call(true);
     notifyListeners();
 
     // Check if Level 1, 2, or 4 is complete (10 correct answers)
@@ -742,8 +751,13 @@ class CharacterIdProvider extends ChangeNotifier {
       Future.delayed(
         const Duration(milliseconds: correctFeedbackDurationMs),
         () {
+          _lastResult = null;
           _gameState = CharacterIdGameState.finished;
           notifyListeners();
+          _statsService.recordGameResult(GameIds.characterId, _score, level: _currentLevel.number).then((result) {
+            _lastResult = result;
+            notifyListeners();
+          });
         },
       );
       return;
@@ -769,6 +783,7 @@ class CharacterIdProvider extends ChangeNotifier {
   /// Handles a wrong answer.
   void _handleWrongAnswer() {
     _gameState = CharacterIdGameState.wrong;
+    onAnswerResult?.call(false);
     notifyListeners();
 
     // Show feedback then allow retry
@@ -787,6 +802,7 @@ class CharacterIdProvider extends ChangeNotifier {
   void resetGame() {
     _score = 0;
     _roundsPlayed = 0;
+    _lastResult = null;
     _selectedName = null;
     _selectedAnswer = null;
     _startLevel();

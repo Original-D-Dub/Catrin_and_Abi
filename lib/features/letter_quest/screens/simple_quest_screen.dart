@@ -1,9 +1,8 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-
-import '../../../core/tts_helper.dart';
 import 'package:provider/provider.dart';
+
+import '../../../shared/services/audio_service.dart';
 
 import '../game/simple_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
@@ -29,9 +28,6 @@ class _SimpleQuestScreenState extends State<SimpleQuestScreen> {
   /// The Flame game instance
   late final SimpleQuestGame _game;
 
-  /// TTS engine for level instruction
-  FlutterTts? _tts;
-
   @override
   void initState() {
     super.initState();
@@ -41,28 +37,7 @@ class _SimpleQuestScreenState extends State<SimpleQuestScreen> {
     provider.initializeGame(wordCount: 3);
     _game = SimpleQuestGame(provider: provider);
 
-    _speakInstruction();
-  }
-
-  /// Speaks the Level 2 instruction using a British female TTS voice.
-  Future<void> _speakInstruction() async {
-    try {
-      _tts = FlutterTts();
-      await TtsHelper.configure(_tts!);
-      await _tts!.speak(
-        'Move Pero to find the letters to spell the word. Avoid the extra letters!',
-      );
-    } catch (e) {
-      debugPrint('TTS speak failed: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    try {
-      _tts?.stop();
-    } catch (_) {}
-    super.dispose();
+    AudioService.playIntro('letter_quest_2');
   }
 
   @override
@@ -73,7 +48,7 @@ class _SimpleQuestScreenState extends State<SimpleQuestScreen> {
         overlayBuilderMap: {
           // Top HUD with back button, progress, and stars
           'hud': (BuildContext context, SimpleQuestGame game) {
-            return const GameHud();
+            return const GameHud(levelNumber: 2);
           },
           // Bottom word progress bar with letter tiles
           'wordProgress': (BuildContext context, SimpleQuestGame game) {

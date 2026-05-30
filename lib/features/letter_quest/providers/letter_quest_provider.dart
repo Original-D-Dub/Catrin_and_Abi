@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../shared/services/game_stats_service.dart';
 import '../models/letter_quest_word.dart';
 
 /// Game phase for the Letter Quest RPG game.
@@ -36,7 +37,8 @@ enum LetterQuestPhase {
 /// final isCorrect = provider.tryCollectLetter('c');
 /// ```
 class LetterQuestProvider extends ChangeNotifier {
-  /// Current game phase
+  final GameStatsService _statsService = GameStatsService();
+
   LetterQuestPhase _phase = LetterQuestPhase.playing;
 
   /// The 5 words to collect (one per vowel)
@@ -70,6 +72,10 @@ class LetterQuestProvider extends ChangeNotifier {
   // -------------------------
   // Game control
   // -------------------------
+
+  /// Words that have been fully collected this session.
+  List<LetterQuestWord> get completedWords =>
+      List.unmodifiable(_words.where((w) => w.isComplete));
 
   /// Number of words for this game session (used by [resetGame]).
   int? _wordCount;
@@ -140,6 +146,46 @@ class LetterQuestProvider extends ChangeNotifier {
     return true;
   }
 
+  // -------------------------
+  // Level 2 support
+  // -------------------------
+
+  /// Switches the active word to the one whose vowel matches [vowel].
+  ///
+  /// Called by Level 2 when the player enters a room so that the
+  /// [WordProgressBar] displays that room's word challenge.
+  void setActiveWordByVowel(String vowel) {
+    final idx = _words.indexWhere((w) => w.vowel == vowel);
+    if (idx < 0) return;
+    _currentWordIndex = idx;
+    _phase = LetterQuestPhase.playing;
+    notifyListeners();
+  }
+
+  /// Resets the phase back to [LetterQuestPhase.playing] without advancing
+  /// the word index.
+  ///
+  /// Used by Level 2 after a non-Gary room challenge is complete so the
+  /// [WordProgressBar] stops pulsing when the door unlocks.
+  void resetPhaseToPlaying() {
+    if (_phase == LetterQuestPhase.wordComplete) {
+      _phase = LetterQuestPhase.playing;
+      notifyListeners();
+    }
+  }
+
+  /// Immediately transitions to [LetterQuestPhase.victory] and records
+  /// the game result.
+  ///
+  /// Used by Level 2 when the player finds Gary (completes the word in
+  /// Gary's room) rather than finishing words sequentially as in Level 3.
+  void forceVictory() {
+    _phase = LetterQuestPhase.victory;
+    _statsService.recordGameResult(GameIds.letterQuest, wordsCompleted,
+        level: 2);
+    notifyListeners();
+  }
+
   /// Advances to the next word after word completion celebration.
   ///
   /// Called by the Flame game after the word-complete animation finishes.
@@ -150,6 +196,7 @@ class LetterQuestProvider extends ChangeNotifier {
     if (_currentWordIndex >= _words.length - 1) {
       // All words collected — game won!
       _phase = LetterQuestPhase.victory;
+      _statsService.recordGameResult(GameIds.letterQuest, wordsCompleted);
     } else {
       // Move to next word
       _currentWordIndex++;

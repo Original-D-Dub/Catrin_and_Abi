@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/services/game_stats_service.dart';
 
 /// Represents a bubble floating on screen.
 class Bubble {
@@ -75,37 +76,37 @@ class GameLevels {
   /// Level 1: Vowels only
   static const GameLevel level1 = GameLevel(
     number: 1,
-    name: 'Vowels',
+    name: 'bubble_pop.level1.name',
     letters: ['a', 'e', 'i', 'o', 'u'],
   );
 
   /// Level 2: Letters a to e
   static const GameLevel level2 = GameLevel(
     number: 2,
-    name: 'Letters a-e',
+    name: 'bubble_pop.level2.name',
     letters: ['a', 'b', 'c', 'd', 'e'],
   );
 
-  /// Level 3: Letters a to i
+  /// Level 3: Letters a to j
   static const GameLevel level3 = GameLevel(
     number: 3,
-    name: 'Letters a-i',
+    name: 'bubble_pop.level3.name',
     letters: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
   );
 
-  /// Level 4: Letters a to o
+  /// Level 4: Letters i to r
   static const GameLevel level4 = GameLevel(
     number: 4,
-    name: 'Letters a-o',
+    name: 'bubble_pop.level4.name',
     letters: [
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o'
     ],
   );
 
-  /// Level 5: Letters a to u
+  /// Level 5: Letters q to z
   static const GameLevel level5 = GameLevel(
     number: 5,
-    name: 'Letters a-u',
+    name: 'bubble_pop.level5.name',
     letters: [
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
       'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u'
@@ -115,7 +116,7 @@ class GameLevels {
   /// Level 6: Full alphabet a to z
   static const GameLevel level6 = GameLevel(
     number: 6,
-    name: 'Full Alphabet',
+    name: 'bubble_pop.level6.name',
     letters: [
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
       'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
@@ -165,6 +166,10 @@ class BubblePopProvider extends ChangeNotifier {
   ];
 
   final Random _random = Random();
+  final GameStatsService _statsService = GameStatsService();
+
+  GameResult? _lastResult;
+  GameResult? get lastResult => _lastResult;
 
   /// Current game level
   GameLevel _currentLevel = GameLevels.level1;
@@ -231,6 +236,27 @@ class BubblePopProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Transitions to game view and initialises bubbles without starting the timer.
+  ///
+  /// Call this when the player selects a level so the game content is visible
+  /// under the intro overlay. Follow with [startGame] once the intro ends.
+  void prepareForIntro() {
+    _showLevelSelect = false;
+    _timeRemaining = gameDurationSeconds;
+    _score = 0;
+    _bubbles = [];
+    _isPlaying = false;
+    _gameOver = false;
+    _lastResult = null;
+    _tappedSequence = '';
+    _easterEggTriggered = null;
+    _lastPoppedBubbleId = null;
+
+    _selectNewTarget();
+    _spawnInitialBubbles();
+    notifyListeners();
+  }
+
   /// Starts a new game with the current level.
   void startGame() {
     _showLevelSelect = false;
@@ -239,6 +265,7 @@ class BubblePopProvider extends ChangeNotifier {
     _bubbles = [];
     _isPlaying = true;
     _gameOver = false;
+    _lastResult = null;
     _tappedSequence = '';
     _easterEggTriggered = null;
     _lastPoppedBubbleId = null;
@@ -255,9 +282,16 @@ class BubblePopProvider extends ChangeNotifier {
   void stopGame() {
     _isPlaying = false;
     _gameOver = true;
+    _lastResult = null;
     _countdownTimer?.cancel();
     _gameLoopTimer?.cancel();
     notifyListeners();
+    _statsService.recordGameResult(GameIds.bubblePop, _score, level: _currentLevel.number).then((result) {
+      _lastResult = result;
+      notifyListeners();
+    }).catchError((e) {
+      debugPrint('recordGameResult error (bubblePop): $e');
+    });
   }
 
   /// Selects a new random target letter from the current level's letters.

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:rive/rive.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/services/audio_service.dart';
+import '../../../shared/widgets/game_app_bar.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../providers/wave_hello_provider.dart';
 
@@ -39,6 +41,7 @@ class _WaveHelloScreenState extends State<WaveHelloScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WaveHelloProvider>().start();
+      AudioService.playIntro('wave_hello');
     });
   }
 
@@ -78,23 +81,9 @@ class _WaveHelloScreenState extends State<WaveHelloScreen> {
 
         return Scaffold(
           extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.accentWhite),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            title: const Text(
-              'Wave Hello!',
-              style: TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.accentWhite,
-              ),
-            ),
-            centerTitle: true,
+          appBar: GameAppBar(
+            title: 'Wave Hello!',
+            onBack: () => Navigator.of(context).pop(),
           ),
           body: Container(
             decoration: const BoxDecoration(

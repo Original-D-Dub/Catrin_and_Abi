@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/asset_paths.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../core/localization/app_localizations.dart';
 
 /// Displays the Catrin & Abi logo with language awareness.
 ///
@@ -33,6 +34,7 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizer = AppLocalizations.of(context);
     final logoPath =
         isWelsh ? AssetPaths.logoWelshColour : AssetPaths.logoEnglishColour;
 
@@ -42,14 +44,13 @@ class AppLogo extends StatelessWidget {
       height: height,
       fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) {
-        // Fallback if image fails to load
         debugPrint('Error loading logo: $error');
         return SizedBox(
           width: width ?? AppSizes.logoWidthWelcome,
           height: height ?? AppSizes.logoHeightWelcome,
-          child: const Center(
+          child: Center(
             child: Text(
-              'Catrin & Abi',
+              localizer('app.title'),
               style: TextStyle(
                 fontSize: AppSizes.fontSizeHeading,
                 fontWeight: FontWeight.bold,

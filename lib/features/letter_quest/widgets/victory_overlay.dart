@@ -28,11 +28,15 @@ class VictoryOverlay extends StatelessWidget {
   /// When non-null, the unlock message and button are shown.
   final VoidCallback? onPlayLevel4;
 
+  /// Optional widget shown after the word list (e.g. sign-in banner)
+  final Widget? signInBanner;
+
   const VictoryOverlay({
     super.key,
     required this.onPlayAgain,
     required this.onHome,
     this.onPlayLevel4,
+    this.signInBanner,
   });
 
   @override
@@ -89,12 +93,16 @@ class VictoryOverlay extends StatelessWidget {
                           padding: const EdgeInsets.only(
                             bottom: AppSizes.spacingSmall,
                           ),
-                          child: _CompletedWordRow(
+                          child: CompletedWordRow(
                             word: word.word,
                             vowel: word.vowel,
                           ),
                         )),
 
+                    if (signInBanner != null) ...[
+                      const SizedBox(height: AppSizes.spacingMedium),
+                      signInBanner!,
+                    ],
                     const SizedBox(height: AppSizes.spacingLarge),
 
                     // Action buttons
@@ -191,11 +199,12 @@ class VictoryOverlay extends StatelessWidget {
 }
 
 /// A row showing a completed word with its thumbnail and letters.
-class _CompletedWordRow extends StatelessWidget {
+class CompletedWordRow extends StatelessWidget {
   final String word;
   final String vowel;
 
-  const _CompletedWordRow({
+  const CompletedWordRow({
+    super.key,
     required this.word,
     required this.vowel,
   });

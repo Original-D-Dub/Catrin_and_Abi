@@ -1,12 +1,15 @@
-import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/config/routes.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
-import '../../../core/constants/asset_paths.dart';
+import '../../../shared/services/audio_service.dart';
+import '../../../shared/widgets/game_app_bar.dart';
+import '../../../shared/widgets/game_header_bar.dart';
+import '../../../shared/widgets/game_intro_countdown.dart';
+import '../../../shared/widgets/level_select_screen.dart';
+import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/widgets/bsl_alphabet_svg.dart';
 import '../providers/bubble_pop_provider.dart';
 import '../widgets/bubble_widget.dart';
 
@@ -29,6 +32,8 @@ class BubblePopScreen extends StatefulWidget {
 }
 
 class _BubblePopScreenState extends State<BubblePopScreen> {
+  bool _showingIntro = false;
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +41,12 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BubblePopProvider>().showLevelSelection();
     });
+  }
+
+  @override
+  void dispose() {
+    AudioService.stopTts();
+    super.dispose();
   }
 
   @override
@@ -47,27 +58,12 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
-              ? AppBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        color: AppColors.accentWhite),
-                    onPressed: () {
-                      provider.stopGame();
-                      Navigator.pop(context);
-                    },
-                  ),
-                  title: const Text(
-                    'Bubble Pop',
-                    style: TextStyle(
-                      fontFamily: 'ComicRelief',
-                      fontSize: AppSizes.fontSizeLarge,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.accentWhite,
-                    ),
-                  ),
-                  centerTitle: true,
+              ? GameAppBar(
+                  title: 'Bubble Pop',
+                  onBack: () {
+                    provider.stopGame();
+                    Navigator.pop(context);
+                  },
                 )
               : null,
           body: Container(
@@ -78,23 +74,60 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
                 fit: BoxFit.cover,
               ),
             ),
-            child: SafeArea(
-              child: provider.showLevelSelect
-                  ? _buildLevelSelectScreen(context, provider)
-                  : Stack(
-                      children: [
-                        // Main game content
-                        _buildGameContent(context, provider, localizer),
+            child: Stack(
+              children: [
+                SafeArea(
+                  child: Stack(
+                    children: [
+                      // Level select or game content
+                      provider.showLevelSelect
+                          ? _buildLevelSelectScreen(context, provider, localizer)
+                          : _buildGameContent(context, provider, localizer),
 
-                        // Game over overlay
-                        if (provider.gameOver)
-                          _buildGameOverOverlay(context, provider, localizer),
+                      // Easter egg overlay
+                      if (!provider.showLevelSelect &&
+                          provider.easterEggTriggered != null)
+                        _buildEasterEggOverlay(provider.easterEggTriggered!),
+                    ],
+                  ),
+                ),
 
-                        // Easter egg overlay
-                        if (provider.easterEggTriggered != null)
-                          _buildEasterEggOverlay(provider.easterEggTriggered!),
-                      ],
+                // Intro countdown — outside SafeArea, covers full screen
+                if (_showingIntro)
+                  GameIntroCountdown(
+                    gameId: 'bubble_pop',
+                    characterImage: 'assets/characters/space-jamjam.png',
+                    onComplete: () {
+                      setState(() => _showingIntro = false);
+                      provider.startGame();
+                    },
+                  ),
+
+                // Game over overlay — outside SafeArea, covers full screen
+                if (!provider.showLevelSelect && provider.gameOver)
+                  Positioned.fill(
+                    child: GameSuccessOverlay(
+                      gameId: 'bubble_pop',
+                      scoreStyle: SuccessScoreStyle.youScored,
+                      score: provider.score,
+                      imageAsset: 'assets/success/space-abi-jumping.png',
+                      showPersonalBest: true,
+                      isNewPersonalBest:
+                          provider.lastResult?.isNewPersonalBest ?? false,
+                      personalBest: provider.lastResult?.personalBest,
+                      onPlayAgain: () => provider.startGame(),
+                      onNextLevel: provider.currentLevel.number <
+                              GameLevels.all.length
+                          ? () {
+                              provider.setLevel(
+                                  provider.currentLevel.number + 1);
+                              provider.startGame();
+                            }
+                          : null,
+                      onChangeLevel: () => provider.showLevelSelection(),
                     ),
+                  ),
+              ],
             ),
           ),
         );
@@ -106,99 +139,21 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
   Widget _buildLevelSelectScreen(
     BuildContext context,
     BubblePopProvider provider,
+    AppLocalizations localizer,
   ) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSizes.paddingSmall),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Title
-            const Text(
-              'Choose a Level',
-              style: TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: AppSizes.fontSizeTitle,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacingLarge),
-
-            // Level buttons in 2-column grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: AppSizes.spacingSmall,
-              crossAxisSpacing: AppSizes.spacingSmall,
-              childAspectRatio: 1.3,
-              children: GameLevels.all.map((level) {
-                return _buildLevelButton(
-                  context: context,
-                  provider: provider,
-                  level: level,
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Builds a level selection button.
-  Widget _buildLevelButton({
-    required BuildContext context,
-    required BubblePopProvider provider,
-    required GameLevel level,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        provider.setLevel(level.number);
-        provider.startGame();
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
-          image: DecorationImage(
-            image: AssetImage(
-              'assets/games/bubble_pop/Level ${level.number}.png',
-            ),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium)
-          ),
-          padding: const EdgeInsets.all(AppSizes.paddingMedium),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Level ${level.number}',
-                style: const TextStyle(
-                  fontFamily: 'ComicRelief',
-                  fontSize: AppSizes.fontSizeLarge,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: AppSizes.spacingXSmall),
-              Text(
-                level.name,
-                style: const TextStyle(
-                  fontFamily: 'ComicRelief',
-                  fontSize: AppSizes.fontSizeBody,
-                  color: AppColors.textDark,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
+    return LevelSelectScreen(
+      levels: GameLevels.all.map((level) {
+        return LevelSelectItem(
+          number: level.number,
+          name: localizer(level.name),
+          color: levelColor(level.number - 1),
+          onTap: () {
+            provider.setLevel(level.number);
+            provider.prepareForIntro();
+            setState(() => _showingIntro = true);
+          },
+        );
+      }).toList(),
     );
   }
 
@@ -235,7 +190,17 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
             const SizedBox(height: 8),
 
             // Header bar with score, time, level
-            _buildHeaderBar(provider),
+            GameHeaderBar(
+              onBack: () {
+                provider.stopGame();
+                Navigator.pop(context);
+              },
+              scoreValue: '${provider.score}',
+              levelNumber: provider.currentLevel.number,
+              centerContent: GameTimerDisplay(
+                formattedTime: _formatTime(provider.timeRemaining),
+              ),
+            ),
 
             const SizedBox(height: 12),
 
@@ -251,18 +216,6 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
           ],
         ),
 
-        // Back button overlay (top-left)
-        Positioned(
-          top: 4,
-          left: 4,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {
-              provider.stopGame();
-              Navigator.pop(context);
-            },
-          ),
-        ),
       ],
     );
   }
@@ -271,177 +224,6 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
   ///
   /// Layout: Score circle overlapping left edge, purple rounded rectangle
   /// containing centred "Time" label + countdown, level number on right.
-  Widget _buildHeaderBar(BubblePopProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16),
-      child: SizedBox(
-        height: 88,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Purple header rectangle (offset right to make room for score circle)
-            Positioned(
-              left: 40,
-              right: 0,
-              top: 8,
-              bottom: 8,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: AppColors.headerBackgroundLight,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: AppColors.headerBorderDark,
-                    width: 2,
-                  ),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.headerBackground,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.headerBorderDark,
-                      width: 2,
-                    ),
-                  ),
-                child: Row(
-                  children: [
-                    // Spacer for score circle area
-                    const SizedBox(width: 48),
-
-                    // Time section (centred)
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Time',
-                            style: TextStyle(
-                              fontFamily: 'ComicRelief',
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.timeContainer,
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Text(
-                              _formatTime(provider.timeRemaining),
-                              style: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Level section (right)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 16),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Level',
-                            style: TextStyle(
-                              fontFamily: 'ComicRelief',
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Text(
-                            '${provider.currentLevel.number}',
-                            style: const TextStyle(
-                              fontFamily: 'ComicRelief',
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              ),
-            ),
-
-            // Score circle (overlapping left edge)
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Container(
-                  width: 104,
-                  height: 104,
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.headerBackgroundLight,
-                    border: Border.all(
-                      color: AppColors.headerBorderDark,
-                      width: 2,
-                    ),
-                  ),
-                  child: Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.headerBackground,
-                      border: Border.all(
-                        color: AppColors.headerBorderDark,
-                        width: 2,
-                      ),
-                    ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Score',
-                        style: TextStyle(
-                          fontFamily: 'ComicRelief',
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        '${provider.score}',
-                        style: const TextStyle(
-                          fontFamily: 'ComicRelief',
-                          fontSize: 44,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          height: 1.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   /// Formats seconds into M:SS display.
   String _formatTime(int seconds) {
@@ -450,14 +232,25 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
     return '$mins:${secs.toString().padLeft(2, '0')}';
   }
 
-  /// Builds the play area with BSL sign overlapping the bottom.
+  /// Returns the BSL sign scale factor based on screen width.
+  ///
+  /// > 768 px → 2×  |  > 600 px → 1.5×  |  ≤ 600 px → 1×
+  double _bslScale(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    if (w > 768) return 2.0;
+    if (w > 600) return 1.5;
+    return 1.0;
+  }
+
+  /// Builds the play area with BSL sign overlapping the top.
   Widget _buildPlayAreaWithBslSign(BubblePopProvider provider) {
+    final scale = _bslScale(context);
     return Stack(
       clipBehavior: Clip.none,
       children: [
         // White play area with outer wrapper
         Positioned.fill(
-          bottom: 80,
+          top: 80 * scale,
           child: Container(
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
@@ -485,28 +278,26 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
                     children: [
                       // Floating bubbles
                       ...provider.bubbles.map((bubble) {
+                        final bubbleSize = BubbleSizes.defaultSize * scale;
                         return Positioned(
                           left: bubble.x * constraints.maxWidth -
-                              BubbleSizes.defaultSize / 2,
+                              bubbleSize / 2,
                           top: bubble.y * (constraints.maxHeight - 100) -
-                              BubbleSizes.defaultSize / 2,
+                              bubbleSize / 2,
                           child: BubbleWidget(
                             letter: bubble.letter,
                             color: bubble.color,
+                            size: bubbleSize,
                             isPopping:
                                 bubble.id == provider.lastPoppedBubbleId,
                             onTap: () {
                               if (provider.isPlaying) {
-                                final isCorrect =
-                                    provider.tapBubble(bubble.id);
-                                try {
-                                  if (isCorrect) {
-                                    FlameAudio.play(
-                                        'bubble_pop/pop_correct.wav');
-                                  } else {
-                                    FlameAudio.play('bubble_pop/pop.wav');
-                                  }
-                                } catch (_) {}
+                                final isCorrect = provider.tapBubble(bubble.id);
+                                if (isCorrect) {
+                                  AudioService.playCorrect('bubble_pop');
+                                } else {
+                                  AudioService.playWrong('bubble_pop');
+                                }
                               }
                             },
                           ),
@@ -521,12 +312,12 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
           ),
         ),
 
-        // BSL sign + "Find the letter" label at bottom
+        // BSL sign + "Find the letter" label at top
         Positioned(
           left: 0,
           right: 0,
-          bottom: 0,
-          child: _buildBslSignArea(provider),
+          top: 0,
+          child: _buildBslSignArea(provider, scale),
         ),
       ],
     );
@@ -534,34 +325,32 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
 
   /// Builds the BSL sign container overlapping the play area,
   /// with "Find the letter" label in a purple rounded container below.
-  Widget _buildBslSignArea(BubblePopProvider provider) {
+  /// [scale] is 1×, 2×, or 3× depending on screen width.
+  Widget _buildBslSignArea(BubblePopProvider provider, double scale) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // BSL sign in rounded container
         Center(
           child: Container(
-            width: 140,
-            height: 120,
+            width: 140 * scale,
+            height: 120 * scale,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16 * scale),
               border: Border.all(
                 color: AppColors.headerBorderDark,
-                width: 4,
+                width: 4 * scale,
               ),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(21),
+              borderRadius: BorderRadius.circular(21 * scale),
               child: provider.targetLetter.isNotEmpty
                   ? Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Image.asset(
-                        AssetPaths.bslLetter(provider.targetLetter),
+                      padding: EdgeInsets.all(8 * scale),
+                      child: BslAlphabetSvg(
+                        letter: provider.targetLetter,
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildLetterFallback(provider.targetLetter);
-                        },
                       ),
                     )
                   : const SizedBox.shrink(),
@@ -569,21 +358,22 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
           ),
         ),
 
-        const SizedBox(height: 4),
+        SizedBox(height: 4 * scale),
 
         // "Find the letter" label in purple container
         Center(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            padding: EdgeInsets.symmetric(
+                horizontal: 20 * scale, vertical: 6 * scale),
             decoration: BoxDecoration(
               color: AppColors.accentPurple,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16 * scale),
             ),
-            child: const Text(
+            child: Text(
               'Find the letter',
               style: TextStyle(
                 fontFamily: 'ComicRelief',
-                fontSize: 16,
+                fontSize: 16 * scale,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -591,126 +381,6 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  /// Fallback display when BSL image is not available.
-  Widget _buildLetterFallback(String letter) {
-    return Center(
-      child: Text(
-        letter.toLowerCase(),
-        style: const TextStyle(
-          fontFamily: 'ComicRelief',
-          fontSize: 48,
-          fontWeight: FontWeight.bold,
-          color: AppColors.abiPink,
-        ),
-      ),
-    );
-  }
-
-  /// Builds the game over overlay with score and options.
-  Widget _buildGameOverOverlay(
-    BuildContext context,
-    BubblePopProvider provider,
-    AppLocalizations localizer,
-  ) {
-    return Container(
-      color: Colors.black.withValues(alpha: 0.7),
-      child: Center(
-        child: Container(
-          margin: const EdgeInsets.all(AppSizes.paddingLarge),
-          padding: const EdgeInsets.all(AppSizes.paddingLarge),
-          decoration: BoxDecoration(
-            color: AppColors.accentWhite,
-            borderRadius: BorderRadius.circular(AppSizes.borderRadiusXLarge),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Score display
-              Container(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                decoration: BoxDecoration(
-                  color: AppColors.connectorGold.withValues(alpha: 0.2),
-                  borderRadius:
-                      BorderRadius.circular(AppSizes.borderRadiusMedium),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.star,
-                      color: AppColors.connectorGold,
-                      size: AppSizes.iconLarge,
-                    ),
-                    const SizedBox(width: AppSizes.spacingSmall),
-                    Text(
-                      'You scored ${provider.score}',
-                      style: const TextStyle(
-                        fontFamily: 'ComicRelief',
-                        fontSize: AppSizes.fontSizeLarge,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSizes.spacingLarge),
-              // Buttons
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Play again button
-                      ElevatedButton.icon(
-                        onPressed: () => provider.startGame(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.abiPink,
-                          foregroundColor: AppColors.accentWhite,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingMedium,
-                            vertical: AppSizes.paddingSmall,
-                          ),
-                        ),
-                        icon: const Icon(Icons.replay),
-                        label: const Text('Play Again'),
-                      ),
-                      const SizedBox(width: AppSizes.spacingMedium),
-                      // Home button
-                      OutlinedButton.icon(
-                        onPressed: () => _navigateToHome(context),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.textPrimary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingMedium,
-                            vertical: AppSizes.paddingSmall,
-                          ),
-                        ),
-                        icon: const Icon(Icons.home),
-                        label: const Text('Home'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSizes.spacingMedium),
-                  // Change level button
-                  TextButton.icon(
-                    onPressed: () => provider.showLevelSelection(),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.catrinBlue,
-                    ),
-                    icon: const Icon(Icons.grid_view),
-                    label: const Text('Change Level'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -744,12 +414,4 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
     );
   }
 
-  /// Navigates back to the home screen.
-  void _navigateToHome(BuildContext context) {
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.home,
-      (route) => false,
-    );
-  }
 }

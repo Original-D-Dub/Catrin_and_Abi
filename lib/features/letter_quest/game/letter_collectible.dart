@@ -8,6 +8,7 @@ import 'package:flutter/animation.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/services/audio_service.dart';
 import '../providers/letter_quest_provider.dart';
 import 'base_letter_quest_game.dart';
 
@@ -142,12 +143,7 @@ class LetterCollectible extends SpriteComponent
   void _handleCorrectCollection() {
     _collected = true;
 
-    // Sound effect
-    try {
-      FlameAudio.play('letter_quest/collect_correct.wav');
-    } catch (e) {
-      // Audio may fail silently — game continues
-    }
+    AudioService.playLetterMp3(letter.toLowerCase());
 
     // Haptic feedback
     HapticFeedback.lightImpact();

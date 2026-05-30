@@ -17,7 +17,7 @@ import 'outdoor_map_data.dart';
 /// Provides collision detection via [RectangleHitbox] to block the player.
 class BoundaryWallComponent extends PositionComponent with HasGameReference {
   /// Path to the tree sprite image (relative to assets/)
-  static const String _spritePath = 'images/Tree2.png';
+  static const String _spritePath = 'games/letter_quest/Tree2.png';
 
   /// Size of each tree sprite in pixels
   static const double _treeSpriteSize = 64.0;

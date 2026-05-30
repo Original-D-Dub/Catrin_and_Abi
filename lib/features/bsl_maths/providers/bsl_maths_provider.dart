@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../shared/services/game_stats_service.dart';
 import '../models/maths_question.dart';
 
 /// Game state for the BSL maths game.
@@ -20,6 +21,9 @@ enum BslMathsGameState {
 
   /// Competition timer has expired
   timeUp,
+
+  /// Player reached 10 correct answers (levels 1–4)
+  won,
 }
 
 /// Game level configuration for BSL Maths.
@@ -64,6 +68,19 @@ class BslMathsLevel {
   /// deduct a point from the score.
   final bool isCompetition;
 
+  /// Whether this level uses subtraction instead of addition.
+  final bool isSubtraction;
+
+  /// For subtraction levels, the maximum value of the first operand.
+  /// Defaults to 10 when not set.
+  final int maxSubtrahend;
+
+  /// Whether this level uses teen number keys (11–19) instead of 1–9.
+  ///
+  /// When true, the keyboard shows 11–19 and questions always have answers
+  /// in that range. Each key press auto-submits (no two-digit entry).
+  final bool useTeenKeys;
+
   const BslMathsLevel({
     required this.number,
     required this.name,
@@ -71,38 +88,59 @@ class BslMathsLevel {
     this.isMissingOperand = false,
     this.fixedTarget,
     this.isCompetition = false,
+    this.isSubtraction = false,
+    this.maxSubtrahend = 10,
+    this.useTeenKeys = false,
   });
 
   /// All available levels
   static const List<BslMathsLevel> all = [
-    BslMathsLevel(number: 1, name: 'Sums to 10', maxAnswer: 10),
-    
-    //Level 2:number bonds to 10 
+    BslMathsLevel(number: 1, name: 'bsl_maths.level1.name', maxAnswer: 10),
 
     BslMathsLevel(
       number: 2,
-      name: 'Make 10',
+      name: 'bsl_maths.level2.name',
       maxAnswer: 10,
       isMissingOperand: true,
       fixedTarget: 10
     ),
-    // Level 3: answer any sum up to 20 (two-digit input)
-    BslMathsLevel(number: 3, name: 'Sums to 20', maxAnswer: 20),
+    BslMathsLevel(number: 3, name: 'bsl_maths.level3.name', maxAnswer: 19, useTeenKeys: true),
 
-    // Level 4: find the missing operand (sum varies up to 10)
     BslMathsLevel(
       number: 4,
-      name: 'Find the Missing Number',
+      name: 'bsl_maths.level4.name',
       maxAnswer: 10,
       isMissingOperand: true,
     ),
 
-    // Level 5: timed competition (60 seconds, wrong answers deduct a point)
     BslMathsLevel(
       number: 5,
-      name: 'Competition',
+      name: 'bsl_maths.level5.name',
       maxAnswer: 10,
       isCompetition: true,
+    ),
+
+    BslMathsLevel(
+      number: 6,
+      name: 'bsl_maths.level6.name',
+      maxAnswer: 5,
+      isSubtraction: true,
+      maxSubtrahend: 5,
+    ),
+
+    BslMathsLevel(
+      number: 7,
+      name: 'bsl_maths.level7.name',
+      maxAnswer: 10,
+      isSubtraction: true,
+    ),
+
+    BslMathsLevel(
+      number: 8,
+      name: 'bsl_maths.level8.name',
+      maxAnswer: 20,
+      isSubtraction: true,
+      maxSubtrahend: 20,
     ),
   ];
 }
@@ -139,6 +177,10 @@ class BslMathsProvider extends ChangeNotifier {
   // -------------------------
 
   final Random _random = Random();
+  final GameStatsService _statsService = GameStatsService();
+
+  GameResult? _lastResult;
+  GameResult? get lastResult => _lastResult;
 
   /// Whether to show level selection screen
   bool _showLevelSelect = true;
@@ -171,6 +213,9 @@ class BslMathsProvider extends ChangeNotifier {
   /// Whether keyboard input is currently blocked (during feedback display)
   bool _isInputLocked = false;
   bool get isInputLocked => _isInputLocked;
+
+  /// Called after answer checking with `true` for correct, `false` for wrong.
+  Function(bool isCorrect)? onAnswerResult;
 
   /// Timer controlling feedback display duration before state transition
   Timer? _feedbackTimer;
@@ -208,7 +253,12 @@ class BslMathsProvider extends ChangeNotifier {
   /// Level 2 uses two-digit input (sums to 20).
   /// Level 3 (missing operand) uses single-digit input (operands 1-10).
   bool get requiresTwoDigitInput =>
-      _currentLevel.maxAnswer > 10 && !_currentLevel.isMissingOperand;
+      _currentLevel.maxAnswer > 10 &&
+      !_currentLevel.isMissingOperand &&
+      !_currentLevel.useTeenKeys;
+
+  /// Whether the current level uses teen number keys (11–19).
+  bool get useTeenKeys => _currentLevel.useTeenKeys;
 
   /// Whether the current level uses "find the missing number" format.
   bool get isMissingOperandLevel => _currentLevel.isMissingOperand;
@@ -239,6 +289,11 @@ class BslMathsProvider extends ChangeNotifier {
 
   /// Shows the level selection screen.
   void showLevelSelection() {
+    // Record score when leaving a non-competition game mid-session (not already recorded via won/timeUp)
+    if (!_showLevelSelect && !_currentLevel.isCompetition && _score > 0 &&
+        _gameState != BslMathsGameState.won && _gameState != BslMathsGameState.timeUp) {
+      _statsService.recordGameResult(GameIds.bslMaths, _score, level: _currentLevel.number);
+    }
     _showLevelSelect = true;
     _feedbackTimer?.cancel();
     _competitionTimer?.cancel();
@@ -265,6 +320,7 @@ class BslMathsProvider extends ChangeNotifier {
   void startGame() {
     _showLevelSelect = false;
     _score = 0;
+    _lastResult = null;
     _clearDigits();
     _isInputLocked = false;
     _gameState = BslMathsGameState.playing;
@@ -283,7 +339,12 @@ class BslMathsProvider extends ChangeNotifier {
             _competitionTimer?.cancel();
             _feedbackTimer?.cancel();
             _isInputLocked = true;
+            _lastResult = null;
             _gameState = BslMathsGameState.timeUp;
+            _statsService.recordGameResult(GameIds.bslMaths, _score, level: _currentLevel.number).then((result) {
+              _lastResult = result;
+              notifyListeners();
+            });
           }
           notifyListeners();
         },
@@ -364,13 +425,27 @@ class BslMathsProvider extends ChangeNotifier {
   void _handleCorrectAnswer() {
     _score++;
     _gameState = BslMathsGameState.correct;
+    onAnswerResult?.call(true);
     notifyListeners();
 
     _feedbackTimer?.cancel();
     _feedbackTimer = Timer(
       const Duration(milliseconds: correctFeedbackDurationMs),
       () {
-        _nextQuestion();
+        if (!_currentLevel.isCompetition && _score >= 10) {
+          _isInputLocked = true;
+          _lastResult = null;
+          _gameState = BslMathsGameState.won;
+          _statsService
+              .recordGameResult(GameIds.bslMaths, _score, level: _currentLevel.number)
+              .then((result) {
+            _lastResult = result;
+            notifyListeners();
+          });
+          notifyListeners();
+        } else {
+          _nextQuestion();
+        }
       },
     );
   }
@@ -383,6 +458,7 @@ class BslMathsProvider extends ChangeNotifier {
       _score--;
     }
     _gameState = BslMathsGameState.wrong;
+    onAnswerResult?.call(false);
     notifyListeners();
 
     _feedbackTimer?.cancel();
@@ -409,6 +485,13 @@ class BslMathsProvider extends ChangeNotifier {
   /// level has a [BslMathsLevel.fixedTarget] (e.g. "Make 10"), otherwise
   /// uses [MathsQuestionGenerator.generateAddition] for varying sums.
   MathsQuestion _generateQuestion({MathsQuestion? previous}) {
+    if (_currentLevel.isSubtraction) {
+      return MathsQuestionGenerator.generateSubtraction(
+        random: _random,
+        maxOperand1: _currentLevel.maxSubtrahend,
+        previousQuestion: previous,
+      );
+    }
     if (_currentLevel.fixedTarget != null) {
       return MathsQuestionGenerator.generateAdditionWithFixedTarget(
         random: _random,
@@ -419,6 +502,7 @@ class BslMathsProvider extends ChangeNotifier {
     return MathsQuestionGenerator.generateAddition(
       random: _random,
       maxAnswer: _currentLevel.maxAnswer,
+      minAnswer: _currentLevel.useTeenKeys ? 11 : 2,
       previousQuestion: previous,
     );
   }

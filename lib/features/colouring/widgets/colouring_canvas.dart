@@ -21,9 +21,9 @@ class ColouringCanvas extends StatefulWidget {
   /// The image to display and colour
   final ui.Image image;
 
-  /// Callback when the canvas is tapped
-  /// Receives the tap position in widget coordinates
-  final ValueChanged<Offset> onTap;
+  /// Callback when the canvas is tapped.
+  /// Receives the tap position in display image coordinates and the display size.
+  final void Function(Offset point, Size displaySize) onTap;
 
   const ColouringCanvas({
     super.key,
@@ -124,7 +124,6 @@ class _ColouringCanvasState extends State<ColouringCanvas>
               child: GestureDetector(
                 onTapDown: (details) => _handleTap(
                   details,
-                  constraints,
                   displayWidth,
                   displayHeight,
                 ),
@@ -144,43 +143,24 @@ class _ColouringCanvasState extends State<ColouringCanvas>
     );
   }
 
-  /// Handles tap events, accounting for zoom transformation
+  /// Handles tap events.
+  ///
+  /// Because the inner [GestureDetector] sits inside the [InteractiveViewer],
+  /// Flutter's hit-testing already applies the inverse transform before the
+  /// event reaches the child, so [TapDownDetails.localPosition] is in the
+  /// natural (unscaled) coordinate space of the [SizedBox] — i.e. display
+  /// image coordinates — regardless of the current zoom level.
   void _handleTap(
     TapDownDetails details,
-    BoxConstraints constraints,
     double displayWidth,
     double displayHeight,
   ) {
-    // Get the current transformation matrix
-    final matrix = _transformationController.value;
-
-    // Convert global position to local position within the canvas
-    final RenderBox box = context.findRenderObject() as RenderBox;
-    final localPosition = box.globalToLocal(details.globalPosition);
-
-    // Calculate offset to center of displayed image
-    final offsetX = (constraints.maxWidth - displayWidth) / 2;
-    final offsetY = (constraints.maxHeight - displayHeight) / 2;
-
-    // Apply inverse transformation to get position in image coordinates
-    final invertedMatrix = Matrix4.inverted(matrix);
-    final transformedPoint = MatrixUtils.transformPoint(
-      invertedMatrix,
-      localPosition,
-    );
-
-    // Adjust for centering
-    final adjustedPosition = Offset(
-      transformedPoint.dx - offsetX,
-      transformedPoint.dy - offsetY,
-    );
-
-    // Only forward tap if within the image bounds
-    if (adjustedPosition.dx >= 0 &&
-        adjustedPosition.dx <= displayWidth &&
-        adjustedPosition.dy >= 0 &&
-        adjustedPosition.dy <= displayHeight) {
-      widget.onTap(adjustedPosition);
+    final pos = details.localPosition;
+    if (pos.dx >= 0 &&
+        pos.dx <= displayWidth &&
+        pos.dy >= 0 &&
+        pos.dy <= displayHeight) {
+      widget.onTap(pos, Size(displayWidth, displayHeight));
     }
   }
 }

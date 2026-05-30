@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/game_constants.dart';
 import '../providers/letter_quest_provider.dart';
 import 'base_letter_quest_game.dart';
+import 'gary_component.dart';
 import 'player_component.dart';
 import 'room_manager.dart';
 
@@ -29,6 +30,12 @@ class LetterQuestGame extends BaseLetterQuestGame {
 
   /// The player character (Pero)
   late final PlayerComponent player;
+
+  /// The chasing character — starts in Room A, routes through doorways
+  late final GaryComponent _gary;
+
+  /// Gary's fixed spawn position — Room A center (450, 1020)
+  static final Vector2 _garyStart = Vector2(450, 1020);
 
   /// Manages room generation and letter placement
   late final RoomManager roomManager;
@@ -55,6 +62,7 @@ class LetterQuestGame extends BaseLetterQuestGame {
     // Pre-load floor and wall tile sprites (same as Levels 1 & 2)
     await images.load('games/letter_quest/floor-tile-wood-pale.png');
     await images.load('games/letter_quest/wall-tile-brick.png');
+    await images.load('games/letter_quest/Gary.png');
 
     // Pre-cache audio files
     try {
@@ -85,6 +93,14 @@ class LetterQuestGame extends BaseLetterQuestGame {
     // Create player in center of hub room (Room I)
     player = PlayerComponent(position: roomManager.playerStartPosition);
     gameWorld.add(player);
+
+    // Create Gary in Room A — he will navigate toward the player via doorways
+    _gary = GaryComponent(
+      position: _garyStart.clone(),
+      player: player,
+      onPlayerCaught: _handlePlayerCaught,
+    );
+    gameWorld.add(_gary);
 
     // Set up camera to follow player
     final cameraComponent = CameraComponent(world: gameWorld)
@@ -151,6 +167,18 @@ class LetterQuestGame extends BaseLetterQuestGame {
 
     // Show victory overlay
     overlays.add('victory');
+  }
+
+  /// Called by Gary when he reaches the player.
+  ///
+  /// Triggers haptic feedback, then after a short pause resets both
+  /// the player and Gary to their starting positions so the game continues.
+  void _handlePlayerCaught() {
+    HapticFeedback.mediumImpact();
+    Future.delayed(const Duration(milliseconds: 600), () {
+      player.position = roomManager.playerStartPosition.clone();
+      _gary.reset(_garyStart.clone());
+    });
   }
 
   /// Saves the Level 3 completion flag to SharedPreferences.

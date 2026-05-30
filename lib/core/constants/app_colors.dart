@@ -24,6 +24,9 @@ class AppColors {
   /// Rose pink - Abi's name color in the logo
   static const Color abiPink = Color(0xFFE91E63);
 
+  /// Rose pink - Abi's name color in the logo
+  static const Color lightPink = Color(0xFFf56Ea3);
+
   /// Mustard gold - connector "&" / "ac" color in logo
   static const Color connectorGold = Color(0xFFDAA520);
 
@@ -167,4 +170,38 @@ class AppColors {
 
   /// Button text color
   static const Color buttonText = accentWhite;
+
+  // -------------------------
+  // BSL Colors 
+  // -------------------------
+
+    /// learning colours in BSL 
+    static const Color bslBlack = Color(0xFF282828);
+    static const Color bslBlue = Color(0xFF3979a8);
+    static const Color bslBrown = Color(0xFF7e5137);
+    static const Color bslGold = Color(0xFFFFb700);
+    static const Color bslGreen = Color(0xFF20b020);
+    static const Color bslGrey = Color(0xFF808080);
+    static const Color bslOrange = Color(0xFFf15a24);
+    static const Color bslPink = Color(0xFFFFC0CB);
+    static const Color bslPurple = Color(0xFF800080);
+    static const Color bslRed = Color(0xFFdf382d);
+    static const Color bslSilver = Color(0xFFccccee);
+    static const Color bslWhite = Color(0xFFfdfdfc);
+    static const Color bslYellow = Color(0xFFe5bd22);
+
+    static const Color bslBlackOutline = Color(0xFFaaaaaa);
+    static const Color bslBlueOutline = Color(0xFF0f3a59);
+    static const Color bslBrownOutline = Color(0xFF442615);
+    static const Color bslGoldOutline = Color(0xFFaa7700);
+    static const Color bslGreenOutline = Color(0xFF008000);
+    static const Color bslGreyOutline = Color(0xFF404040);
+    static const Color bslOrangeOutline = Color(0xFF7b2506);
+    static const Color bslPinkOutline = Color(0xFFAB6DAD);
+    static const Color bslPurpleOutline = Color(0xFF301050);
+    static const Color bslRedOutline = Color(0xFF7c130c);
+    static const Color bslSilverOutline = Color(0xFF555599);
+    static const Color bslWhiteOutline = Color(0xFF453123);
+    static const Color bslYellowOutline = Color(0xFF554a23);
+
 }

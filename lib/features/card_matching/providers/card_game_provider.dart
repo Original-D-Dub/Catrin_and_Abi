@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/constants/game_constants.dart';
+import '../../../shared/services/game_stats_service.dart';
 import '../models/card_model.dart';
 import '../models/game_level.dart';
 import '../services/card_game_service.dart';
@@ -22,11 +23,14 @@ import '../services/card_game_service.dart';
 /// }
 /// ```
 class CardGameProvider extends ChangeNotifier {
-  /// The game service for pure logic operations
   final CardGameService _gameService = CardGameService();
+  final GameStatsService _statsService = GameStatsService();
 
   /// The current game level configuration
   late GameLevel _level;
+
+  GameResult? _lastResult;
+  GameResult? get lastResult => _lastResult;
   GameLevel get level => _level;
 
   /// All cards in the current game
@@ -54,9 +58,18 @@ class CardGameProvider extends ChangeNotifier {
   bool _showLevelSelect = true;
   bool get showLevelSelect => _showLevelSelect;
 
+  /// Called after each match check with `true` for a match, `false` for a mismatch.
+  /// Set by the screen to play correct/wrong audio without coupling the provider to audio.
+  Function(bool isMatch)? onAnswerResult;
+
   /// Number of successful matches made
   int _matchCount = 0;
   int get matchCount => _matchCount;
+
+  /// Total number of card-pair attempts (flipping two cards), regardless of
+  /// whether they matched. This is the score metric — fewer moves is better.
+  int _moveCount = 0;
+  int get moveCount => _moveCount;
 
   /// Total number of pairs in the level
   int get totalPairs => _level.totalPairs;
@@ -75,6 +88,7 @@ class CardGameProvider extends ChangeNotifier {
     _isProcessing = false;
     _hasWon = false;
     _matchCount = 0;
+    _moveCount = 0;
   }
 
   /// Shows the level selection screen.
@@ -130,6 +144,7 @@ class CardGameProvider extends ChangeNotifier {
   Future<void> _checkForMatch() async {
     if (_firstSelection == null || _secondSelection == null) return;
 
+    _moveCount++; // every two-card attempt counts as one move
     _isProcessing = true;
     notifyListeners();
 
@@ -158,29 +173,26 @@ class CardGameProvider extends ChangeNotifier {
 
   /// Handles a successful match.
   void _handleMatch() {
-    // Find and mark both cards as matched
     for (int i = 0; i < _cards.length; i++) {
       if (_cards[i].id == _firstSelection!.id ||
           _cards[i].id == _secondSelection!.id) {
         _cards[i].isMatched = true;
       }
     }
-
     _matchCount++;
-
-    // Check win condition
+    onAnswerResult?.call(true);
     _checkWinCondition();
   }
 
   /// Handles a failed match - flips cards back.
   void _handleMismatch() {
-    // Flip both cards back
     for (int i = 0; i < _cards.length; i++) {
       if (_cards[i].id == _firstSelection!.id ||
           _cards[i].id == _secondSelection!.id) {
         _cards[i].isFlipped = false;
       }
     }
+    onAnswerResult?.call(false);
   }
 
   /// Checks if all pairs have been matched.
@@ -189,6 +201,20 @@ class CardGameProvider extends ChangeNotifier {
       matchCount: _matchCount,
       totalPairs: totalPairs,
     );
+    if (_hasWon) {
+      _lastResult = null;
+      _statsService
+          .recordGameResult(
+            GameIds.cardMatching,
+            _moveCount,
+            level: _level.levelNumber,
+            higherIsBetter: false,
+          )
+          .then((result) {
+        _lastResult = result;
+        notifyListeners();
+      });
+    }
   }
 
   /// Resets the game to initial state with reshuffled cards.
