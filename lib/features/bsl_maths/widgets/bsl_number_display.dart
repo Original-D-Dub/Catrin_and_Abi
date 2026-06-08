@@ -25,6 +25,10 @@ class BslNumberDisplay extends StatelessWidget {
   /// The width and height of the display area in logical pixels
   final double size;
 
+  /// When provided, the Rive animation retriggers each time the notifier's
+  /// value increments. Used by the keyboard hint loop for teen numbers.
+  final ValueNotifier<int>? hintCounter;
+
   /// Default display size matching child-friendly tap target dimensions
   static const double defaultSize = 64.0;
 
@@ -32,6 +36,7 @@ class BslNumberDisplay extends StatelessWidget {
     super.key,
     required this.number,
     this.size = defaultSize,
+    this.hintCounter,
   });
 
   @override
@@ -41,9 +46,18 @@ class BslNumberDisplay extends StatelessWidget {
         key: ValueKey(number),
         number: number,
         size: size,
+        hintCounter: hintCounter,
       );
     }
-    // Numbers outside SVG range (0-10) — e.g. 11, 12 — shown as numeral.
+    if (number == 11 || number == 12) {
+      return _SimpleRiveDisplay(
+        key: ValueKey(number),
+        rivPath: number == 11 ? AssetPaths.bslNumber11Riv : AssetPaths.bslNumber12Riv,
+        size: size,
+        hintCounter: hintCounter,
+      );
+    }
+    // Numbers outside SVG range (0-10) and not covered by a Rive file.
     if (number < 0 || number > 10) {
       return SizedBox(
         width: size,
@@ -77,48 +91,149 @@ class BslNumberDisplay extends StatelessWidget {
   }
 }
 
+class _SimpleRiveDisplay extends StatefulWidget {
+  final String rivPath;
+  final double size;
+  final ValueNotifier<int>? hintCounter;
+
+  const _SimpleRiveDisplay({
+    super.key,
+    required this.rivPath,
+    required this.size,
+    this.hintCounter,
+  });
+
+  @override
+  State<_SimpleRiveDisplay> createState() => _SimpleRiveDisplayState();
+}
+
+class _SimpleRiveDisplayState extends State<_SimpleRiveDisplay> {
+  FileLoader? _fileLoader;
+  int _key = 0;
+
+  FileLoader _makeLoader() => FileLoader.fromAsset(
+        widget.rivPath,
+        riveFactory: Factory.flutter,
+      );
+
+  @override
+  void initState() {
+    super.initState();
+    _fileLoader = _makeLoader();
+    widget.hintCounter?.addListener(_onHintTick);
+  }
+
+  @override
+  void didUpdateWidget(_SimpleRiveDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.hintCounter != oldWidget.hintCounter) {
+      oldWidget.hintCounter?.removeListener(_onHintTick);
+      widget.hintCounter?.addListener(_onHintTick);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.hintCounter?.removeListener(_onHintTick);
+    _fileLoader?.dispose();
+    super.dispose();
+  }
+
+  void _onHintTick() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final old = _fileLoader;
+      setState(() {
+        _key++;
+        _fileLoader = _makeLoader();
+      });
+      old?.dispose();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: RiveWidgetBuilder(
+        key: ValueKey(_key),
+        fileLoader: _fileLoader!,
+        builder: (context, state) => switch (state) {
+          RiveLoading() => const SizedBox.shrink(),
+          RiveFailed() => const SizedBox.shrink(),
+          RiveLoaded(:final controller) => RiveWidget(
+              controller: controller,
+              fit: Fit.contain,
+            ),
+        },
+      ),
+    );
+  }
+}
+
 class _RiveNumberDisplay extends StatefulWidget {
   final int number;
   final double size;
+  final ValueNotifier<int>? hintCounter;
 
-  const _RiveNumberDisplay({super.key, required this.number, required this.size});
+  const _RiveNumberDisplay({
+    super.key,
+    required this.number,
+    required this.size,
+    this.hintCounter,
+  });
 
   @override
   State<_RiveNumberDisplay> createState() => _RiveNumberDisplayState();
 }
 
 class _RiveNumberDisplayState extends State<_RiveNumberDisplay> {
-  late final FileLoader _fileLoader;
-  ViewModelInstance? _vmi;
+  FileLoader? _fileLoader;
+  int _key = 0;
+
+  FileLoader _makeLoader() => FileLoader.fromAsset(
+        AssetPaths.bslNumbers1319Riv,
+        riveFactory: Factory.flutter,
+      );
 
   @override
   void initState() {
     super.initState();
-    _fileLoader = FileLoader.fromAsset(
-      AssetPaths.bslNumbers1319Riv,
-      riveFactory: Factory.flutter,
-    );
+    _fileLoader = _makeLoader();
+    widget.hintCounter?.addListener(_onHintTick);
   }
 
   @override
   void didUpdateWidget(_RiveNumberDisplay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.number != oldWidget.number) _driveInputs();
+    if (widget.hintCounter != oldWidget.hintCounter) {
+      oldWidget.hintCounter?.removeListener(_onHintTick);
+      widget.hintCounter?.addListener(_onHintTick);
+    }
   }
 
   @override
   void dispose() {
-    _fileLoader.dispose();
+    widget.hintCounter?.removeListener(_onHintTick);
+    _fileLoader?.dispose();
     super.dispose();
   }
 
-  void _onLoaded(RiveLoaded state) {
-    _vmi = state.viewModelInstance;
-    _driveInputs();
+  void _onHintTick() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final old = _fileLoader;
+      setState(() {
+        _key++;
+        _fileLoader = _makeLoader();
+      });
+      old?.dispose();
+    });
   }
 
-  void _driveInputs() {
-    final vmi = _vmi;
+  void _onLoaded(RiveLoaded state) {
+    final vmi = state.viewModelInstance;
     if (vmi == null) return;
     vmi.number('v_style_data')?.value = widget.number.toDouble();
     vmi.trigger('t_play_data')?.trigger();
@@ -130,7 +245,8 @@ class _RiveNumberDisplayState extends State<_RiveNumberDisplay> {
       width: widget.size,
       height: widget.size,
       child: RiveWidgetBuilder(
-        fileLoader: _fileLoader,
+        key: ValueKey(_key),
+        fileLoader: _fileLoader!,
         dataBind: const AutoBind(),
         onLoaded: _onLoaded,
         builder: (context, state) => switch (state) {

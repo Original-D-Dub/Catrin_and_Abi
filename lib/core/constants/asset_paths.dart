@@ -117,6 +117,18 @@ class AssetPaths {
   }
 
   // -------------------------
+  // Welsh Alphabet (Wyddor IAC)
+  // -------------------------
+
+  static const String _wyddorIacSvg = 'assets/wyddor_iac_svg';
+
+  /// Gets the asset path for a Welsh letter sign SVG.
+  /// Supports single letters and digraphs (ch, dd, ff, ll, ng, ph, rh, th).
+  static String welshLetterSvg(String letter) {
+    return '$_wyddorIacSvg/${letter.toLowerCase()}.svg';
+  }
+
+  // -------------------------
   // BSL Numbers (for maths game)
   // -------------------------
 
@@ -140,6 +152,12 @@ class AssetPaths {
     }
     return '$_bslNumbers/$number.svg';
   }
+
+  /// Rive file for BSL number 11.
+  static const String bslNumber11Riv = '$_bslNumbers/11.riv';
+
+  /// Rive file for BSL number 12.
+  static const String bslNumber12Riv = '$_bslNumbers/12.riv';
 
   /// Single Rive file for BSL teen numbers 13–19 (one artboard, ViewModel1).
   static const String bslNumbers1319Riv = '$_bslNumbers/numbers13-19.riv';

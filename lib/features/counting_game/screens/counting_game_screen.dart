@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../../../shared/services/audio_service.dart';
-import '../../../core/tts_helper.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
@@ -30,36 +28,8 @@ class CountingGameScreen extends StatefulWidget {
 }
 
 class _CountingGameScreenState extends State<CountingGameScreen> {
-  FlutterTts? _tts;
-
-  /// Tracks the last question key to detect when the question changes.
-  String? _lastQuestionKey;
-
   /// True while waiting for the 3-second pause after a correct answer.
   bool _isWaiting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initTts();
-  }
-
-  Future<void> _initTts() async {
-    try {
-      _tts = FlutterTts();
-      await TtsHelper.configure(_tts!);
-    } catch (e) {
-      debugPrint('TTS initialization failed: $e');
-    }
-  }
-
-  void _speak(String text) {
-    try {
-      _tts?.speak(text);
-    } catch (e) {
-      debugPrint('TTS speak failed: $e');
-    }
-  }
 
   void _onAnswerTapped(int n, CountingGameProvider provider) {
     if (_isWaiting) return;
@@ -91,42 +61,10 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
   }
 
   @override
-  void dispose() {
-    try {
-      _tts?.stop();
-    } catch (_) {}
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final localizer = AppLocalizations(locale: 'en');
     return Consumer<CountingGameProvider>(
       builder: (context, provider, _) {
-        // Speak the question whenever it changes during gameplay
-        if (!provider.showLevelSelect &&
-            provider.state == CountingGameState.playing) {
-          final key =
-              '${provider.roundNumber}-${provider.currentQuestionType}';
-          if (key != _lastQuestionKey) {
-            _lastQuestionKey = key;
-            final text = _questionText(
-                provider.currentQuestionType, provider.colours);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _speak(text);
-            });
-          }
-        }
-
-        // Speak "Well Done!" on win
-        if (provider.state == CountingGameState.won &&
-            _lastQuestionKey != 'won') {
-          _lastQuestionKey = 'won';
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _speak('Well Done!');
-          });
-        }
-
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -35,7 +36,7 @@ import 'bsl_number_display.dart';
 /// Number keys are tappable and show the BSL hand sign SVG
 /// with the numeral below. The C key clears the current answer.
 /// The = key submits the answer.
-class BslKeyboard extends StatelessWidget {
+class BslKeyboard extends StatefulWidget {
   /// Callback when a number key (0-10) is pressed
   final ValueChanged<int> onKeyPressed;
 
@@ -76,6 +77,11 @@ class BslKeyboard extends StatelessWidget {
     this.showNumbers = true,
   });
 
+  @override
+  State<BslKeyboard> createState() => _BslKeyboardState();
+}
+
+class _BslKeyboardState extends State<BslKeyboard> {
   /// Border width for unselected keys
   static const double _borderWidth = 2;
 
@@ -90,6 +96,58 @@ class BslKeyboard extends StatelessWidget {
 
   /// Grid spacing between keys
   static const double _gridSpacing = 8.0;
+
+  static const List<int> _hintNumbers = [11, 12, 13, 14, 15, 16, 17, 18, 19];
+  static const Duration _betweenSigns = Duration(milliseconds: 1200);
+  static const Duration _pauseAfterSequence = Duration(seconds: 3);
+  static const Duration _initialDelay = Duration(seconds: 3);
+
+  final Map<int, ValueNotifier<int>> _hintCounters = {};
+  Timer? _hintTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    for (final n in _hintNumbers) {
+      _hintCounters[n] = ValueNotifier(0);
+    }
+    if (widget.showTeenKeys) _scheduleHintStart();
+  }
+
+  @override
+  void didUpdateWidget(BslKeyboard old) {
+    super.didUpdateWidget(old);
+    if (widget.showTeenKeys && !old.showTeenKeys) {
+      _scheduleHintStart();
+    } else if (!widget.showTeenKeys && old.showTeenKeys) {
+      _hintTimer?.cancel();
+    }
+  }
+
+  @override
+  void dispose() {
+    _hintTimer?.cancel();
+    for (final c in _hintCounters.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _scheduleHintStart() {
+    _hintTimer?.cancel();
+    _hintTimer = Timer(_initialDelay, () => _runSequence(0));
+  }
+
+  void _runSequence(int index) {
+    if (!mounted) return;
+    if (index >= _hintNumbers.length) {
+      _hintTimer = Timer(_pauseAfterSequence, () => _runSequence(0));
+      return;
+    }
+    // Increment the counter — _RiveNumberDisplay listens and retriggers its animation.
+    _hintCounters[_hintNumbers[index]]?.value++;
+    _hintTimer = Timer(_betweenSigns, () => _runSequence(index + 1));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +187,7 @@ class BslKeyboard extends StatelessWidget {
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: showTeenKeys
+            children: widget.showTeenKeys
                 ? [
                     Expanded(child: _buildNumberRow([11, 12, 13], clampedWidth, clampedHeight, svgSize, numeralFontSize)),
                     Expanded(child: _buildNumberRow([14, 15, 16], clampedWidth, clampedHeight, svgSize, numeralFontSize)),
@@ -157,7 +215,7 @@ class BslKeyboard extends StatelessWidget {
 
                     // Row 4: bottom row with clear and submit
                     Expanded(
-                      child: showZeroKey
+                      child: widget.showZeroKey
                           // Level 2: 0, C, =
                           ? _buildLevel2BottomRow(clampedWidth, clampedHeight, svgSize, numeralFontSize, operatorFontSize)
                           // Level 1: 10, C, =
@@ -297,7 +355,7 @@ class BslKeyboard extends StatelessWidget {
     const Color bgColor = Colors.white;
 
     return GestureDetector(
-      onTap: isDisabled ? null : () => onKeyPressed(number),
+      onTap: widget.isDisabled ? null : () => widget.onKeyPressed(number),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
         child: BackdropFilter(
@@ -315,7 +373,7 @@ class BslKeyboard extends StatelessWidget {
               ),
             ),
             child: Opacity(
-              opacity: isDisabled ? 0.5 : 1.0,
+              opacity: widget.isDisabled ? 0.5 : 1.0,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -323,8 +381,9 @@ class BslKeyboard extends StatelessWidget {
                   BslNumberDisplay(
                     number: number,
                     size: svgSize,
+                    hintCounter: _hintCounters[number],
                   ),
-                  if (showNumbers) ...[
+                  if (widget.showNumbers) ...[
                     const SizedBox(height: 2),
                     // Numeral label below the sign
                     Text(
@@ -348,7 +407,7 @@ class BslKeyboard extends StatelessWidget {
   /// Builds the Clear (C) key.
   Widget _buildClearKey(double keyWidth, double keyHeight, double operatorFontSize) {
     return GestureDetector(
-      onTap: isDisabled ? null : onClearPressed,
+      onTap: widget.isDisabled ? null : widget.onClearPressed,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
         child: BackdropFilter(
@@ -365,7 +424,7 @@ class BslKeyboard extends StatelessWidget {
               ),
             ),
             child: Opacity(
-              opacity: isDisabled ? 0.5 : 1.0,
+              opacity: widget.isDisabled ? 0.5 : 1.0,
               child: Center(
                 child: Text(
                   'C',
@@ -390,11 +449,11 @@ class BslKeyboard extends StatelessWidget {
     final Color textColor;
     final Color borderColor;
 
-    if (isCorrect == true) {
+    if (widget.isCorrect == true) {
       bgColor = AppColors.success.withValues(alpha: 0.2);
       textColor = AppColors.success;
       borderColor = AppColors.success;
-    } else if (isCorrect == false) {
+    } else if (widget.isCorrect == false) {
       bgColor = AppColors.accentRed.withValues(alpha: 0.2);
       textColor = AppColors.accentRed;
       borderColor = AppColors.accentRed;
@@ -405,7 +464,7 @@ class BslKeyboard extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: isDisabled ? null : onSubmitPressed,
+      onTap: widget.isDisabled ? null : widget.onSubmitPressed,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
         child: BackdropFilter(
@@ -419,11 +478,11 @@ class BslKeyboard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
               border: Border.all(
                 color: borderColor.withValues(alpha: 0.4),
-                width: isCorrect != null ? _selectedBorderWidth : _borderWidth,
+                width: widget.isCorrect != null ? _selectedBorderWidth : _borderWidth,
               ),
             ),
             child: Opacity(
-              opacity: isDisabled ? 0.5 : 1.0,
+              opacity: widget.isDisabled ? 0.5 : 1.0,
               child: Center(
                 child: Text(
                   '=',

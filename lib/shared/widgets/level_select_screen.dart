@@ -114,6 +114,18 @@ class LevelSelectScreen extends StatelessWidget {
             LayoutBuilder(
               builder: (context, constraints) {
                 final crossAxisCount = constraints.maxWidth < 400 ? 2 : 3;
+                final List<Widget> children = levels.map((item) => _buildButton(item, localizer)).toList();
+                if (children.length % crossAxisCount != 0) {
+                  children.add(
+                    Padding(
+                      padding: const EdgeInsets.all(AppSizes.paddingSmall),
+                      child: Image.asset(
+                        'assets/logos/english/Catrin_Abi_Logo_Eng_600x600.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  );
+                }
                 return GridView.count(
                   crossAxisCount: crossAxisCount,
                   shrinkWrap: true,
@@ -121,7 +133,7 @@ class LevelSelectScreen extends StatelessWidget {
                   mainAxisSpacing: AppSizes.spacingMedium,
                   crossAxisSpacing: AppSizes.spacingMedium,
                   childAspectRatio: 1.3,
-                  children: levels.map((item) => _buildButton(item, localizer)).toList(),
+                  children: children,
                 );
               },
             ),

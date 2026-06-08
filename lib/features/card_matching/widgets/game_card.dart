@@ -4,6 +4,7 @@ import 'package:flip_card/flip_card.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/game_constants.dart';
+import '../../../shared/widgets/bsl_alphabet_svg.dart';
 import '../models/card_model.dart';
 
 /// A flip card widget for the matching game.
@@ -145,20 +146,7 @@ class _GameCardState extends State<GameCard> {
   /// Uses [Padding] to give the image breathing room, then
   /// fills the remaining space so signs scale with card size.
   Widget _buildBslSignContent() {
-    if (widget.card.imagePath == null) {
-      return const Icon(Icons.image_not_supported);
-    }
-
-    return Image.asset(
-      widget.card.imagePath!,
-      fit: BoxFit.contain,
-      width: double.infinity,
-      height: double.infinity,
-      errorBuilder: (context, error, stackTrace) {
-        debugPrint('Error loading BSL image: $error');
-        return const Icon(Icons.image_not_supported);
-      },
-    );
+    return BslAlphabetSvg(letter: widget.card.value);
   }
 
   /// Builds the letter text content.

@@ -40,7 +40,7 @@ class CardGameService {
         value: letter,
         pairId: pairId,
         pairColor: color,
-        imagePath: AssetPaths.bslLetter(letter),
+        imagePath: AssetPaths.bslLetterSvg(letter),
       ));
 
       // Create letter card

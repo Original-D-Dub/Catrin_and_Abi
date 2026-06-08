@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../core/config/routes.dart';
-import '../../../core/constants/game_constants.dart';
 import '../../../shared/services/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -35,9 +32,8 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateAfterSplash() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenIntro = prefs.getBool(GameConstants.firstLaunchKey) ?? false;
-    final destination = hasSeenIntro ? AppRoutes.home : AppRoutes.welcome;
+    // Always show the welcome screen — it skips the slideshow for returning users.
+    const destination = AppRoutes.welcome;
 
     // Sign in anonymously if no session exists — ensures stats are always recorded.
     if (!mounted) return;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/sudoku_models.dart';
 
 /// Puzzle index ranges per difficulty (into [kSudokuPuzzles]).
+/// [SudokuDifficulty.mini] draws from [kMiniSudokuPuzzles] instead.
 const Map<SudokuDifficulty, List<int>> _difficultyPuzzles = {
   SudokuDifficulty.normal:  [0, 1],
   SudokuDifficulty.hard:    [2, 3],
@@ -27,6 +28,27 @@ class SudokuProvider extends ChangeNotifier {
 
   SudokuDifficulty _difficulty = SudokuDifficulty.normal;
   SudokuDifficulty get difficulty => _difficulty;
+
+  /// Side length of the grid: 4 for mini, 6 for the 6×6 puzzles, 9 otherwise.
+  int get gridSize => switch (_difficulty) {
+        SudokuDifficulty.mini     => 4,
+        SudokuDifficulty.sixBySix => 6,
+        _                         => 9,
+      };
+
+  /// Width (columns) of each rectangular sub-grid.
+  int get boxWidth => switch (_difficulty) {
+        SudokuDifficulty.mini     => 2,
+        SudokuDifficulty.sixBySix => 2,
+        _                         => 3,
+      };
+
+  /// Height (rows) of each rectangular sub-grid.
+  int get boxHeight => switch (_difficulty) {
+        SudokuDifficulty.mini     => 2,
+        SudokuDifficulty.sixBySix => 3,
+        _                         => 3,
+      };
 
   /// Tracks how far through the current difficulty's puzzle list we are.
   int _difficultyOffset = 0;
@@ -96,12 +118,23 @@ class SudokuProvider extends ChangeNotifier {
   // ── Internals ───────────────────────────────────────────────────────────────
 
   void _loadCurrentPuzzle() {
-    final indices = _difficultyPuzzles[_difficulty]!;
-    final puzzleIndex = indices[_difficultyOffset % indices.length];
-    final s = kSudokuPuzzles[puzzleIndex];
-    grid = List.generate(9, (r) {
-      return List.generate(9, (c) {
-        final v = int.parse(s[r * 9 + c]);
+    final String s;
+    switch (_difficulty) {
+      case SudokuDifficulty.mini:
+        s = kMiniSudokuPuzzles[_difficultyOffset % kMiniSudokuPuzzles.length];
+        break;
+      case SudokuDifficulty.sixBySix:
+        s = kSixBySixPuzzles[_difficultyOffset % kSixBySixPuzzles.length];
+        break;
+      default:
+        final indices = _difficultyPuzzles[_difficulty]!;
+        final puzzleIndex = indices[_difficultyOffset % indices.length];
+        s = kSudokuPuzzles[puzzleIndex];
+    }
+    final size = gridSize;
+    grid = List.generate(size, (r) {
+      return List.generate(size, (c) {
+        final v = int.parse(s[r * size + c]);
         return SudokuCell(isGiven: v != 0, value: v);
       });
     });
@@ -119,13 +152,14 @@ class SudokuProvider extends ChangeNotifier {
   }
 
   void _validateErrors() {
+    final size = gridSize;
     for (var row in grid) {
       for (var cell in row) {
         cell.hasError = false;
       }
     }
-    for (int r = 0; r < 9; r++) {
-      for (int c = 0; c < 9; c++) {
+    for (int r = 0; r < size; r++) {
+      for (int c = 0; c < size; c++) {
         final v = grid[r][c].value;
         if (v == 0) continue;
         if (_hasConflict(r, c, v)) grid[r][c].hasError = true;
@@ -134,16 +168,19 @@ class SudokuProvider extends ChangeNotifier {
   }
 
   bool _hasConflict(int row, int col, int val) {
-    for (int c = 0; c < 9; c++) {
+    final size = gridSize;
+    final bw = boxWidth;
+    final bh = boxHeight;
+    for (int c = 0; c < size; c++) {
       if (c != col && grid[row][c].value == val) return true;
     }
-    for (int r = 0; r < 9; r++) {
+    for (int r = 0; r < size; r++) {
       if (r != row && grid[r][col].value == val) return true;
     }
-    final br = (row ~/ 3) * 3;
-    final bc = (col ~/ 3) * 3;
-    for (int r = br; r < br + 3; r++) {
-      for (int c = bc; c < bc + 3; c++) {
+    final br = (row ~/ bh) * bh;
+    final bc = (col ~/ bw) * bw;
+    for (int r = br; r < br + bh; r++) {
+      for (int c = bc; c < bc + bw; c++) {
         if ((r != row || c != col) && grid[r][c].value == val) return true;
       }
     }

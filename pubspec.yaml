@@ -31,20 +31,8 @@ dependencies:
   flame: ^1.23.0
   flame_audio: ^2.10.4
 
-  # Text-to-speech for Letter Bingo game
-  flutter_tts: ^4.2.0
-
-  # Camera access for Camera Vowels game
-  camera: ^0.11.0
-
-  # MediaPipe 21-point hand landmark detection (Android)
-  hand_landmarker: ^2.1.2
-
   # Rive animation runtime (files to be provided separately)
   rive: ^0.14.4
-
-  # Runtime camera permission prompts
-  permission_handler: ^12.0.1
 
   # Direct vibration API for reliable haptic feedback on Android tablets
   vibration: ^3.1.3
@@ -77,6 +65,7 @@ flutter:
     # BSL Alphabet (for card game)
     - assets/bsl_alphabet/
     - assets/bsl_alphabet_svg/
+    - assets/wyddor_iac_svg/
 
     # Backgrounds
     - assets/backgrounds/
@@ -101,7 +90,7 @@ flutter:
     - assets/games/vowel_hand/
     - assets/games/my_special_dog/
     - assets/games/letter_quest/
-    - assets/games/bsl_camera_vowels/
+    - assets/images/make10_number_line/
     - assets/games/bsl_sprint/
 
     # BSL number signs (for maths game)
@@ -118,6 +107,9 @@ flutter:
 
     # My Special Dog word audio
     - assets/audio/my_special_dog/
+
+    # Number Line game audio
+    - assets/audio/number_line/
 
     # Speech audio files
     - assets/audio/speech files/

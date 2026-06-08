@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' hide Factory;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rive/rive.dart';
@@ -113,34 +112,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context, constraints) => SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Title — Rive animation + press-and-hold button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: (constraints.maxWidth - 64 - 12)
-                                .clamp(0.0, 360.0),
-                            height: 80,
-                            child: RiveWidgetBuilder(
-                              key: ValueKey(_animCycle),
-                              fileLoader: _chooseGameLoader!,
-                              builder: (context, state) => switch (state) {
-                                RiveLoading() => const SizedBox.shrink(),
-                                RiveFailed() => const SizedBox.shrink(),
-                                RiveLoaded(:final controller) => RiveWidget(
-                                    controller: controller,
-                                    fit: Fit.contain,
-                                  ),
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          _PressAndHoldButton(
-                            onLongPress: () => Navigator.pushNamed(
-                                context, AppRoutes.privacyPolicy),
-                          ),
-                        ],
+                      // Title — Rive animation
+                      SizedBox(
+                        width: constraints.maxWidth.clamp(0.0, 360.0),
+                        height: 80,
+                        child: RiveWidgetBuilder(
+                          key: ValueKey(_animCycle),
+                          fileLoader: _chooseGameLoader!,
+                          builder: (context, state) => switch (state) {
+                            RiveLoading() => const SizedBox.shrink(),
+                            RiveFailed() => const SizedBox.shrink(),
+                            RiveLoaded(:final controller) => RiveWidget(
+                                controller: controller,
+                                fit: Fit.contain,
+                              ),
+                          },
+                        ),
                       ),
                       const SizedBox(height: AppSizes.spacingSmall),
 
@@ -168,7 +155,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Builder(
       builder: (context) {
         final constraints = BoxConstraints(maxWidth: width);
-        final crossAxisCount = constraints.maxWidth < 400 ? 2 : 3;
+        final mq = MediaQuery.of(context);
+        final isTabletLandscape = mq.size.width >= 768 &&
+            mq.orientation == Orientation.landscape;
+        final crossAxisCount = isTabletLandscape
+            ? 4
+            : constraints.maxWidth < 400
+                ? 2
+                : 3;
 
         final gameTiles = <Widget>[
             GameTile(
@@ -203,15 +197,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             GameTile(
               title: localizer.translate('number_line.title'),
-              imagePath: 'assets/images/home_screen/counters-to-make-10.jpg',
+              imagePath: 'assets/images/home_screen/make10.jpg',
               onTap: () =>
                   Navigator.pushNamed(context, AppRoutes.numberLineGame),
             ),
             GameTile(
-              title: localizer.translate('higher_or_lower.title'),
+              title: localizer.translate('more_or_less.title'),
               imagePath: 'assets/images/home_screen/more-or-Less.png',
               onTap: () =>
-                  Navigator.pushNamed(context, AppRoutes.higherOrLower),
+                  Navigator.pushNamed(context, AppRoutes.moreLessGame),
             ),
             // GameTile(
             //   title: 'Counting Back',
@@ -219,13 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
             //   onTap: () =>
             //       Navigator.pushNamed(context, AppRoutes.countingBackGame),
             // ),
-            // GameTile(
-            //   title: 'More or Less',
-            //   imagePath: 'assets/images/home_screen/more-or-less.jpg',
-            //   onTap: () =>
-            //       Navigator.pushNamed(context, AppRoutes.moreLessGame),
-            // ),
-            GameTile(
+GameTile(
               title: localizer.translate('bsl_maths.title'),
               imagePath: 'assets/images/home_screen/bsl-maths.jpg',
               onTap: () => _navigateToBslMaths(context),
@@ -274,18 +262,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () =>
                   Navigator.pushNamed(context, AppRoutes.wordSearch),
             ),
-            if (!kIsWeb)
-              GameTile(
-                title: localizer.translate('camera_vowels.title'),
-                imagePath: 'assets/images/home_screen/bsl-vowels.jpg',
-                onTap: () => _navigateToCameraVowels(context),
-              ),
-            if (!kIsWeb)
-              GameTile(
-                title: localizer.translate('wave_hello.title'),
-                imagePath: 'assets/images/home_screen/Hello.jpg',
-                onTap: () => Navigator.pushNamed(context, AppRoutes.waveHello),
-              ),
           ];
 
         // Add logo to fill the last row if it's not complete
@@ -359,51 +335,4 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.pushNamed(context, AppRoutes.characterId);
   }
 
-  /// Navigates to the BSL camera vowels game.
-  void _navigateToCameraVowels(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.cameraVowels);
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _PressAndHoldButton extends StatelessWidget {
-  final VoidCallback onLongPress;
-  const _PressAndHoldButton({required this.onLongPress});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPress: onLongPress,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: 0.88),
-          border: Border.all(color: const Color(0xFF1A237E), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: const Center(
-          child: Text(
-            'press\nand hold',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'ComicRelief',
-              fontSize: 9.5,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A237E),
-              height: 1.3,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/game_stats_service.dart';
 
 /// Represents a bubble floating on screen.
@@ -298,6 +299,9 @@ class BubblePopProvider extends ChangeNotifier {
   void _selectNewTarget() {
     final letters = _currentLevel.letters;
     _targetLetter = letters[_random.nextInt(letters.length)];
+    if (_isPlaying) {
+      AudioService.playLetterMp3(_targetLetter).ignore();
+    }
   }
 
   /// Spawns initial bubbles at game start.

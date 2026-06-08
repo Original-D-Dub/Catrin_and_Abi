@@ -111,7 +111,7 @@ class _BingoCelebrationState extends State<BingoCelebration>
     _buttonFade = Tween<double>(begin: 0, end: 1).animate(_buttonCtrl);
 
     AudioService.hapticSuccess();
-    _speakBingo();
+    _startAudioSequence();
 
     if (widget.animal != null && widget.playerId != null) {
       _checkIfNew();
@@ -127,17 +127,6 @@ class _BingoCelebrationState extends State<BingoCelebration>
                 levelNumber: widget.levelNumber,
               )
               .catchError((_) {});
-          // Speak the heading text, then the animal name after a pause
-          Future.delayed(const Duration(milliseconds: 200), () {
-            if (!mounted) return;
-            final heading = (_isNew ?? false)
-                ? 'Congratulations! You have a new friend.'
-                : 'You have a friend!';
-            AudioService.speak(heading);
-          });
-          Future.delayed(const Duration(milliseconds: 1800), () {
-            if (mounted) AudioService.speak(widget.animal!.name);
-          });
           Future.delayed(const Duration(milliseconds: 700), () {
             if (mounted) _buttonCtrl.forward();
           });
@@ -164,8 +153,16 @@ class _BingoCelebrationState extends State<BingoCelebration>
     }
   }
 
-  void _speakBingo() {
-    AudioService.speak('Bingo!');
+  Future<void> _startAudioSequence() async {
+    await AudioService.playMp3('speech files/bingo_bingo.mp3');
+    if (!mounted || widget.animal == null) return;
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    if (_isNew ?? false) {
+      AudioService.playMp3('speech files/bingo_you_have_a_new_friend.mp3');
+    } else {
+      AudioService.playMp3('speech files/bingo_you_have_a_friend.mp3');
+    }
   }
 
   @override

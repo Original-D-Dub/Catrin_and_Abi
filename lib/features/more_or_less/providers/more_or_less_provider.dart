@@ -4,125 +4,68 @@ import 'package:flutter/material.dart';
 
 import '../../../shared/services/game_stats_service.dart';
 
-// ── Colour pairs ──────────────────────────────────────────────────────────────
+class MolLevel {
+  final int number;
+  final String name;
+  final int maxNumber;
 
-class BlockColourPair {
-  final Color colorA;
-  final Color colorB;
-  final String nameA;
-  final String nameB;
-
-  const BlockColourPair({
-    required this.colorA,
-    required this.colorB,
-    required this.nameA,
-    required this.nameB,
+  const MolLevel({
+    required this.number,
+    required this.name,
+    required this.maxNumber,
   });
 }
 
-const List<BlockColourPair> moreLessColourPairs = [
-  BlockColourPair(
-    colorA: Color(0xFFEE009B),
-    colorB: Color(0xFF43A047),
-    nameA: 'pink',
-    nameB: 'green',
-  ),
-  BlockColourPair(
-    colorA: Color(0xFFFF6F00),
-    colorB: Color(0xFF1E88E5),
-    nameA: 'orange',
-    nameB: 'blue',
-  ),
-  BlockColourPair(
-    colorA: Color(0xFF8E24AA),
-    colorB: Color(0xFFFDD835),
-    nameA: 'purple',
-    nameB: 'yellow',
-  ),
+const List<MolLevel> molLevels = [
+  MolLevel(number: 1, name: 'more_or_less.level1.name', maxNumber: 5),
+  MolLevel(number: 2, name: 'more_or_less.level2.name', maxNumber: 7),
+  MolLevel(number: 3, name: 'more_or_less.level3.name', maxNumber: 10),
 ];
 
-// ── Question & answer types ───────────────────────────────────────────────────
+enum MolGameState { playing, won }
 
-enum MoreLessQuestion {
-  smallest,     // number buttons — which number is smallest?
-  biggest,      // number buttons — which number is biggest?
-  moreBlocks,   // colour buttons — which colour has more?
-  fewestBlocks, // colour buttons — which colour has fewest?
-  moreThan,     // yes/no buttons — are there more [A] than [B]?
-}
-
-/// Determines how answer buttons are rendered in the screen.
-enum MoreLessAnswerType { number, colour, yesNo }
-
-extension MoreLessQuestionX on MoreLessQuestion {
-  MoreLessAnswerType get answerType {
-    switch (this) {
-      case MoreLessQuestion.smallest:
-      case MoreLessQuestion.biggest:
-        return MoreLessAnswerType.number;
-      case MoreLessQuestion.moreBlocks:
-      case MoreLessQuestion.fewestBlocks:
-        return MoreLessAnswerType.colour;
-      case MoreLessQuestion.moreThan:
-        return MoreLessAnswerType.yesNo;
-    }
-  }
-}
-
-// ── Game state ────────────────────────────────────────────────────────────────
-
-enum MoreLessState { playing, won }
-
-// ── Provider ──────────────────────────────────────────────────────────────────
-
-class MoreLessProvider extends ChangeNotifier {
+class MoreOrLessProvider extends ChangeNotifier {
   static const int totalRounds = 10;
 
   final Random _random = Random();
   final GameStatsService _statsService = GameStatsService();
-
-  // ── state ──────────────────────────────────────────────────────────────────
 
   bool _showLevelSelect = true;
   bool get showLevelSelect => _showLevelSelect;
 
   int _levelIndex = 0;
   int get levelNumber => _levelIndex + 1;
-  BlockColourPair get colours => moreLessColourPairs[_levelIndex];
+  MolLevel get currentLevel => molLevels[_levelIndex];
 
   int _roundIndex = 0;
   int get roundNumber => _roundIndex + 1;
 
-  int _countA = 0;
-  int _countB = 0;
-  int get countA => _countA;
-  int get countB => _countB;
+  int _firstNumber = 1;
+  int _secondNumber = 2;
+  bool _isHigherQuestion = true;
 
-  MoreLessQuestion _questionType = MoreLessQuestion.smallest;
-  MoreLessQuestion get questionType => _questionType;
-  MoreLessAnswerType get answerType => _questionType.answerType;
+  int get firstNumber => _firstNumber;
+  int get secondNumber => _secondNumber;
+  bool get isHigherQuestion => _isHigherQuestion;
 
-  /// String answer options for this round (numbers, colour names, or yes/no).
-  List<String> answerOptions = [];
+  String get questionText => _isHigherQuestion
+      ? 'Is $_firstNumber more than $_secondNumber?'
+      : 'Is $_firstNumber less than $_secondNumber?';
 
-  /// Wrong answers the player has tried.
-  final Set<String> disabledAnswers = {};
-
-  /// The correct answer as a string (matches an entry in [answerOptions]).
-  String correctAnswer = '';
+  bool get correctIsYes => _isHigherQuestion
+      ? _firstNumber > _secondNumber
+      : _firstNumber < _secondNumber;
 
   int _score = 0;
   int get score => _score;
 
-  MoreLessState _state = MoreLessState.playing;
-  MoreLessState get state => _state;
+  MolGameState _state = MolGameState.playing;
+  MolGameState get state => _state;
 
   GameResult? _lastResult;
   GameResult? get lastResult => _lastResult;
 
-  // ── lifecycle ──────────────────────────────────────────────────────────────
-
-  MoreLessProvider() {
+  MoreOrLessProvider() {
     showLevelSelection();
   }
 
@@ -132,43 +75,36 @@ class MoreLessProvider extends ChangeNotifier {
   }
 
   void startGame(int levelIndex) {
-    _levelIndex = levelIndex.clamp(0, moreLessColourPairs.length - 1);
+    _levelIndex = levelIndex.clamp(0, molLevels.length - 1);
     _showLevelSelect = false;
     _score = 0;
     _lastResult = null;
-    _state = MoreLessState.playing;
+    _state = MolGameState.playing;
     _roundIndex = 0;
     _generateRound();
     notifyListeners();
   }
 
-  // ── answer handling ────────────────────────────────────────────────────────
-
-  void selectAnswer(String answer) {
-    if (_state == MoreLessState.won) return;
-    if (disabledAnswers.contains(answer)) return;
-
-    if (answer == correctAnswer) {
-      _score++;
-      _advance();
-    } else {
-      disabledAnswers.add(answer);
-      notifyListeners();
-    }
+  /// Checks the player's answer. Returns true if correct.
+  /// Awards a point for a correct answer.
+  bool selectAnswer(bool isYes) {
+    if (_state == MolGameState.won) return false;
+    final isCorrect = isYes == correctIsYes;
+    if (isCorrect) _score++;
+    return isCorrect;
   }
 
-  // ── internals ──────────────────────────────────────────────────────────────
-
-  void _advance() {
-    final next = _roundIndex + 1;
-    if (next < totalRounds) {
-      _roundIndex = next;
+  /// Advances to the next round (called by screen after feedback delay).
+  void advance() {
+    if (_state == MolGameState.won) return;
+    final nextRound = _roundIndex + 1;
+    if (nextRound < totalRounds) {
+      _roundIndex = nextRound;
       _generateRound();
       notifyListeners();
       return;
     }
-
-    _state = MoreLessState.won;
+    _state = MolGameState.won;
     _lastResult = null;
     notifyListeners();
     _statsService
@@ -180,40 +116,11 @@ class MoreLessProvider extends ChangeNotifier {
   }
 
   void _generateRound() {
-    disabledAnswers.clear();
-
+    final max = currentLevel.maxNumber;
+    _firstNumber = _random.nextInt(max) + 1;
     do {
-      _countA = _random.nextInt(10) + 1;
-      _countB = _random.nextInt(10) + 1;
-    } while (_countA == _countB);
-
-    _questionType = MoreLessQuestion
-        .values[_random.nextInt(MoreLessQuestion.values.length)];
-
-    switch (_questionType) {
-      case MoreLessQuestion.smallest:
-        correctAnswer = min(_countA, _countB).toString();
-        answerOptions = [_countA.toString(), _countB.toString()]
-          ..shuffle(_random);
-
-      case MoreLessQuestion.biggest:
-        correctAnswer = max(_countA, _countB).toString();
-        answerOptions = [_countA.toString(), _countB.toString()]
-          ..shuffle(_random);
-
-      case MoreLessQuestion.moreBlocks:
-        correctAnswer =
-            _countA > _countB ? colours.nameA : colours.nameB;
-        answerOptions = [colours.nameA, colours.nameB]..shuffle(_random);
-
-      case MoreLessQuestion.fewestBlocks:
-        correctAnswer =
-            _countA < _countB ? colours.nameA : colours.nameB;
-        answerOptions = [colours.nameA, colours.nameB]..shuffle(_random);
-
-      case MoreLessQuestion.moreThan:
-        correctAnswer = _countA > _countB ? 'Yes' : 'No';
-        answerOptions = ['Yes', 'No']..shuffle(_random);
-    }
+      _secondNumber = _random.nextInt(max) + 1;
+    } while (_secondNumber == _firstNumber);
+    _isHigherQuestion = _random.nextBool();
   }
 }

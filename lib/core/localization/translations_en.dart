@@ -33,7 +33,7 @@ const Map<String, String> translationsEn = {
   'colouring.title': 'Colouring',
   'counting.title': 'Counting',
   'number_line.title': 'Make 10',
-  'higher_or_lower.title': 'Higher or Lower',
+  'more_or_less.title': 'More or Less',
   'bsl_maths.title': 'BSL Maths',
   'clothes_line.title': 'Clothes Line',
   'clothes_line.intro': 'Look at the clothes on the line and answer the question!',
@@ -46,8 +46,6 @@ const Map<String, String> translationsEn = {
   'bsl_sprint.title': 'BSL Sprint',
   'letter_bingo.title': 'Letter Bingo',
   'character_id.title': 'Who has blue shoes?',
-  'camera_vowels.title': 'Camera Vowels',
-  'wave_hello.title': 'Wave Hello!',
 
   // -------------------------
   // Level Select (shared widget)
@@ -112,6 +110,7 @@ const Map<String, String> translationsEn = {
   'general.emph18': '18',
   'general.emph19': '19',
   'general.emph20': '20',
+  'general.correct': 'Correct!',
   'general.welldone': 'Well Done!',
   'general.congratulations': 'Congratulations!',
   'general.almost_there': 'Almost there!',
@@ -165,6 +164,18 @@ const Map<String, String> translationsEn = {
   'card_matching.level5.name': 'q to z',
   'card_matching.level6.name': 'Full Alphabet',
 
+  // -------------------------
+  // Welsh Card Matching Game
+  // -------------------------
+  'welsh_card_matching.title': 'Welsh Card Match',
+  'welsh_card_matching.instructions': 'Match the Welsh signs with their letters!',
+  'welsh_card_matching.tap_first': 'Tap a card to flip it!',
+  'welsh_card_matching.tap_second': 'Tap another card to find a match',
+  'welsh_card_matching.level1.name': 'Welsh Vowels',
+  'welsh_card_matching.level2.name': 'Digraphs',
+  'welsh_card_matching.level3.name': 'b to n',
+  'welsh_card_matching.level4.name': 'Mixed',
+  'welsh_card_matching.level5.name': 'Full Welsh Alphabet',
 
   // -------------------------
   // Bubble Pop Game
@@ -200,19 +211,14 @@ const Map<String, String> translationsEn = {
   'number_line.level2.name': 'Up to 10',
   'number_line.level3.name': 'Signs Only',
 
-  // -------------------------
+// -------------------------
   // More or Less
   // -------------------------
-  'more_or_less.intro': 'Look at the blocks and decide which is more and which is less!',
-
-  // -------------------------
-  // Higher or Lower
-  // -------------------------
-  'higher_or_lower.intro': 'Look at the numbers which is higher and which is lower!',
-  'higher_or_lower.subtitle': 'Is it higher or lower?',
-  'higher_or_lower.level1.name': 'Numbers 1–5',
-  'higher_or_lower.level2.name': 'Numbers 1–7',
-  'higher_or_lower.level3.name': 'Numbers 1–10',
+  'more_or_less.intro': 'Which is more, which is less?', 
+  'more_or_less.subtitle': 'Is it more or less??',
+  'more_or_less.level1.name': 'Numbers 1–5',
+  'more_or_less.level2.name': 'Numbers 1–7',
+  'more_or_less.level3.name': 'Numbers 1–10',
 
   // -------------------------
   // BSL Maths
@@ -261,6 +267,7 @@ const Map<String, String> translationsEn = {
   // Letter Bingo
   // -------------------------
     'letter_bingo.intro': 'Match the BSL signs to the letters called at the bottom of the screen. Complete a line for BINGO!',
+    'letter_bingo.bingo': 'Bingo!',
 
   // -------------------------
   // So Many People Know Me

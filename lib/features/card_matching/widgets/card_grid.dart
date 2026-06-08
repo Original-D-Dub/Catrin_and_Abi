@@ -60,6 +60,32 @@ class CardGrid extends StatelessWidget {
           physics = const NeverScrollableScrollPhysics();
         }
 
+        final cardWidgets = cards.map<Widget>((card) {
+          return GameCard(
+            card: card,
+            onTap: () => onCardTap(card.id),
+          );
+        }).toList();
+
+        if (isTabletLandscape) {
+          final targetRows = levelNumber <= 2 ? 2 : 3;
+          final totalSlots = crossAxisCount * targetRows;
+          final emptySlots = totalSlots - cards.length;
+          for (int i = 0; i < emptySlots; i++) {
+            cardWidgets.add(
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Image.asset(
+                    'assets/logos/english/Catrin_Abi_Logo_Eng_600x600.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            );
+          }
+        }
+
         return GridView.count(
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: AppSizes.cardGridSpacing,
@@ -67,12 +93,7 @@ class CardGrid extends StatelessWidget {
           childAspectRatio: childAspectRatio,
           shrinkWrap: shrinkWrap,
           physics: physics,
-          children: cards.map((card) {
-            return GameCard(
-              card: card,
-              onTap: () => onCardTap(card.id),
-            );
-          }).toList(),
+          children: cardWidgets,
         );
       },
     );

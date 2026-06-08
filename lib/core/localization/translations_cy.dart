@@ -43,7 +43,7 @@ const Map<String, String> translationsCy = {
   'colouring.title': 'Lliwio',
   'counting.title': 'Cyfri',
   'number_line.title': 'Llinell Rhifau',
-  'higher_or_lower.title': 'Uwch neu Is',
+  'more_or_less.title': 'Mwy neu Lai',
   'bsl_maths.title': 'Maths BSL',
   'clothes_line.title': 'Lein Ddillad',
   'clothes_line.intro': 'Edrychwch ar y dillad ar y lein ac atebwch y cwestiwn!',
@@ -55,9 +55,8 @@ const Map<String, String> translationsCy = {
   'clothes_line.level3.description': 'Atebwch cyn i\'r dillad sgrolio i ffwrdd!',
   'bsl_sprint.title': 'Ras BSL',
   'letter_bingo.title': 'Bingo Llythrennau',
+  'letter_bingo.bingo': 'Bingo!',
   'character_id.title': 'Pwy Ydw I?',
-  'camera_vowels.title': 'Llafariaid Camera',
-  'wave_hello.title': 'Chwifio Helo!',
 
   // -------------------------
   // Level Select (shared widget)
@@ -123,6 +122,8 @@ const Map<String, String> translationsCy = {
   'general.emph18': '18',
   'general.emph19': '19',
   'general.emph20': '20',
+  'general.correct': 'Cywir!',
+  'general.try_again': 'Ceisiwch eto!',
   'general.welldone': 'Da iawn!',
 
   // -------------------------
@@ -184,6 +185,19 @@ const Map<String, String> translationsCy = {
   'card_matching.level6.name': 'Yr Wyddor Lawn',
 
   // -------------------------
+  // Welsh Card Matching Game
+  // -------------------------
+  'welsh_card_matching.title': 'Paru Cardiau Cymraeg',
+  'welsh_card_matching.instructions': "Parwch arwyddion yr wyddor gyda'u llythrennau!",
+  'welsh_card_matching.tap_first': "Tapiwch gerdyn i'w droi!",
+  'welsh_card_matching.tap_second': 'Tapiwch gerdyn arall i ddod o hyd i bar',
+  'welsh_card_matching.level1.name': 'Llafariaid Cymraeg',
+  'welsh_card_matching.level2.name': 'Deugraffiaid',
+  'welsh_card_matching.level3.name': 'b i n',
+  'welsh_card_matching.level4.name': 'Cymysg',
+  'welsh_card_matching.level5.name': 'Yr Wyddor Lawn',
+
+  // -------------------------
   // Counting Game
   // -------------------------
   'counting_game.intro': 'Cyfrifwch y cylchoedd a thapio\'r arwydd rhif BSL sy\'n cyfateb!',
@@ -202,13 +216,13 @@ const Map<String, String> translationsCy = {
   'number_line.level3.name': 'Arwyddion yn Unig',
 
   // -------------------------
-  // Higher or Lower
+  // More or Less
   // -------------------------
-  'higher_or_lower.intro': 'Edrychwch ar y rhif a phenderfynwch a yw\'r rhif nesaf yn uwch neu\'n is!',
-  'higher_or_lower.subtitle': 'Uwch neu is yw e?',
-  'higher_or_lower.level1.name': 'Rhifau 1–5',
-  'higher_or_lower.level2.name': 'Rhifau 1–7',
-  'higher_or_lower.level3.name': 'Rhifau 1–10',
+  'more_or_less.intro': 'Edrychwch ar y rhif a phenderfynwch a yw\'r rhif nesaf yn uwch neu\'n is!',
+  'more_or_less.subtitle': 'Uwch neu is yw e?',
+  'more_or_less.level1.name': 'Rhifau 1–5',
+  'more_or_less.level2.name': 'Rhifau 1–7',
+  'more_or_less.level3.name': 'Rhifau 1–10',
 
   // -------------------------
   // BSL Maths

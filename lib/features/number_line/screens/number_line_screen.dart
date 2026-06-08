@@ -1,25 +1,19 @@
-import 'dart:math' show max;
+import 'dart:math' show pi;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../../../shared/services/audio_service.dart';
-import '../../../core/tts_helper.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/level_select_screen.dart';
 import '../providers/number_line_provider.dart';
-
-const List<String> _countWords = [
-  'one', 'two', 'three', 'four', 'five',
-  'six', 'seven', 'eight', 'nine', 'ten',
-];
 
 class NumberLineGameScreen extends StatefulWidget {
   const NumberLineGameScreen({super.key});
@@ -29,9 +23,6 @@ class NumberLineGameScreen extends StatefulWidget {
 }
 
 class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
-  FlutterTts? _tts;
-  String? _lastRoundKey;
-
   bool _isAnimating = false;
 
   /// How many counters have moved onto the number line so far this animation.
@@ -40,35 +31,49 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
   /// The answer the player tapped (used to decide correct/wrong after anim).
   int? _animatingAnswer;
 
+  NumberLineGameProvider? _provider;
+  int _lastAudioRound = -1;
+  int _lastAudioLevel = -1;
+
   @override
-  void initState() {
-    super.initState();
-    _initTts();
-  }
-
-  Future<void> _initTts() async {
-    try {
-      _tts = FlutterTts();
-      await TtsHelper.configure(_tts!);
-    } catch (e) {
-      debugPrint('TTS initialization failed: $e');
-    }
-  }
-
-  void _speak(String text) {
-    try {
-      _tts?.speak(text);
-    } catch (e) {
-      debugPrint('TTS speak failed: $e');
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = context.read<NumberLineGameProvider>();
+    if (_provider != provider) {
+      _provider?.removeListener(_onProviderChanged);
+      _provider = provider;
+      _provider!.addListener(_onProviderChanged);
     }
   }
 
   @override
   void dispose() {
-    try {
-      _tts?.stop();
-    } catch (_) {}
+    _provider?.removeListener(_onProviderChanged);
     super.dispose();
+  }
+
+  void _onProviderChanged() {
+    final provider = _provider;
+    if (provider == null) return;
+    if (provider.showLevelSelect) return;
+    if (provider.state == NumberLineGameState.won) return;
+    if (provider.roundNumber == _lastAudioRound &&
+        provider.levelNumber == _lastAudioLevel) {
+      return;
+    }
+
+    _lastAudioRound = provider.roundNumber;
+    _lastAudioLevel = provider.levelNumber;
+    _playQuestionAudio(provider.levelNumber);
+  }
+
+  Future<void> _playQuestionAudio(int levelNumber) async {
+    final numberFile = levelNumber == 1 ? 'general_5.mp3' : 'general_10.mp3';
+    await AudioService.speakSequentialMp3s(
+      'number_line_how_many_cakes_do_we_need_to_make.mp3',
+      numberFile,
+      leadMs: 240,
+    );
   }
 
   // ── Answer handling ──────────────────────────────────────────────────────────
@@ -95,10 +100,16 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
       if (!mounted) return;
       setState(() => _fillProgress = next);
 
-      // Speak count word as each counter lands.
-      final wordIndex = next - 1;
-      if (wordIndex < _countWords.length) {
-        _speak(_countWords[wordIndex]);
+      // A cake is off the line when it would overflow past the target number.
+      final isOffLine = provider.circleCount + next > provider.currentLevel.targetNumber;
+      if (isOffLine) {
+        // 1200 ms matches the off-line drop animation duration in _NumberLineWidget.
+        Future.delayed(const Duration(milliseconds: 1200), () {
+          if (!mounted) return;
+          AudioService.playMp3('number_line/cake_drop.mp3').ignore();
+        });
+      } else {
+        AudioService.playSpeechMp3('$next').ignore();
       }
 
       if (next < total) {
@@ -109,19 +120,13 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
           if (!mounted) return;
           final answer = _animatingAnswer!;
           final correct = provider.correctAnswer;
-          final String feedback;
           if (answer == correct) {
-            feedback = 'Well done';
             AudioService.playCorrect('number_line_game');
           } else if (answer > correct) {
-            feedback = "Oh, we have too many!";
-            AudioService.playWrong('number_line_game');
+            AudioService.speakWithMp3('', mp3Path: 'general_oops.mp3').ignore();
           } else {
-            feedback = "We don't have enough.";
-            AudioService.playWrong('number_line_game');
+            AudioService.speakWithMp3('', mp3Path: 'number_line_we_need_more.mp3').ignore();
           }
-          //add sound effect here for guessing correct
-          // _speak(feedback);
 
           Future.delayed(const Duration(milliseconds: 3000), () {
             if (!mounted) return;
@@ -145,27 +150,6 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
     final localizer = AppLocalizations(locale: 'en');
     return Consumer<NumberLineGameProvider>(
       builder: (context, provider, _) {
-        // Speak question when round changes
-        if (!provider.showLevelSelect &&
-            provider.state == NumberLineGameState.playing) {
-          final key = '${provider.roundNumber}';
-          if (key != _lastRoundKey) {
-            _lastRoundKey = key;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _speak('How many counters do we need to make ${provider.currentLevel.targetNumber}?');
-            });
-          }
-        }
-
-        // Speak "Well Done!" on win
-        if (provider.state == NumberLineGameState.won &&
-            _lastRoundKey != 'won') {
-          _lastRoundKey = 'won';
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _speak('Well Done!');
-          });
-        }
-
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
@@ -241,9 +225,6 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
   // ── Game layout ──────────────────────────────────────────────────────────────
 
   Widget _buildGame(BuildContext context, NumberLineGameProvider provider) {
-    // Pool needs enough circles to cover whichever button the player might tap.
-    final poolSize = provider.answerOptions.reduce(max) + 1;
-
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -276,7 +257,7 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'How many counters do we need to make ${provider.currentLevel.targetNumber}?',
+                  'How many cakes do we need to make ${provider.currentLevel.targetNumber}?',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'ComicRelief',
@@ -286,15 +267,15 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _NumberLineWidget(
-                  originalCount: provider.circleCount,
-                  filledCount: _fillProgress,
-                  divisions: provider.currentLevel.targetNumber,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: _NumberLineWidget(
+                    originalCount: provider.circleCount,
+                    filledCount: _fillProgress,
+                    divisions: provider.currentLevel.targetNumber + 1,
+                    roundKey: '${provider.levelNumber}_${provider.roundNumber}',
+                  ),
                 ),
-                const SizedBox(height: 12),
-                const Divider(height: 1, color: Colors.white60),
-                const SizedBox(height: 10),
-                _PoolCircles(total: poolSize, used: _fillProgress),
                 const SizedBox(height: 4),
               ],
             ),
@@ -303,32 +284,44 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
 
         const SizedBox(height: 16),
 
-        // Answer buttons
-        Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppSizes.paddingLarge),
-          child: _NumberAnswerButton(
-            n: provider.answerOptions[0],
-            disabled: _isAnimating,
-            showBslOnly: provider.currentLevel.showBslOnly,
-            onTap: () =>
-                _onAnswerTapped(provider.answerOptions[0], provider),
-          ),
-        ),
-
-        const SizedBox(height: AppSizes.spacingSmall),
-
-        Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppSizes.paddingLarge),
-          child: _NumberAnswerButton(
-            n: provider.answerOptions[1],
-            disabled: _isAnimating,
-            showBslOnly: provider.currentLevel.showBslOnly,
-            onTap: () =>
-                _onAnswerTapped(provider.answerOptions[1], provider),
-          ),
-        ),
+        // Answer buttons — side by side in landscape, stacked in portrait.
+        Builder(builder: (context) {
+          final isLandscape =
+              MediaQuery.of(context).orientation == Orientation.landscape;
+          final buttons = [
+            _NumberAnswerButton(
+              n: provider.answerOptions[0],
+              disabled: _isAnimating,
+              showBslOnly: provider.currentLevel.showBslOnly,
+              onTap: () => _onAnswerTapped(provider.answerOptions[0], provider),
+            ),
+            _NumberAnswerButton(
+              n: provider.answerOptions[1],
+              disabled: _isAnimating,
+              showBslOnly: provider.currentLevel.showBslOnly,
+              onTap: () => _onAnswerTapped(provider.answerOptions[1], provider),
+            ),
+          ];
+          return Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.paddingLarge),
+            child: isLandscape
+                ? Row(
+                    children: [
+                      Expanded(child: buttons[0]),
+                      const SizedBox(width: AppSizes.spacingSmall),
+                      Expanded(child: buttons[1]),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      buttons[0],
+                      const SizedBox(height: AppSizes.spacingSmall),
+                      buttons[1],
+                    ],
+                  ),
+          );
+        }),
 
         const SizedBox(height: AppSizes.spacingLarge),
       ],
@@ -372,12 +365,22 @@ class _NumberLineWidget extends StatelessWidget {
   final int originalCount;
   final int filledCount;
   final int divisions;
+  final String roundKey;
 
   const _NumberLineWidget({
     required this.originalCount,
     required this.filledCount,
+    required this.roundKey,
     this.divisions = 10,
   });
+
+  // Per-pile-slot: x-drift, extra-y, rotation angle (radians).
+  // Index 0 = first cake to fall, index 1 = second, etc.
+  static const _pileX      = <double>[ 0.0, -14.0,  12.0,  -7.0,   9.0];
+  static const _pileY      = <double>[ 0.0,   3.0,   1.0,   5.0,   2.0];
+  static const _pileAngle  = <double>[
+    pi, pi * 0.8, pi * 1.15, pi * 0.9, pi * 1.1,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -386,28 +389,30 @@ class _NumberLineWidget extends StatelessWidget {
         final w = constraints.maxWidth;
         final cellWidth = w / divisions;
 
-        const double circleRadius = 14.0;
-        const double lineY = 52.0;
+        // Scale cakes to fit the cell width — larger on level 1 (6 cells),
+        // smaller on levels 2/3 (11 cells) so they don't overlap.
+        final circleRadius = (cellWidth * 0.46).clamp(12.0, 16.0);
+        const double lineY = 56.0;
         const double tickExtendAbove = 6.0;
         const double tickExtendBelow = 8.0;
-        const double numberY = lineY + tickExtendBelow + 4.0;
-        const double totalHeight = numberY + 24.0;
+        const double numberY       = lineY + tickExtendBelow + 4.0;
+        const double totalHeight   = numberY + 24.0;
+        const double dropDistance  = 80.0;
 
         final totalOnLine = originalCount + filledCount;
         final widgets = <Widget>[];
 
-        // Horizontal line
+        // Horizontal line — one cell shorter to leave a drop-off zone at the end.
         widgets.add(Positioned(
           left: cellWidth * 0.5,
-          width: cellWidth * (divisions - 1).toDouble(),
+          width: cellWidth * (divisions - 2).toDouble(),
           top: lineY,
           child: Container(height: 3, color: Colors.black87),
         ));
 
-        for (int i = 0; i < divisions; i++) {
+        // Tick marks and number labels for on-line positions only.
+        for (int i = 0; i < divisions - 1; i++) {
           final cx = cellWidth * (i + 0.5);
-
-          // Tick mark
           widgets.add(Positioned(
             left: cx - 1.5,
             top: lineY - tickExtendAbove,
@@ -417,8 +422,6 @@ class _NumberLineWidget extends StatelessWidget {
               color: Colors.black87,
             ),
           ));
-
-          // Number label
           widgets.add(Positioned(
             left: cx - cellWidth * 0.45,
             top: numberY,
@@ -434,97 +437,91 @@ class _NumberLineWidget extends StatelessWidget {
               ),
             ),
           ));
+        }
 
-          // Circle above tick
-          if (i < totalOnLine) {
-            final isOriginal = i < originalCount;
-            final circleWidget = Container(
-              width: circleRadius * 2,
-              height: circleRadius * 2,
-              decoration: BoxDecoration(
-                color: isOriginal
-                    ? AppColors.accentOrange
-                    : AppColors.accentLimeGreen,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 4,
-                    offset: const Offset(1, 2),
-                  ),
-                ],
-              ),
-            );
+        // Cakes — extend beyond divisions to show all overflow cakes.
+        final cakeTop = lineY - tickExtendAbove - circleRadius * 2 - 4;
+        // All off-line cakes share the same starting x (the tip of the line).
+        final offLineCx = cellWidth * (divisions - 0.5);
+
+        for (int i = 0; i < totalOnLine; i++) {
+          final isOriginal = i < originalCount;
+          final isOffLine  = i >= divisions - 1;
+
+          final imageWidget = SizedBox(
+            width: circleRadius * 2,
+            height: circleRadius * 2,
+            child: Image.asset(
+              isOriginal
+                  ? 'assets/images/make10_number_line/cacen-melyn.png'
+                  : 'assets/images/make10_number_line/cacen-siocled.png',
+              fit: BoxFit.contain,
+            ),
+          );
+
+          if (isOffLine) {
+            final offIdx = (i - (divisions - 1)).clamp(0, _pileX.length - 1);
+            final dx    = _pileX[offIdx];
+            final dy    = _pileY[offIdx];
+            final angle = _pileAngle[offIdx];
 
             widgets.add(Positioned(
+              left: offLineCx - circleRadius,
+              top: cakeTop,
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey('offLine_${roundKey}_$i'),
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 1200),
+                builder: (_, t, _) {
+                  final scale = Curves.easeOutBack
+                      .transform((t / 0.25).clamp(0.0, 1.0));
+                  final dropProgress = Curves.easeIn
+                      .transform(((t - 0.35) / 0.65).clamp(0.0, 1.0));
+                  return Transform.translate(
+                    offset: Offset(
+                      dx * dropProgress,
+                      dropProgress * (dropDistance + dy),
+                    ),
+                    child: Transform.rotate(
+                      angle: dropProgress * angle,
+                      child: Transform.scale(
+                        scale: scale,
+                        child: imageWidget,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ));
+          } else {
+            final cx = cellWidth * (i + 0.5);
+            widgets.add(Positioned(
               left: cx - circleRadius,
-              top: lineY - tickExtendAbove - circleRadius * 2 - 4,
-              // Green circles scale in from 0 when first placed.
+              top: cakeTop,
               child: isOriginal
-                  ? circleWidget
+                  ? imageWidget
                   : TweenAnimationBuilder<double>(
-                      key: ValueKey('filled_$i'),
+                      key: ValueKey('filled_${roundKey}_$i'),
                       tween: Tween(begin: 0.0, end: 1.0),
                       duration: const Duration(milliseconds: 280),
                       curve: Curves.easeOutBack,
                       builder: (_, v, child) =>
                           Transform.scale(scale: v, child: child),
-                      child: circleWidget,
+                      child: imageWidget,
                     ),
             ));
           }
         }
 
-        return SizedBox(
-          height: totalHeight,
-          child: Stack(children: widgets),
-        );
-      },
-    );
-  }
-}
-
-// ── Pool circles ──────────────────────────────────────────────────────────────
-
-class _PoolCircles extends StatelessWidget {
-  final int total;
-  final int used;
-
-  const _PoolCircles({required this.total, required this.used});
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 8,
-      runSpacing: 8,
-      children: List.generate(total, (i) {
-        final isUsed = i < used;
-        return AnimatedSlide(
-          offset: isUsed ? const Offset(0, -1.5) : Offset.zero,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeIn,
-          child: AnimatedOpacity(
-            opacity: isUsed ? 0.0 : 1.0,
-            duration: const Duration(milliseconds: 300),
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: AppColors.accentLimeGreen,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 4,
-                    offset: const Offset(1, 2),
-                  ),
-                ],
-              ),
-            ),
+        // Clip.none lets falling cakes overflow below the widget's bounds.
+        return ClipRect(
+          clipBehavior: Clip.none,
+          child: SizedBox(
+            height: totalHeight,
+            child: Stack(children: widgets),
           ),
         );
-      }),
+      },
     );
   }
 }

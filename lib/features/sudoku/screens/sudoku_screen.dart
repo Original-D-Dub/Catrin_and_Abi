@@ -60,9 +60,11 @@ class _SudokuBodyState extends State<_SudokuBody> {
   }
 
   static String _difficultyLabel(SudokuDifficulty d) => switch (d) {
-        SudokuDifficulty.normal  => 'Normal',
-        SudokuDifficulty.hard    => 'Hard',
-        SudokuDifficulty.extreme => 'Extreme',
+        SudokuDifficulty.mini     => 'Mini Sudoku',
+        SudokuDifficulty.sixBySix => '6×6 Sudoku',
+        SudokuDifficulty.normal   => 'Normal',
+        SudokuDifficulty.hard     => 'Hard',
+        SudokuDifficulty.extreme  => 'Extreme',
       };
 
   @override
@@ -133,7 +135,8 @@ class _SudokuBodyState extends State<_SudokuBody> {
         final gridSize = math.min(w - 24.0, h * 0.55).clamp(minGrid, maxGrid);
 
         // Picker fills what remains after grid + fixed chrome
-        const pickerRows    = 3;
+        final pickerCols    = math.max(provider.boxWidth, provider.boxHeight);
+        final pickerRows    = provider.gridSize ~/ pickerCols;
         const pickerSpacing = 8.0;
         const actionBtnH    = 44.0;
         const totalSpacerH  = 4.0 + 8.0 + 8.0 + 8.0; // top + gaps + bottom
@@ -208,28 +211,46 @@ class _SudokuBodyState extends State<_SudokuBody> {
             levels: [
               LevelSelectItem(
                 number: 1,
+                name: 'Mini Sudoku',
+                description: '4×4 grid — perfect for starting out',
+                displayLabel: 'Mini',
+                color: levelColor(0),
+                onTap: () =>
+                    provider.selectDifficulty(SudokuDifficulty.mini),
+              ),
+              LevelSelectItem(
+                number: 2,
+                name: '6×6 Sudoku',
+                description: '6×6 grid with 2×3 boxes',
+                displayLabel: '6×6',
+                color: levelColor(1),
+                onTap: () =>
+                    provider.selectDifficulty(SudokuDifficulty.sixBySix),
+              ),
+              LevelSelectItem(
+                number: 3,
                 name: 'Normal',
                 description: 'Great for beginners',
                 displayLabel: 'Normal',
-                color: levelColor(0),
+                color: levelColor(2),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.normal),
               ),
               LevelSelectItem(
-                number: 2,
+                number: 4,
                 name: 'Hard',
                 description: 'Fewer starting clues',
                 displayLabel: 'Hard',
-                color: levelColor(1),
+                color: levelColor(3),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.hard),
               ),
               LevelSelectItem(
-                number: 3,
+                number: 5,
                 name: 'Extreme',
                 description: 'For true masters',
                 displayLabel: 'Extreme',
-                color: levelColor(3),
+                color: levelColor(4),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.extreme),
               ),
@@ -348,7 +369,8 @@ class _SudokuGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cellSize = (size - _outerBorder * 2) / 9;
+    final gridSize = provider.gridSize;
+    final cellSize = (size - _outerBorder * 2) / gridSize;
 
     return Container(
       width: size,
@@ -368,11 +390,11 @@ class _SudokuGrid extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Column(
-          children: List.generate(9, (row) {
+          children: List.generate(gridSize, (row) {
             return SizedBox(
               height: cellSize,
               child: Row(
-                children: List.generate(9, (col) {
+                children: List.generate(gridSize, (col) {
                   return _buildCell(context, row, col, cellSize);
                 }),
               ),
@@ -386,6 +408,9 @@ class _SudokuGrid extends StatelessWidget {
   Widget _buildCell(
       BuildContext context, int row, int col, double cellSize) {
     final cell = provider.grid[row][col];
+    final gridSize = provider.gridSize;
+    final boxWidth = provider.boxWidth;
+    final boxHeight = provider.boxHeight;
     final isSelected =
         provider.selectedRow == row && provider.selectedCol == col;
     final selRow = provider.selectedRow;
@@ -399,7 +424,7 @@ class _SudokuGrid extends StatelessWidget {
       bg = Colors.red.shade200;
     } else if (!expert && selRow != null && selCol != null) {
       final sameBox =
-          (row ~/ 3 == selRow ~/ 3) && (col ~/ 3 == selCol ~/ 3);
+          (row ~/ boxHeight == selRow ~/ boxHeight) && (col ~/ boxWidth == selCol ~/ boxWidth);
       final related = row == selRow || col == selCol || sameBox;
       final selVal = provider.grid[selRow][selCol].value;
       if (selVal != 0 && cell.value == selVal) {
@@ -417,10 +442,10 @@ class _SudokuGrid extends StatelessWidget {
           : Colors.white.withValues(alpha: 0.88);
     }
 
-    final isBoxRight  = col == 2 || col == 5;
-    final isBoxBottom = row == 2 || row == 5;
-    final rightW  = col == 8 ? 0.0 : (isBoxRight  ? _boxBorder : _cellBorder);
-    final bottomW = row == 8 ? 0.0 : (isBoxBottom ? _boxBorder : _cellBorder);
+    final isBoxRight  = (col + 1) % boxWidth == 0;
+    final isBoxBottom = (row + 1) % boxHeight == 0;
+    final rightW  = col == gridSize - 1 ? 0.0 : (isBoxRight  ? _boxBorder : _cellBorder);
+    final bottomW = row == gridSize - 1 ? 0.0 : (isBoxBottom ? _boxBorder : _cellBorder);
 
     return GestureDetector(
       onTap: () => provider.selectCell(row, col),
@@ -486,17 +511,19 @@ class _NumberPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cols = math.max(provider.boxWidth, provider.boxHeight);
+    final rows = provider.gridSize ~/ cols;
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(3, (row) {
+      children: List.generate(rows, (row) {
         return Padding(
-          padding: EdgeInsets.only(bottom: row < 2 ? _spacing : 0),
+          padding: EdgeInsets.only(bottom: row < rows - 1 ? _spacing : 0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(3, (col) {
-              final n = row * 3 + col + 1;
+            children: List.generate(cols, (col) {
+              final n = row * cols + col + 1;
               return Padding(
-                padding: EdgeInsets.only(right: col < 2 ? _spacing : 0),
+                padding: EdgeInsets.only(right: col < cols - 1 ? _spacing : 0),
                 child: _NumberKey(
                   number: n,
                   size: cellSize,

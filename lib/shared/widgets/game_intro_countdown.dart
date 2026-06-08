@@ -7,7 +7,7 @@ import '../services/audio_service.dart';
 ///
 /// Phase 1 – Instruction: radial-gradient screen with the instruction text in
 ///   a speech bubble and Catrin as the speaker character.
-/// Phase 2 – Countdown: 3 → 2 → 1 → Go! with elastic animation and TTS.
+/// Phase 2 – Countdown: 3 → 2 → 1 → Go! with elastic animation and MP3 audio.
 /// [onComplete] is called after "Go!" finishes.
 class GameIntroCountdown extends StatefulWidget {
   final String gameId;
@@ -47,7 +47,7 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
   @override
   void dispose() {
     _cancelled = true;
-    AudioService.stopTts();
+    AudioService.stopAll();
     super.dispose();
   }
 
@@ -67,18 +67,14 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
     for (int i = 3; i >= 1; i--) {
       if (!mounted || _cancelled) return;
       setState(() => _countdownValue = i);
-      await Future.wait([
-        AudioService.playSpeechMp3('$i'),
-        Future.delayed(const Duration(seconds: 1)),
-      ]);
+      AudioService.playSpeechMp3('$i').ignore();
+      await Future.delayed(const Duration(seconds: 1));
     }
 
     if (!mounted || _cancelled) return;
     setState(() => _countdownValue = 0);
-    await Future.wait([
-      AudioService.playSpeechMp3('Go'),
-      Future.delayed(const Duration(milliseconds: 600)),
-    ]);
+    AudioService.playSpeechMp3('Go').ignore();
+    await Future.delayed(const Duration(milliseconds: 600));
 
     if (!mounted || _cancelled) return;
     widget.onComplete();
@@ -182,14 +178,14 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
           Center(
             child: SizedBox(
               width: 200,
-              height: 56,
+              height: 64,
               child: ElevatedButton(
                 onPressed: _onPlayTapped,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF20A754),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(32),
                   ),
                   textStyle: const TextStyle(
                     fontSize: 20,

@@ -90,6 +90,29 @@ class AppColors {
     'u': accentPurple,
   };
 
+  /// Color assignments for Welsh vowel pairs (a, e, i, o, u, w, y).
+  static const Map<String, Color> welshVowelPairColors = {
+    'a': accentRed,
+    'e': accentNavyBlue,
+    'i': accentLimeGreen,
+    'o': accentOrange,
+    'u': accentPurple,
+    'w': abiPink,
+    'y': catrinBlue,
+  };
+
+  /// Color assignments for Welsh digraph pairs (ch, dd, ff, ll, ng, ph, rh, th).
+  static const Map<String, Color> welshDigraphPairColors = {
+    'ch': connectorGold,
+    'dd': schoolGreen,
+    'ff': peroFur,
+    'ng': peroJacket,
+    'll': catrinHair,
+    'ph': accentYellow,
+    'rh': Color(0xFF00BCD4),
+    'th': Color(0xFF9C27B0),
+  };
+
   // -------------------------
   // Math Game Colors
   // -------------------------

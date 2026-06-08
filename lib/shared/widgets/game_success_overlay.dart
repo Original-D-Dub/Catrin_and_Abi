@@ -2,14 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/config/routes.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../shared/services/audio_service.dart';
-import '../../core/tts_helper.dart';
 import '../services/auth_provider.dart';
 import 'sign_in_banner_button.dart';
 
@@ -418,31 +416,30 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                       if (context.watch<AuthProvider>().isAnonymous)
                         const SizedBox(height: AppSizes.spacingMedium),
 
-                      // Play Again — hidden when onPlayAgain is null
-                      if (widget.onPlayAgain != null) ...[
-                        ElevatedButton.icon(
-                          onPressed: widget.onPlayAgain,
-                          icon: const Icon(Icons.replay),
-                          label: const Text('Play Again'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _green,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size.fromHeight(52),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                            ),
-                            textStyle: const TextStyle(
-                              fontFamily: 'ComicRelief',
-                              fontSize: AppSizes.fontSizeLarge,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.spacingMedium),
-                      ],
-
                       // Buttons — responsive layout when changeLevelIsButton is true
                       if (widget.changeLevelIsButton) ...[
+                        // Play Again — hidden when onPlayAgain is null
+                        if (widget.onPlayAgain != null) ...[
+                          ElevatedButton.icon(
+                            onPressed: widget.onPlayAgain,
+                            icon: const Icon(Icons.replay),
+                            label: const Text('Play Again'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _green,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size.fromHeight(52),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
+                              ),
+                              textStyle: const TextStyle(
+                                fontFamily: 'ComicRelief',
+                                fontSize: AppSizes.fontSizeLarge,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.spacingMedium),
+                        ],
                         Builder(builder: (context) {
                           final isWide = MediaQuery.of(context).size.width > 600;
                           final homeBtn = ElevatedButton.icon(
@@ -507,28 +504,86 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                         }),
                         const SizedBox(height: AppSizes.spacingSmall),
                       ] else ...[
-                        // Next Level
-                        if (widget.onNextLevel != null) ...[
-                          ElevatedButton.icon(
-                            onPressed: widget.onNextLevel,
-                            icon: const Icon(Icons.arrow_forward),
-                            label: const Text('Next Level'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _pink,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(52),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                              ),
-                              textStyle: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: AppSizes.fontSizeLarge,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: AppSizes.spacingMedium),
-                        ],
+                        // Play Again + Next Level — side by side in landscape
+                        Builder(builder: (context) {
+                          final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
+                          final playAgainBtn = widget.onPlayAgain != null
+                              ? ElevatedButton.icon(
+                                  onPressed: widget.onPlayAgain,
+                                  icon: const Icon(Icons.replay),
+                                  label: const Text('Play Again'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _green,
+                                    foregroundColor: Colors.white,
+                                    minimumSize: const Size.fromHeight(52),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontFamily: 'ComicRelief',
+                                      fontSize: AppSizes.fontSizeLarge,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                )
+                              : null;
+
+                          final nextLevelBtn = widget.onNextLevel != null
+                              ? ElevatedButton.icon(
+                                  onPressed: widget.onNextLevel,
+                                  icon: const Icon(Icons.arrow_forward),
+                                  label: const Text('Next Level'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _pink,
+                                    foregroundColor: Colors.white,
+                                    minimumSize: const Size.fromHeight(52),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontFamily: 'ComicRelief',
+                                      fontSize: AppSizes.fontSizeLarge,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                )
+                              : null;
+
+                          if (playAgainBtn == null && nextLevelBtn == null) {
+                            return const SizedBox.shrink();
+                          }
+
+                          if (playAgainBtn != null && nextLevelBtn != null && isLandscape) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(child: playAgainBtn),
+                                    const SizedBox(width: AppSizes.spacingMedium),
+                                    Expanded(child: nextLevelBtn),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSizes.spacingMedium),
+                              ],
+                            );
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (playAgainBtn != null) ...[
+                                playAgainBtn,
+                                const SizedBox(height: AppSizes.spacingMedium),
+                              ],
+                              if (nextLevelBtn != null) ...[
+                                nextLevelBtn,
+                                const SizedBox(height: AppSizes.spacingMedium),
+                              ],
+                            ],
+                          );
+                        }),
 
                         // Change Level link
                         TextButton.icon(
@@ -589,8 +644,6 @@ class _BingoSuccessOverlayState extends State<BingoSuccessOverlay>
   late final AnimationController _starController;
   late final Animation<double> _pulseAnimation;
 
-  FlutterTts? _tts;
-
   // Random positions for stars — fixed per instance
   final List<_StarData> _stars = _buildStars();
 
@@ -624,26 +677,12 @@ class _BingoSuccessOverlayState extends State<BingoSuccessOverlay>
     );
 
     AudioService.hapticSuccess();
-    _speakBingo();
-  }
-
-  Future<void> _speakBingo() async {
-    try {
-      _tts = FlutterTts();
-      await TtsHelper.configure(_tts!);
-      await _tts!.speak('Bingo!');
-    } catch (e) {
-      debugPrint('BingoSuccessOverlay TTS failed: $e');
-    }
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _starController.dispose();
-    try {
-      _tts?.stop();
-    } catch (_) {}
     super.dispose();
   }
 
@@ -706,39 +745,19 @@ class _BingoSuccessOverlayState extends State<BingoSuccessOverlay>
                             const SizedBox(height: AppSizes.spacingMedium),
                           ],
 
-                          ElevatedButton.icon(
-                            onPressed: widget.onPlayAgain,
-                            icon: const Icon(Icons.replay),
-                            label: const Text('Play Again'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50),
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(52),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppSizes.borderRadiusLarge),
-                              ),
-                              textStyle: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: AppSizes.fontSizeLarge,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          Builder(builder: (context) {
+                            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
-                          if (widget.onNextLevel != null) ...[
-                            const SizedBox(height: AppSizes.spacingMedium),
-                            ElevatedButton.icon(
-                              onPressed: widget.onNextLevel,
-                              icon: const Icon(Icons.arrow_forward),
-                              label: const Text('Next Level'),
+                            final playAgainBtn = ElevatedButton.icon(
+                              onPressed: widget.onPlayAgain,
+                              icon: const Icon(Icons.replay),
+                              label: const Text('Play Again'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFEE009B),
+                                backgroundColor: const Color(0xFF4CAF50),
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size.fromHeight(52),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      AppSizes.borderRadiusLarge),
+                                  borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
                                 ),
                                 textStyle: const TextStyle(
                                   fontFamily: 'ComicRelief',
@@ -746,8 +765,50 @@ class _BingoSuccessOverlayState extends State<BingoSuccessOverlay>
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          ],
+                            );
+
+                            final nextLevelBtn = widget.onNextLevel != null
+                                ? ElevatedButton.icon(
+                                    onPressed: widget.onNextLevel,
+                                    icon: const Icon(Icons.arrow_forward),
+                                    label: const Text('Next Level'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFEE009B),
+                                      foregroundColor: Colors.white,
+                                      minimumSize: const Size.fromHeight(52),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
+                                      ),
+                                      textStyle: const TextStyle(
+                                        fontFamily: 'ComicRelief',
+                                        fontSize: AppSizes.fontSizeLarge,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  )
+                                : null;
+
+                            if (nextLevelBtn != null && isLandscape) {
+                              return Row(
+                                children: [
+                                  Expanded(child: playAgainBtn),
+                                  const SizedBox(width: AppSizes.spacingMedium),
+                                  Expanded(child: nextLevelBtn),
+                                ],
+                              );
+                            }
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                playAgainBtn,
+                                if (nextLevelBtn != null) ...[
+                                  const SizedBox(height: AppSizes.spacingMedium),
+                                  nextLevelBtn,
+                                ],
+                              ],
+                            );
+                          }),
 
                           const SizedBox(height: AppSizes.spacingMedium),
                           TextButton.icon(

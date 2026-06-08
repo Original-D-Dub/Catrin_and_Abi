@@ -432,8 +432,8 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
       backgroundColor = buttonColor;
       borderColor = buttonColor;
     } else {
-      backgroundColor = Colors.white;
-      borderColor = AppColors.catrinBlue;
+      backgroundColor = Colors.white.withValues(alpha: 0.5);
+      borderColor = AppColors.catrinBlue.withValues(alpha: 0.5);
     }
 
     // Build the BSL image path from the color name

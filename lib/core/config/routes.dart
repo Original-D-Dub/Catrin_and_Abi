@@ -1,12 +1,14 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../features/splash/screens/splash_screen.dart';
 import '../../features/welcome/screens/welcome_screen.dart';
 import '../../features/home/screens/home_screen.dart';
+import '../../features/home/screens/welsh_home_screen.dart';
 import '../../features/card_matching/screens/card_game_screen.dart';
 import '../../features/card_matching/providers/card_game_provider.dart';
+import '../../features/welsh_card_matching/screens/welsh_card_game_screen.dart';
+import '../../features/welsh_card_matching/providers/welsh_card_game_provider.dart';
 import '../../features/bubble_pop/screens/bubble_pop_screen.dart';
 import '../../features/bubble_pop/providers/bubble_pop_provider.dart';
 import '../../features/colouring/screens/colouring_screen.dart';
@@ -17,6 +19,7 @@ import '../../features/my_special_dog/screens/my_special_dog_screen.dart';
 import '../../features/my_special_dog/providers/my_special_dog_provider.dart';
 import '../../features/bsl_maths/screens/bsl_maths_screen.dart';
 import '../../features/bsl_maths/providers/bsl_maths_provider.dart';
+import '../../features/welsh_maths/screens/welsh_maths_screen.dart';
 import '../../features/letter_quest/screens/letter_quest_screen.dart';
 import '../../features/letter_quest/screens/letter_quest_level_select_screen.dart';
 import '../../features/letter_quest/screens/outdoor_quest_screen.dart';
@@ -27,24 +30,18 @@ import '../../features/character_id/screens/character_id_screen.dart';
 import '../../features/letter_bingo/screens/letter_bingo_screen.dart';
 import '../../features/letter_bingo/screens/animal_collection_screen.dart';
 import '../../features/letter_bingo/providers/letter_bingo_provider.dart';
-import '../../features/bsl_camera_vowels/screens/camera_vowels_screen.dart';
-import '../../features/bsl_camera_vowels/providers/camera_vowels_provider.dart';
-import '../../features/wave_hello/screens/wave_hello_screen.dart';
-import '../../features/wave_hello/providers/wave_hello_provider.dart';
 import '../../features/counting_game/screens/counting_game_screen.dart';
 import '../../features/counting_game/providers/counting_game_provider.dart';
 import '../../features/number_line/screens/number_line_screen.dart';
 import '../../features/number_line/providers/number_line_provider.dart';
 import '../../features/counting_back/screens/counting_back_screen.dart';
 import '../../features/counting_back/providers/counting_back_provider.dart';
-import '../../features/more_or_less/screens/more_or_less_screen.dart';
-import '../../features/more_or_less/providers/more_or_less_provider.dart';
 import '../../features/bsl_sprint/screens/bsl_sprint_screen.dart';
 import '../../features/bsl_sprint/providers/bsl_sprint_provider.dart';
 import '../../features/clothes_line/screens/clothes_line_screen.dart';
 import '../../features/clothes_line/providers/clothes_line_provider.dart';
-import '../../features/higher_or_lower/screens/higher_or_lower_screen.dart';
-import '../../features/higher_or_lower/providers/higher_or_lower_provider.dart';
+import '../../features/more_or_less/screens/more_or_less_screen.dart';
+import '../../features/more_or_less/providers/more_or_less_provider.dart';
 import '../../features/sudoku/screens/sudoku_screen.dart';
 import '../../features/privacy/screens/privacy_policy_screen.dart';
 import '../../features/profile/screens/link_account_screen.dart';
@@ -75,6 +72,12 @@ class AppRoutes {
   /// Card matching game
   static const String cardMatching = '/games/card-matching';
 
+  /// Welsh card matching game (Wyddor IAC)
+  static const String welshCardMatching = '/games/welsh-card-matching';
+
+  /// Welsh home screen (Cymraeg game selection)
+  static const String welshHome = '/welsh-home';
+
   /// Bubble pop game
   static const String bubblePop = '/games/bubble-pop';
 
@@ -89,6 +92,9 @@ class AppRoutes {
 
   /// BSL maths game (addition with BSL number signs)
   static const String bslMaths = '/games/bsl-maths';
+
+  /// Welsh-language version of the BSL maths game
+  static const String welshMaths = '/games/welsh-maths';
 
   /// RPG letter collection game — level select
   static const String letterQuest = '/games/letter-quest';
@@ -114,12 +120,6 @@ class AppRoutes {
   /// Character Identification game
   static const String characterId = '/games/character-id';
 
-  /// BSL Camera Vowels game (MediaPipe hand tracking)
-  static const String cameraVowels = '/games/camera-vowels';
-
-  /// Wave Hello game (wave at camera, Catrin waves back)
-  static const String waveHello = '/games/wave-hello';
-
   /// Counting game
   static const String countingGame = '/games/counting';
 
@@ -129,10 +129,7 @@ class AppRoutes {
   /// Counting back game
   static const String countingBackGame = '/games/counting-back';
 
-  /// More or less game
-  static const String moreLessGame = '/games/more-or-less';
-
-  /// BSL Sprint endless-runner game
+/// BSL Sprint endless-runner game
   static const String bslSprint = '/games/bsl-sprint';
 
   /// Clothes Line colour-learning game
@@ -141,8 +138,8 @@ class AppRoutes {
   /// BSL Sudoku game
   static const String sudoku = '/games/sudoku';
 
-  /// Higher or Lower BSL number comparison game
-  static const String higherOrLower = '/games/higher-or-lower';
+  /// More or Less BSL number comparison game
+  static const String moreLessGame = '/games/more-or-less';
 
   /// Sphere Runner endless-runner maths game
   static const String sphereRunner = '/games/sphere-runner';
@@ -196,12 +193,26 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
+    case AppRoutes.welshHome:
+      return MaterialPageRoute(
+        builder: (_) => const WelshHomeScreen(),
+        settings: settings,
+      );
+
     case AppRoutes.cardMatching:
-      // Provide CardGameProvider scoped to this route
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => CardGameProvider(),
           child: const CardGameScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.welshCardMatching:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => WelshCardGameProvider(),
+          child: const WelshCardGameScreen(),
         ),
         settings: settings,
       );
@@ -250,6 +261,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (_) => ChangeNotifierProvider(
           create: (_) => BslMathsProvider(),
           child: const BslMathsScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.welshMaths:
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => BslMathsProvider(),
+          child: const WelshMathsScreen(),
         ),
         settings: settings,
       );
@@ -318,37 +338,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
-    case AppRoutes.cameraVowels:
-      // Camera Vowels uses device camera + MediaPipe — not available on web.
-      // Redirect to home if somehow reached on web.
-      if (kIsWeb) {
-        return MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
-          settings: settings,
-        );
-      }
-      return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => CameraVowelsProvider(),
-          child: const CameraVowelsScreen(),
-        ),
-        settings: settings,
-      );
-
-    case AppRoutes.waveHello:
-      if (kIsWeb) {
-        return MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
-          settings: settings,
-        );
-      }
-      return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => WaveHelloProvider(),
-          child: const WaveHelloScreen(),
-        ),
-        settings: settings,
-      );
 
     case AppRoutes.countingGame:
       return MaterialPageRoute(
@@ -377,16 +366,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
-    case AppRoutes.moreLessGame:
-      return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => MoreLessProvider(),
-          child: const MoreOrLessScreen(),
-        ),
-        settings: settings,
-      );
-
-    case AppRoutes.bslSprint:
+case AppRoutes.bslSprint:
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => BslSprintProvider(),
@@ -410,11 +390,11 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
-    case AppRoutes.higherOrLower:
+    case AppRoutes.moreLessGame:
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
-          create: (_) => HigherOrLowerProvider(),
-          child: const HigherOrLowerScreen(),
+          create: (_) => MoreOrLessProvider(),
+          child: const MoreOrLessScreen(),
         ),
         settings: settings,
       );

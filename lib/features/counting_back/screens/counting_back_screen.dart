@@ -2,14 +2,12 @@ import 'dart:math' show cos, pi, sin, sqrt;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../../../shared/services/audio_service.dart';
-import '../../../core/tts_helper.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
@@ -25,9 +23,6 @@ class CountingBackScreen extends StatefulWidget {
 
 class _CountingBackScreenState extends State<CountingBackScreen>
     with TickerProviderStateMixin {
-  FlutterTts? _tts;
-  String? _lastRoundKey;
-
   // ── animation state ────────────────────────────────────────────────────────
 
   bool _isAnimating = false;
@@ -56,33 +51,12 @@ class _CountingBackScreenState extends State<CountingBackScreen>
       curve: Curves.easeInOut,
     );
     _hopController.addStatusListener(_onHopStatus);
-    _initTts();
-  }
-
-  Future<void> _initTts() async {
-    try {
-      _tts = FlutterTts();
-      await TtsHelper.configure(_tts!);
-    } catch (e) {
-      debugPrint('TTS initialization failed: $e');
-    }
-  }
-
-  void _speak(String text) {
-    try {
-      _tts?.speak(text);
-    } catch (e) {
-      debugPrint('TTS speak failed: $e');
-    }
   }
 
   @override
   void dispose() {
     _hopController.removeStatusListener(_onHopStatus);
     _hopController.dispose();
-    try {
-      _tts?.stop();
-    } catch (_) {}
     super.dispose();
   }
 
@@ -95,10 +69,8 @@ class _CountingBackScreenState extends State<CountingBackScreen>
       _isAnimating = true;
       _currentHop = 0;
     });
-    _speak('${provider.startNumber}');
     Future.delayed(const Duration(milliseconds: 700), () {
       if (!mounted) return;
-      _speak('${provider.startNumber - 1}');
       _hopController.forward(from: 0);
     });
   }
@@ -114,7 +86,6 @@ class _CountingBackScreenState extends State<CountingBackScreen>
     final nextHop = _currentHop + 1;
     if (nextHop < totalHops) {
       setState(() => _currentHop = nextHop);
-      _speak('${provider.startNumber - nextHop - 1}');
       _hopController.forward(from: 0);
     } else {
       // All hops done — show result
@@ -126,7 +97,6 @@ class _CountingBackScreenState extends State<CountingBackScreen>
       final isCorrect = _selectedAnswer == provider.correctAnswer;
       if (isCorrect) {
         AudioService.playCorrect('counting_back');
-        _speak('Well done!');
         Future.delayed(const Duration(seconds: 3), () {
           if (!mounted) return;
           setState(() {
@@ -138,7 +108,6 @@ class _CountingBackScreenState extends State<CountingBackScreen>
         });
       } else {
         AudioService.playWrong('counting_back');
-        _speak('Try again!');
         Future.delayed(const Duration(seconds: 2), () {
           if (!mounted) return;
           setState(() {
@@ -157,27 +126,6 @@ class _CountingBackScreenState extends State<CountingBackScreen>
   Widget build(BuildContext context) {
     return Consumer<CountingBackProvider>(
       builder: (context, provider, _) {
-        // Speak question on new round
-        if (!provider.showLevelSelect &&
-            provider.state == CountingBackState.playing) {
-          final key = '${provider.roundNumber}';
-          if (key != _lastRoundKey) {
-            _lastRoundKey = key;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _speak(
-                  'What is ${provider.startNumber} take away ${provider.takeAway}?');
-            });
-          }
-        }
-
-        if (provider.state == CountingBackState.won &&
-            _lastRoundKey != 'won') {
-          _lastRoundKey = 'won';
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _speak('Well Done!');
-          });
-        }
-
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
