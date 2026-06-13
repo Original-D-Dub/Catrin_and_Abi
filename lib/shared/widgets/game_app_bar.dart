@@ -37,7 +37,8 @@ class GameAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: AppColors.accentWhite),
+        icon: const Icon(Icons.arrow_back, color: AppColors.accentWhite, size: 26),
+        tooltip: 'Home',
         onPressed: () {
           AudioService.stopAll();
           onBack();

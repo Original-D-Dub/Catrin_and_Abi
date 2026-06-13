@@ -9,8 +9,8 @@ class LevelSelectItem {
   /// Level number shown as "Level N" unless [displayLabel] is provided.
   final int number;
 
-  /// Level name shown below the number / display label.
-  final String name;
+  /// Optional level name shown below the number / display label.
+  final String? name;
 
   /// Optional smaller description shown below the name.
   final String? description;
@@ -29,7 +29,7 @@ class LevelSelectItem {
 
   const LevelSelectItem({
     required this.number,
-    required this.name,
+    this.name,
     this.description,
     this.displayLabel,
     required this.color,
@@ -68,15 +68,19 @@ class LevelSelectScreen extends StatelessWidget {
   /// Ordered list of levels to display.
   final List<LevelSelectItem> levels;
 
+  /// UI language for the title and "Level" prefix ('en' or 'cy').
+  final String locale;
+
   const LevelSelectScreen({
     super.key,
     this.subtitle,
     required this.levels,
+    this.locale = 'en',
   });
 
   @override
   Widget build(BuildContext context) {
-    final localizer = AppLocalizations(locale: 'en');
+    final localizer = AppLocalizations(locale: locale);
 
     return Center(
       child: SingleChildScrollView(
@@ -174,17 +178,19 @@ class LevelSelectScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: AppSizes.spacingXSmall),
-          Text(
-            item.name,
-            style: const TextStyle(
-              fontFamily: 'ComicRelief',
-              fontSize: AppSizes.fontSizeBody,
+          if (item.name != null) ...[
+            const SizedBox(height: AppSizes.spacingXSmall),
+            Text(
+              item.name!,
+              style: const TextStyle(
+                fontFamily: 'ComicRelief',
+                fontSize: AppSizes.fontSizeBody,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
+          ],
           if (item.description != null) ...[
             const SizedBox(height: AppSizes.spacingXSmall),
             Text(

@@ -14,7 +14,7 @@ import 'bsl_number_display.dart';
 ///   [1]  [2]  [3]
 ///   [4]  [5]  [6]
 ///   [7]  [8]  [9]
-///   [10] [C]  [=]
+///      [10]
 /// ```
 ///
 /// Level 2 Layout (3 columns x 4 rows, 0-9 for two-digit input):
@@ -213,13 +213,13 @@ class _BslKeyboardState extends State<BslKeyboard> {
                           [7, 8, 9], clampedWidth, clampedHeight, svgSize, numeralFontSize),
                     ),
 
-                    // Row 4: bottom row with clear and submit
+                    // Row 4: bottom row
                     Expanded(
                       child: widget.showZeroKey
                           // Level 2: 0, C, =
                           ? _buildLevel2BottomRow(clampedWidth, clampedHeight, svgSize, numeralFontSize, operatorFontSize)
-                          // Level 1: 10, C, =
-                          : _buildLevel1BottomRow(clampedWidth, clampedHeight, svgSize, numeralFontSize, operatorFontSize),
+                          // Level 1: 10, centred
+                          : _buildLevel1BottomRow(clampedWidth, clampedHeight, svgSize, numeralFontSize),
                     ),
                   ],
           ),
@@ -250,36 +250,15 @@ class _BslKeyboardState extends State<BslKeyboard> {
     );
   }
 
-  /// Builds the bottom row for Level 1: 10, C, =
+  /// Builds the bottom row for Level 1: 10, centred
   Widget _buildLevel1BottomRow(
     double keyWidth,
     double keyHeight,
     double svgSize,
     double numeralFontSize,
-    double operatorFontSize,
   ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-            child: _buildNumberKey(10, keyWidth, keyHeight, svgSize, numeralFontSize),
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-            child: _buildClearKey(keyWidth, keyHeight, operatorFontSize),
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: _gridSpacing / 2),
-            child: _buildOperatorKey('=', keyWidth, keyHeight, operatorFontSize),
-          ),
-        ),
-      ],
+    return Center(
+      child: _buildNumberKey(10, keyWidth, keyHeight, svgSize, numeralFontSize),
     );
   }
 

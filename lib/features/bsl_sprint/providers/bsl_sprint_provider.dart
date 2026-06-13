@@ -21,9 +21,20 @@ const List<String> _wordPool2 = [
   'hear', 'whistle', 'referee', 'playing', 'swim', 'buzzer', 'netball', 'shoot', 'coach', 'running', 'athletics', 'ball',
   'lose', 'try', 'rugby', 'hockey', 'tennis'
 ];
+
+// Welsh word banks — placeholders mirroring the English pools above until
+// real Welsh CVC/topic words are provided.
+const List<String> _wordPoolCy = _wordPool;
+const List<String> _wordPool2Cy = _wordPool2;
+
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 class BslSprintProvider extends ChangeNotifier {
+  /// UI locale ('en' or 'cy') — selects which word bank is used.
+  final String locale;
+
+  BslSprintProvider({this.locale = 'en'});
+
   // ── Tuning constants ──────────────────────────────────────────────────────
 
   /// Starting number of lives.
@@ -115,6 +126,15 @@ class BslSprintProvider extends ChangeNotifier {
 
   late List<String> _remainingWords;
 
+  /// The word pool for the current level and [locale].
+  List<String> get _activeWordPool {
+    final useSecondary = _currentLevel.number >= 2;
+    if (locale == 'cy') {
+      return useSecondary ? _wordPool2Cy : _wordPoolCy;
+    }
+    return useSecondary ? _wordPool2 : _wordPool;
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Public API
   // ─────────────────────────────────────────────────────────────────────────
@@ -159,9 +179,7 @@ class BslSprintProvider extends ChangeNotifier {
     _spawnInterval = _currentLevel.initialSpawnInterval;
     _speedUpTimer = 0.0;
     lastResult = null;
-    _remainingWords = List.from(
-      _currentLevel.number >= 2 ? _wordPool2 : _wordPool,
-    )..shuffle(_rng);
+    _remainingWords = List.from(_activeWordPool)..shuffle(_rng);
     _nextWord();
     if (_currentLevel.number == 0) {
       final word = currentWord;
@@ -405,11 +423,17 @@ class BslSprintProvider extends ChangeNotifier {
 
   void _hitObstacle() {
     lives--;
-    AudioService.playWrong('bsl_sprint');
+    final wrongAudio = AudioService.playWrong('bsl_sprint');
     if (lives <= 0) {
-      state = SprintState.gameOver;
-      AudioService.hapticSuccess();
-      _recordResult();
+      // Wait for the "wrong" SFX to finish before showing the success
+      // overlay so the two sounds don't overlap.
+      Future(() async {
+        await wrongAudio;
+        state = SprintState.gameOver;
+        AudioService.hapticSuccess();
+        _recordResult();
+        notifyListeners();
+      });
     }
     notifyListeners();
   }
@@ -418,7 +442,7 @@ class BslSprintProvider extends ChangeNotifier {
     final collectedLetter = currentWord[_letterIndex];
     _letterIndex++;
     //AudioService.playCorrect('bsl_sprint');
-    AudioService.playLetterMp3(collectedLetter);
+    final letterAudio = AudioService.playLetterMp3(collectedLetter, locale: locale);
     score += 10;
 
     // Re-colour any on-screen decoy that now matches the new correct letter.
@@ -441,12 +465,15 @@ class BslSprintProvider extends ChangeNotifier {
 
       // Training level ends after 3 words.
       if (_currentLevel.number == 0 && wordsCompleted >= 3) {
-        state = SprintState.gameOver;
-        AudioService.hapticSuccess();
+        // Wait for the final letter's audio to finish before showing the
+        // success overlay so the two sounds don't overlap.
         Future(() async {
-          await AudioService.speakAndWait('Well Done!');
+          await letterAudio;
+          state = SprintState.gameOver;
+          AudioService.hapticSuccess();
+          _recordResult();
+          notifyListeners();
         });
-        _recordResult();
         notifyListeners();
         return;
       }
@@ -460,9 +487,12 @@ class BslSprintProvider extends ChangeNotifier {
       // Say "Well Done!" then the new word to collect.
       final newWord = currentWord;
       Future(() async {
+        await letterAudio;
         await AudioService.speakAndWait('Well Done!');
         await AudioService.speak(newWord);
       });
+    } else {
+      letterAudio.ignore();
     }
     notifyListeners();
   }

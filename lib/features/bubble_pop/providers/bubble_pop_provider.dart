@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/game_stats_service.dart';
 
@@ -11,7 +12,7 @@ class Bubble {
   /// Unique identifier for this bubble
   final String id;
 
-  /// The letter displayed inside this bubble
+  /// The letter (or digraph) displayed inside this bubble
   final String letter;
 
   /// Current position (0.0 to 1.0 representing screen width percentage)
@@ -45,22 +46,14 @@ class Bubble {
 }
 
 /// Game level configuration with progressive letter sets.
-///
-/// Each level introduces more letters:
-/// - Level 1: Vowels only (a, e, i, o, u)
-/// - Level 2: Letters a-e
-/// - Level 3: Letters a-i
-/// - Level 4: Letters a-o
-/// - Level 5: Letters a-u
-/// - Level 6: Full alphabet (a-z)
 class GameLevel {
   /// Level number (1-6)
   final int number;
 
-  /// Display name for the level
+  /// Translation key for the level's display name
   final String name;
 
-  /// Letters available in this level
+  /// Letters (and, for IAC, digraphs) available in this level
   final List<String> letters;
 
   const GameLevel({
@@ -70,44 +63,52 @@ class GameLevel {
   });
 }
 
-/// All available game levels with their letter configurations.
+/// All available game levels, for both sign systems.
+///
+/// BSL levels use the English alphabet (a-z); IAC levels use the Welsh
+/// alphabet, which includes eight digraphs (ch, dd, ff, ng, ll, ph, rh, th)
+/// introduced gradually alongside the single letters.
 class GameLevels {
   GameLevels._();
 
+  // ─────────────────────────────────────────
+  // BSL levels (English alphabet)
+  // ─────────────────────────────────────────
+
   /// Level 1: Vowels only
-  static const GameLevel level1 = GameLevel(
+  static const GameLevel bslLevel1 = GameLevel(
     number: 1,
-    name: 'bubble_pop.level1.name',
+    name: 'bubble_pop.bsl.level1.name',
     letters: ['a', 'e', 'i', 'o', 'u'],
   );
 
   /// Level 2: Letters a to e
-  static const GameLevel level2 = GameLevel(
+  static const GameLevel bslLevel2 = GameLevel(
     number: 2,
-    name: 'bubble_pop.level2.name',
+    name: 'bubble_pop.bsl.level2.name',
     letters: ['a', 'b', 'c', 'd', 'e'],
   );
 
   /// Level 3: Letters a to j
-  static const GameLevel level3 = GameLevel(
+  static const GameLevel bslLevel3 = GameLevel(
     number: 3,
-    name: 'bubble_pop.level3.name',
+    name: 'bubble_pop.bsl.level3.name',
     letters: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
   );
 
   /// Level 4: Letters i to r
-  static const GameLevel level4 = GameLevel(
+  static const GameLevel bslLevel4 = GameLevel(
     number: 4,
-    name: 'bubble_pop.level4.name',
+    name: 'bubble_pop.bsl.level4.name',
     letters: [
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o'
     ],
   );
 
   /// Level 5: Letters q to z
-  static const GameLevel level5 = GameLevel(
+  static const GameLevel bslLevel5 = GameLevel(
     number: 5,
-    name: 'bubble_pop.level5.name',
+    name: 'bubble_pop.bsl.level5.name',
     letters: [
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
       'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u'
@@ -115,29 +116,102 @@ class GameLevels {
   );
 
   /// Level 6: Full alphabet a to z
-  static const GameLevel level6 = GameLevel(
+  static const GameLevel bslLevel6 = GameLevel(
     number: 6,
-    name: 'bubble_pop.level6.name',
+    name: 'bubble_pop.bsl.level6.name',
     letters: [
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
       'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
     ],
   );
 
-  /// List of all available levels
-  static const List<GameLevel> all = [
-    level1,
-    level2,
-    level3,
-    level4,
-    level5,
-    level6,
+  /// All BSL levels
+  static const List<GameLevel> bslLevels = [
+    bslLevel1,
+    bslLevel2,
+    bslLevel3,
+    bslLevel4,
+    bslLevel5,
+    bslLevel6,
   ];
 
-  /// Gets a level by number (1-6). Returns level 1 if invalid.
-  static GameLevel getLevel(int number) {
-    if (number < 1 || number > all.length) return level1;
-    return all[number - 1];
+  // ─────────────────────────────────────────
+  // IAC levels (Welsh alphabet, incl. digraphs)
+  // ─────────────────────────────────────────
+
+  /// Level 1: Welsh vowels
+  static const GameLevel iacLevel1 = GameLevel(
+    number: 1,
+    name: 'bubble_pop.iac.level1.name',
+    letters: ['a', 'e', 'i', 'o', 'u', 'w', 'y'],
+  );
+
+  /// Level 2: Letters a to f
+  static const GameLevel iacLevel2 = GameLevel(
+    number: 2,
+    name: 'bubble_pop.iac.level2.name',
+    letters: ['a', 'b', 'c', 'd', 'e', 'f'],
+  );
+
+  /// Level 3: Letters a to i, plus the digraphs ch, dd, ff
+  static const GameLevel iacLevel3 = GameLevel(
+    number: 3,
+    name: 'bubble_pop.iac.level3.name',
+    letters: ['a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g', 'h', 'i'],
+  );
+
+  /// Level 4: Letters a to o, plus ng, ll
+  static const GameLevel iacLevel4 = GameLevel(
+    number: 4,
+    name: 'bubble_pop.iac.level4.name',
+    letters: [
+      'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g', 'ng', 'h',
+      'i', 'j', 'l', 'll', 'm', 'n', 'o',
+    ],
+  );
+
+  /// Level 5: Letters a to u, plus ph, rh, th
+  static const GameLevel iacLevel5 = GameLevel(
+    number: 5,
+    name: 'bubble_pop.iac.level5.name',
+    letters: [
+      'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g', 'ng', 'h',
+      'i', 'j', 'l', 'll', 'm', 'n', 'o', 'p', 'ph', 'r', 'rh', 's',
+      't', 'th', 'u',
+    ],
+  );
+
+  /// Level 6: Full Welsh alphabet, including w and y
+  static const GameLevel iacLevel6 = GameLevel(
+    number: 6,
+    name: 'bubble_pop.iac.level6.name',
+    letters: [
+      'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g', 'ng', 'h',
+      'i', 'j', 'l', 'll', 'm', 'n', 'o', 'p', 'ph', 'r', 'rh', 's',
+      't', 'th', 'u', 'w', 'y',
+    ],
+  );
+
+  /// All IAC levels
+  static const List<GameLevel> iacLevels = [
+    iacLevel1,
+    iacLevel2,
+    iacLevel3,
+    iacLevel4,
+    iacLevel5,
+    iacLevel6,
+  ];
+
+  /// Returns the level list for the given sign system.
+  static List<GameLevel> forSignSystem(SignSystem signSystem) =>
+      signSystem == SignSystem.iac ? iacLevels : bslLevels;
+
+  /// Gets a level by number (1-6) for the given sign system.
+  /// Returns level 1 if [number] is invalid.
+  static GameLevel getLevel(int number, SignSystem signSystem) {
+    final levels = forSignSystem(signSystem);
+    if (number < 1 || number > levels.length) return levels[0];
+    return levels[number - 1];
   }
 }
 
@@ -145,11 +219,11 @@ class GameLevels {
 ///
 /// Manages:
 /// - Timer countdown (60 seconds)
-/// - Current BSL sign to match
-/// - Floating bubbles with letters
+/// - Current letter sign to match (BSL or IAC, per [signSystem])
+/// - Floating bubbles with letters/digraphs
 /// - Score tracking
 /// - Level progression
-/// - Easter egg detection (cat/dog)
+/// - Easter egg detection (cat/dog for BSL, cath/ci for IAC)
 class BubblePopProvider extends ChangeNotifier {
   /// Game duration in seconds
   static const int gameDurationSeconds = 60;
@@ -169,11 +243,22 @@ class BubblePopProvider extends ChangeNotifier {
   final Random _random = Random();
   final GameStatsService _statsService = GameStatsService();
 
+  BubblePopProvider({SignSystem signSystem = SignSystem.bsl})
+      : _signSystem = signSystem,
+        _currentLevel = GameLevels.forSignSystem(signSystem).first;
+
+  /// The sign system (BSL or IAC) this game instance uses.
+  final SignSystem _signSystem;
+  SignSystem get signSystem => _signSystem;
+
+  /// Levels available for the current sign system.
+  List<GameLevel> get levels => GameLevels.forSignSystem(_signSystem);
+
   GameResult? _lastResult;
   GameResult? get lastResult => _lastResult;
 
   /// Current game level
-  GameLevel _currentLevel = GameLevels.level1;
+  GameLevel _currentLevel;
   GameLevel get currentLevel => _currentLevel;
 
   /// Whether to show level selection screen
@@ -188,7 +273,7 @@ class BubblePopProvider extends ChangeNotifier {
   int _score = 0;
   int get score => _score;
 
-  /// Current letter the player needs to find
+  /// Current letter (or digraph) the player needs to find
   String _targetLetter = '';
   String get targetLetter => _targetLetter;
 
@@ -225,7 +310,7 @@ class BubblePopProvider extends ChangeNotifier {
   ///
   /// [levelNumber] must be between 1 and 6.
   void setLevel(int levelNumber) {
-    _currentLevel = GameLevels.getLevel(levelNumber);
+    _currentLevel = GameLevels.getLevel(levelNumber, _signSystem);
     notifyListeners();
   }
 
@@ -287,19 +372,25 @@ class BubblePopProvider extends ChangeNotifier {
     _countdownTimer?.cancel();
     _gameLoopTimer?.cancel();
     notifyListeners();
-    _statsService.recordGameResult(GameIds.bubblePop, _score, level: _currentLevel.number).then((result) {
+
+    final gameId =
+        _signSystem == SignSystem.iac ? GameIds.welshBubblePop : GameIds.bubblePop;
+    _statsService.recordGameResult(gameId, _score, level: _currentLevel.number).then((result) {
       _lastResult = result;
       notifyListeners();
     }).catchError((e) {
-      debugPrint('recordGameResult error (bubblePop): $e');
+      debugPrint('recordGameResult error ($gameId): $e');
     });
   }
 
   /// Selects a new random target letter from the current level's letters.
+  ///
+  /// Audio call-outs are only available for BSL (English alphabet) letters;
+  /// IAC letter call-outs are not yet wired up.
   void _selectNewTarget() {
     final letters = _currentLevel.letters;
     _targetLetter = letters[_random.nextInt(letters.length)];
-    if (_isPlaying) {
+    if (_isPlaying && _signSystem == SignSystem.bsl) {
       AudioService.playLetterMp3(_targetLetter).ignore();
     }
   }
@@ -449,29 +540,37 @@ class BubblePopProvider extends ChangeNotifier {
   }
 
   /// Checks if the tapped sequence contains easter egg words.
+  ///
+  /// BSL uses the English words "cat"/"dog"; IAC uses the Welsh words
+  /// "cath"/"ci".
   void _checkEasterEgg() {
-    // Keep only last 5 characters
+    // Keep only the characters needed for the longest easter egg word
     if (_tappedSequence.length > 5) {
       _tappedSequence = _tappedSequence.substring(_tappedSequence.length - 5);
     }
 
-    // Check for cat or dog
-    if (_tappedSequence.endsWith('cat')) {
-      _easterEggTriggered = 'cat';
-      notifyListeners();
-      // Reset after a short delay
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _easterEggTriggered = null;
-        notifyListeners();
-      });
-    } else if (_tappedSequence.endsWith('dog')) {
-      _easterEggTriggered = 'dog';
-      notifyListeners();
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _easterEggTriggered = null;
-        notifyListeners();
-      });
+    if (_signSystem == SignSystem.iac) {
+      if (_tappedSequence.endsWith('cath')) {
+        _triggerEasterEgg('cat');
+      } else if (_tappedSequence.endsWith('ci')) {
+        _triggerEasterEgg('dog');
+      }
+    } else {
+      if (_tappedSequence.endsWith('cat')) {
+        _triggerEasterEgg('cat');
+      } else if (_tappedSequence.endsWith('dog')) {
+        _triggerEasterEgg('dog');
+      }
     }
+  }
+
+  void _triggerEasterEgg(String animal) {
+    _easterEggTriggered = animal;
+    notifyListeners();
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _easterEggTriggered = null;
+      notifyListeners();
+    });
   }
 
   /// Clears the last popped bubble ID after animation completes.

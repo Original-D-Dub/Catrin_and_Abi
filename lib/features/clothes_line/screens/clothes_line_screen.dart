@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:rive/rive.dart' hide Animation, PaintingStyle;
+import 'package:video_player/video_player.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
@@ -21,10 +22,7 @@ class ClothesLineScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ClothesLineProvider(),
-      child: const _ClothesLineView(),
-    );
+    return const _ClothesLineView();
   }
 }
 
@@ -53,7 +51,9 @@ class _ClothesLineViewState extends State<_ClothesLineView>
   int _l2SkipBeforeTarget = 0;   // random items to spawn before respawning target
   ClothingItem? _l2NextTargetItem; // pre-set from questions array before spawning
 
-  static const double _l2ScrollSpeed  = 0.06;  // screen widths / second
+  static const double _l2ScrollSpeedMin = 0.06; // slowest — screen widths / second
+  static const double _l2ScrollSpeedMax = 0.18; // fastest — twice the slowest speed
+  double _l2ScrollSpeed = _l2ScrollSpeedMin;
   static const double _l2SlotFraction = 0.28;  // spacing between item centres
   static const double _l2ExitThreshold = -0.18; // remove item when centre x < this
   static const double _l2SpawnLimit   = 1.38;  // keep items queued up to this x
@@ -246,12 +246,15 @@ class _ClothesLineViewState extends State<_ClothesLineView>
   Widget build(BuildContext context) {
     return Consumer<ClothesLineProvider>(
       builder: (context, provider, _) {
+        final locale = provider.locale;
+        final localizer = AppLocalizations(locale: locale);
+
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.state == ClothesLineState.finished
               ? null
               : GameAppBar(
-                  title: 'Clothes Line',
+                  title: localizer('clothes_line.title'),
                   onBack: provider.showLevelSelect
                       ? () => Navigator.pop(context)
                       : () {
@@ -282,7 +285,7 @@ class _ClothesLineViewState extends State<_ClothesLineView>
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Score: ${provider.score}',
+                              '${localizer('general.score')}: ${provider.score}',
                               style: const TextStyle(
                                 fontFamily: 'ComicRelief',
                                 fontSize: 20,
@@ -302,58 +305,101 @@ class _ClothesLineViewState extends State<_ClothesLineView>
                         ),
                       ),
 
-                      // Question
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.82),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 6,
-                              offset: Offset(0, 3),
+                      // Clothes line + clothing video
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: provider.level == 3
+                                  ? _L2ClothesLineView(
+                                      items: _l2Items,
+                                      gameState: provider.state,
+                                    )
+                                  : AnimatedBuilder(
+                                      animation: _slide,
+                                      builder: (context, _) => _ClothesLine(
+                                        items: provider.items,
+                                        currentIndex: provider.currentIndex,
+                                        slideValue: _slide.value,
+                                        gameState: provider.state,
+                                      ),
+                                    ),
+                            ),
+                            const SizedBox(height: 8),
+                            Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Center(
+                                        child: AspectRatio(
+                                          aspectRatio: 4 / 3,
+                                          child: _ClothesLineVideo(
+                                            key: ValueKey(provider.currentIndex),
+                                            videoAssetPath:
+                                                provider.currentItem.videoAssetPath,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (provider.level == 3) ...[
+                                      const SizedBox(width: 8),
+                                      _SpeedSlider(
+                                        label: localizer('clothes_line.speed'),
+                                        value: _l2ScrollSpeed,
+                                        min: _l2ScrollSpeedMin,
+                                        max: _l2ScrollSpeedMax,
+                                        onChanged: (v) =>
+                                            setState(() => _l2ScrollSpeed = v),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        child: Text(
-                          provider.state == ClothesLineState.finished
-                              ? 'Well done!'
-                              : provider.question,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontFamily: 'ComicRelief',
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1A237E),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Question (level 1 only)
+                      if (provider.level == 1) ...[
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.82),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 6,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            provider.state == ClothesLineState.finished
+                                ? localizer('general.welldone')
+                                : _questionText(localizer, provider.currentItem),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'ComicRelief',
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1A237E),
+                            ),
                           ),
                         ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Clothes line
-                      Expanded(
-                        child: provider.level == 3
-                            ? _L2ClothesLineView(
-                                items: _l2Items,
-                                gameState: provider.state,
-                              )
-                            : AnimatedBuilder(
-                                animation: _slide,
-                                builder: (context, _) => _ClothesLine(
-                                  items: provider.items,
-                                  currentIndex: provider.currentIndex,
-                                  slideValue: _slide.value,
-                                  gameState: provider.state,
-                                ),
-                              ),
-                      ),
-
-                      const SizedBox(height: 8),
+                        const SizedBox(height: 8),
+                      ],
 
                       // Answer buttons
                       if (provider.state != ClothesLineState.finished)
@@ -414,6 +460,7 @@ class _ClothesLineViewState extends State<_ClothesLineView>
                       gameId: 'clothes_line',
                       scoreStyle: SuccessScoreStyle.youScored,
                       score: provider.score,
+                      locale: locale,
                       showPersonalBest: false,
                       onPlayAgain: () {
                         provider.resetGame();
@@ -436,12 +483,26 @@ class _ClothesLineViewState extends State<_ClothesLineView>
     );
   }
 
+  // ── Question text ────────────────────────────────────────────────────────────
+
+  /// Builds the localized "What colour is/are the X?" question for [item].
+  String _questionText(AppLocalizations localizer, ClothingItem item) {
+    final verb = localizer(item.definition.plural
+        ? 'clothes_line.verb_plural'
+        : 'clothes_line.verb_singular');
+    final itemName = localizer('clothes_line.item.${item.definition.name}');
+    return localizer('clothes_line.question')
+        .replaceAll('{verb}', verb)
+        .replaceAll('{item}', itemName);
+  }
+
   // ── Level select ─────────────────────────────────────────────────────────────
 
   Widget _buildLevelSelect(
       BuildContext context, ClothesLineProvider provider) {
-    final l = AppLocalizations(locale: 'en');
+    final l = AppLocalizations(locale: provider.locale);
     return LevelSelectScreen(
+      locale: provider.locale,
       levels: [
         LevelSelectItem(
           number: 1,
@@ -653,6 +714,134 @@ class _ClothingItemWidget extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Looping video of the current question's clothing item
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ClothesLineVideo extends StatefulWidget {
+  final String? videoAssetPath;
+
+  const _ClothesLineVideo({super.key, required this.videoAssetPath});
+
+  @override
+  State<_ClothesLineVideo> createState() => _ClothesLineVideoState();
+}
+
+class _ClothesLineVideoState extends State<_ClothesLineVideo> {
+  VideoPlayerController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _init() async {
+    final path = widget.videoAssetPath;
+    if (path == null) return;
+
+    final controller = VideoPlayerController.asset(path);
+    try {
+      await controller.initialize();
+      if (!mounted) {
+        controller.dispose();
+        return;
+      }
+      await controller.setLooping(true);
+      controller.play();
+      setState(() => _controller = controller);
+    } catch (_) {
+      controller.dispose();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: controller != null && controller.value.isInitialized
+          ? FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: controller.value.size.width,
+                height: controller.value.size.height,
+                child: VideoPlayer(controller),
+              ),
+            )
+          : const Center(
+              child: Icon(Icons.videocam_off_outlined,
+                  color: Colors.white30, size: 32),
+            ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Vertical slider controlling the level 3 conveyor-belt scroll speed
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SpeedSlider extends StatelessWidget {
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+
+  const _SpeedSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 48,
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'ComicRelief',
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A237E),
+            ),
+          ),
+          Expanded(
+            child: RotatedBox(
+              quarterTurns: -1,
+              child: Slider(
+                value: value,
+                min: min,
+                max: max,
+                activeColor: AppColors.catrinBlue,
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Colour answer button — level 2 character_id style
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -683,7 +872,7 @@ class _ColourButton extends StatelessWidget {
       bgColour = AppColors.accentRed;
       borderColour = AppColors.accentRed;
     } else {
-      bgColour = Colors.white;
+      bgColour = Colors.transparent;
       borderColour = AppColors.catrinBlue;
     }
 

@@ -1,5 +1,6 @@
 import 'dart:math';
 import '../../../core/constants/asset_paths.dart';
+import '../../../core/constants/game_filters.dart';
 import '../models/card_model.dart';
 import '../models/game_level.dart';
 
@@ -19,33 +20,40 @@ class CardGameService {
   /// Generates a shuffled list of cards for the given level.
   ///
   /// Creates two cards for each letter:
-  /// - A BSL sign card with the hand sign image
+  /// - A sign card with the BSL/IAC hand sign image
   /// - A letter card with the written letter
   ///
   /// Both cards share the same pairId and color for matching.
   ///
   /// [level] contains the letters and colors for this level.
+  /// [signSystem] selects which sign-asset family to load images from.
   /// Returns a shuffled list of [CardModel] objects.
-  List<CardModel> generateCardsForLevel({required GameLevel level}) {
+  List<CardModel> generateCardsForLevel({
+    required GameLevel level,
+    required SignSystem signSystem,
+  }) {
     final List<CardModel> cards = [];
+    final isIac = signSystem == SignSystem.iac;
 
     for (final letter in level.letters) {
       final pairId = 'pair_$letter';
       final color = level.getColorForLetter(letter);
 
-      // Create BSL sign card
+      // Create sign card
       cards.add(CardModel(
-        id: 'bsl_$letter',
+        id: '${isIac ? 'welsh_sign' : 'bsl'}_$letter',
         type: CardType.bslSign,
         value: letter,
         pairId: pairId,
         pairColor: color,
-        imagePath: AssetPaths.bslLetterSvg(letter),
+        imagePath: isIac
+            ? AssetPaths.welshLetterSvg(letter)
+            : AssetPaths.bslLetterSvg(letter),
       ));
 
       // Create letter card
       cards.add(CardModel(
-        id: 'letter_$letter',
+        id: '${isIac ? 'welsh_letter' : 'letter'}_$letter',
         type: CardType.letter,
         value: letter,
         pairId: pairId,
@@ -76,7 +84,7 @@ class CardGameService {
   /// Checks if two cards form a valid match.
   ///
   /// A match occurs when both cards have the same pairId.
-  /// (One BSL sign card and one letter card representing the same letter)
+  /// (One sign card and one letter card representing the same letter)
   ///
   /// [first] and [second] are the two cards to compare.
   /// Returns true if the cards match.

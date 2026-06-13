@@ -19,9 +19,14 @@ class HandDisplay extends StatelessWidget {
   /// Callback when the widget size is determined
   final ValueChanged<Size>? onSizeChanged;
 
+  /// Scales the hand down within the available space (1.0 = fill available
+  /// space, e.g. 0.7 = 70% of the space it would otherwise take up).
+  final double sizeFactor;
+
   const HandDisplay({
     super.key,
     this.onSizeChanged,
+    this.sizeFactor = 1.0,
   });
 
   @override
@@ -32,12 +37,13 @@ class HandDisplay extends StatelessWidget {
         final aspectRatio = VowelHandConstants.svgViewBoxWidth /
             VowelHandConstants.svgViewBoxHeight;
 
-        double width = constraints.maxWidth;
+        double width = constraints.maxWidth * sizeFactor;
         double height = width / aspectRatio;
 
         // If height exceeds available space, constrain by height instead
-        if (height > constraints.maxHeight) {
-          height = constraints.maxHeight;
+        final maxHeight = constraints.maxHeight * sizeFactor;
+        if (height > maxHeight) {
+          height = maxHeight;
           width = height * aspectRatio;
         }
 
@@ -60,30 +66,6 @@ class HandDisplay extends StatelessWidget {
                   fit: BoxFit.contain,
                 ),
               ),
-
-              // Hit targets at each fingertip (invisible, for touch detection reference)
-              // Uncomment below to show hit target outlines for debugging:
-              // ...VowelHandConstants.targets.map((target) {
-              //   final position = Offset(
-              //     target.normalizedPosition.dx * width,
-              //     target.normalizedPosition.dy * height,
-              //   );
-              //   return Positioned(
-              //     left: position.dx - target.hitRadius,
-              //     top: position.dy - target.hitRadius,
-              //     child: Container(
-              //       width: target.hitRadius * 2,
-              //       height: target.hitRadius * 2,
-              //       decoration: BoxDecoration(
-              //         shape: BoxShape.circle,
-              //         border: Border.all(
-              //           color: Colors.green,
-              //           width: 2,
-              //         ),
-              //       ),
-              //     ),
-              //   );
-              // }),
             ],
           ),
         );

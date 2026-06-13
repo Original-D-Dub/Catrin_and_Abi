@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/level_select_screen.dart';
-import '../models/game_level.dart';
 import '../providers/card_game_provider.dart';
 import '../widgets/card_grid.dart';
 
@@ -20,11 +20,15 @@ import '../widgets/card_grid.dart';
 /// - Instructions
 /// - Card grid
 /// - Match counter
-/// - Confetti overlay when game is won
+/// - Success overlay when game is won
 ///
-/// Uses [CardGameProvider] for state management.
+/// [locale] controls UI text ('en' or 'cy'); the sign system (BSL/IAC) is
+/// read from [CardGameProvider.signSystem], set when the route is created
+/// from the player's current [SettingsProvider] preference.
 class CardGameScreen extends StatefulWidget {
-  const CardGameScreen({super.key});
+  final String locale;
+
+  const CardGameScreen({super.key, this.locale = 'en'});
 
   @override
   State<CardGameScreen> createState() => _CardGameScreenState();
@@ -49,7 +53,7 @@ class _CardGameScreenState extends State<CardGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizer = AppLocalizations(locale: 'en');
+    final localizer = AppLocalizations(locale: widget.locale);
 
     return Consumer<CardGameProvider>(
       builder: (context, provider, child) {
@@ -85,22 +89,20 @@ class _CardGameScreenState extends State<CardGameScreen> {
                   Positioned.fill(
                     child: GameSuccessOverlay(
                       gameId: 'card_matching',
+                      locale: widget.locale,
                       scoreStyle: SuccessScoreStyle.custom,
-                      customScoreLine:
-                          'You did it in ${provider.moveCount} moves!',
+                      customScoreLine: localizer('card_matching.success_moves')
+                          .replaceAll('{n}', '${provider.moveCount}'),
+                      personalBestSuffix: localizer('card_matching.moves_suffix'),
                       imageAsset: 'assets/success/Abi-as-Holmes.png',
                       showPersonalBest: true,
                       isNewPersonalBest:
                           provider.lastResult?.isNewPersonalBest ?? false,
                       personalBest: provider.lastResult?.personalBest,
-                      personalBestSuffix: ' moves',
                       onPlayAgain: () => provider.resetGame(),
-                      onNextLevel: provider.level.levelNumber <
-                              GameLevel.allLevels().length
-                          ? () {
-                              provider.startLevel(GameLevel.allLevels()[
-                                  provider.level.levelNumber]);
-                            }
+                      onNextLevel: provider.level.levelNumber < provider.levels.length
+                          ? () => provider.startLevel(
+                              provider.levels[provider.level.levelNumber])
                           : null,
                       onChangeLevel: () => provider.showLevelSelection(),
                     ),
@@ -119,16 +121,21 @@ class _CardGameScreenState extends State<CardGameScreen> {
     CardGameProvider provider,
     AppLocalizations localizer,
   ) {
+    final introKey = provider.signSystem == SignSystem.iac
+        ? 'card_matching.iac.intro'
+        : 'card_matching.bsl.intro';
+
     return LevelSelectScreen(
-      subtitle: localizer('card_matching.instructions'),
-      levels: GameLevel.allLevels().map((level) {
+      subtitle: localizer(introKey),
+      locale: widget.locale,
+      levels: provider.levels.map((level) {
         return LevelSelectItem(
           number: level.levelNumber,
-          name: localizer('card_matching.level${level.levelNumber}.name'),
+          name: localizer(level.name),
           color: levelColor(level.levelNumber - 1),
           onTap: () {
             provider.startLevel(level);
-            AudioService.playIntro('card_matching');
+            AudioService.playIntro('card_matching', locale: widget.locale);
           },
         );
       }).toList(),
@@ -149,6 +156,8 @@ class _CardGameScreenState extends State<CardGameScreen> {
       cards: provider.cards,
       levelNumber: provider.level.levelNumber,
       onCardTap: (cardId) => provider.selectCard(cardId: cardId),
+      signSystem: provider.signSystem,
+      locale: widget.locale,
     );
 
     return Stack(
@@ -159,7 +168,7 @@ class _CardGameScreenState extends State<CardGameScreen> {
 
             GameHeaderBar(
               onBack: () => provider.showLevelSelection(),
-              scoreLabel: 'Moves',
+              scoreLabel: localizer('card_matching.moves_label'),
               scoreValue: '${provider.moveCount}',
               scoreLabelFontSize: 12,
               scoreValueFontSize: 32,
@@ -169,7 +178,7 @@ class _CardGameScreenState extends State<CardGameScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      localizer('card_matching.level${provider.level.levelNumber}.name'),
+                      localizer(provider.level.name),
                       style: const TextStyle(
                         fontFamily: 'ComicRelief',
                         fontSize: 20,
@@ -179,7 +188,7 @@ class _CardGameScreenState extends State<CardGameScreen> {
                       textAlign: TextAlign.center,
                     ),
                     Text(
-                      '${provider.matchCount}/${provider.totalPairs} pairs',
+                      '${provider.matchCount}/${provider.totalPairs} ${localizer('card_matching.pairs_label')}',
                       style: const TextStyle(
                         fontFamily: 'ComicRelief',
                         fontSize: 13,
@@ -226,6 +235,4 @@ class _CardGameScreenState extends State<CardGameScreen> {
       ],
     );
   }
-
-
 }

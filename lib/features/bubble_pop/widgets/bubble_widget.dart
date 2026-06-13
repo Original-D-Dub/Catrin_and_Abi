@@ -159,7 +159,7 @@ class _BubbleWidgetState extends State<BubbleWidget>
                   widget.letter.toLowerCase(),
                   style: TextStyle(
                     fontFamily: 'ComicRelief',
-                    fontSize: widget.size * 0.5,
+                    fontSize: widget.size * (widget.letter.length > 1 ? 0.35 : 0.5),
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     shadows: [

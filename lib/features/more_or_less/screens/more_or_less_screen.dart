@@ -1,11 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
-import '../../../core/constants/asset_paths.dart';
 import '../../../shared/services/audio_service.dart';
+import '../../bsl_maths/widgets/bsl_number_display.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
@@ -14,14 +15,43 @@ import '../../../shared/widgets/level_select_screen.dart';
 import '../providers/more_or_less_provider.dart';
 
 class MoreOrLessScreen extends StatefulWidget {
-  const MoreOrLessScreen({super.key});
+  final String locale;
+
+  const MoreOrLessScreen({super.key, this.locale = 'en'});
 
   @override
   State<MoreOrLessScreen> createState() => _MoreOrLessScreenState();
 }
 
 class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
+  /// Level whose BSL signs include teen numbers (11-19), so it retriggers
+  /// the Rive teen-number animations periodically as a hint.
+  static const int _hintLevelNumber = 4;
+  static const Duration _hintInterval = Duration(seconds: 3);
+
   bool _locked = false;
+  final ValueNotifier<int> _hintCounter = ValueNotifier(0);
+  Timer? _hintTimer;
+
+  @override
+  void dispose() {
+    _hintTimer?.cancel();
+    _hintCounter.dispose();
+    super.dispose();
+  }
+
+  /// Keeps the periodic hint timer running only while playing level 4.
+  void _syncHintTimer(MoreOrLessProvider provider) {
+    final shouldRun = !provider.showLevelSelect &&
+        provider.levelNumber == _hintLevelNumber &&
+        provider.state == MolGameState.playing;
+    if (shouldRun) {
+      _hintTimer ??= Timer.periodic(_hintInterval, (_) => _hintCounter.value++);
+    } else {
+      _hintTimer?.cancel();
+      _hintTimer = null;
+    }
+  }
 
   void _onAnswerTapped(bool isYes, MoreOrLessProvider provider) {
     if (_locked || provider.state == MolGameState.won) return;
@@ -43,14 +73,15 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizer = AppLocalizations(locale: 'en');
+    final localizer = AppLocalizations(locale: widget.locale);
     return Consumer<MoreOrLessProvider>(
       builder: (context, provider, _) {
+        _syncHintTimer(provider);
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
               ? GameAppBar(
-                  title: 'More or Less',
+                  title: localizer('more_or_less.title'),
                   onBack: () => Navigator.of(context).pop(),
                 )
               : null,
@@ -67,7 +98,7 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
                 SafeArea(
                   child: provider.showLevelSelect
                       ? _buildLevelSelect(context, provider, localizer)
-                      : _buildGame(context, provider),
+                      : _buildGame(context, provider, localizer),
                 ),
                 if (!provider.showLevelSelect &&
                     provider.state == MolGameState.won)
@@ -100,22 +131,25 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
       BuildContext context, MoreOrLessProvider provider, AppLocalizations localizer) {
     return LevelSelectScreen(
       subtitle: localizer('more_or_less.subtitle'),
-      levels: List.generate(molLevels.length, (i) {
-        final level = molLevels[i];
-        return LevelSelectItem(
-          number: level.number,
-          name: localizer(level.name),
-          color: levelColor(i),
-          onTap: () {
-            provider.startGame(i);
-            AudioService.playIntro('more_or_less');
-          },
-        );
-      }),
+      locale: localizer.locale,
+      levels: [
+        for (var i = 0; i < molLevels.length; i++)
+          if (molLevels[i].number != 5)
+            LevelSelectItem(
+              number: molLevels[i].number,
+              name: localizer(molLevels[i].name),
+              color: levelColor(i),
+              onTap: () {
+                provider.startGame(i);
+                AudioService.playIntro('more_or_less');
+              },
+            ),
+      ],
     );
   }
 
-  Widget _buildGame(BuildContext context, MoreOrLessProvider provider) {
+  Widget _buildGame(BuildContext context, MoreOrLessProvider provider,
+      AppLocalizations localizer) {
     return OrientationBuilder(
       builder: (context, orientation) {
         final isLandscape = orientation == Orientation.landscape;
@@ -129,7 +163,8 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
               levelNumber: provider.levelNumber,
               centerContent: Center(
                 child: Text(
-                  'Round ${provider.roundNumber} of ${MoreOrLessProvider.totalRounds}',
+                  '${localizer('more_or_less.round_label')} ${provider.roundNumber} '
+                  '${localizer('more_or_less.of_label')} ${MoreOrLessProvider.totalRounds}',
                   style: const TextStyle(
                     fontFamily: 'ComicRelief',
                     fontSize: 16,
@@ -147,7 +182,7 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: AppSizes.paddingLarge),
                 child: _styledContainer(
-                  child: _buildQuestion(context, provider),
+                  child: _buildQuestion(context, provider, localizer),
                 ),
               ),
             ),
@@ -162,7 +197,7 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
                       children: [
                         Expanded(
                           child: _YesNoButton(
-                            label: 'YES',
+                            label: localizer('more_or_less.yes'),
                             disabled: _locked,
                             onTap: () => _onAnswerTapped(true, provider),
                           ),
@@ -170,7 +205,7 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
                         const SizedBox(width: AppSizes.spacingSmall),
                         Expanded(
                           child: _YesNoButton(
-                            label: 'NO',
+                            label: localizer('more_or_less.no'),
                             disabled: _locked,
                             onTap: () => _onAnswerTapped(false, provider),
                           ),
@@ -180,13 +215,13 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
                   : Column(
                       children: [
                         _YesNoButton(
-                          label: 'YES',
+                          label: localizer('more_or_less.yes'),
                           disabled: _locked,
                           onTap: () => _onAnswerTapped(true, provider),
                         ),
                         const SizedBox(height: AppSizes.spacingSmall),
                         _YesNoButton(
-                          label: 'NO',
+                          label: localizer('more_or_less.no'),
                           disabled: _locked,
                           onTap: () => _onAnswerTapped(false, provider),
                         ),
@@ -201,10 +236,13 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
     );
   }
 
-  Widget _buildQuestion(BuildContext context, MoreOrLessProvider provider) {
+  Widget _buildQuestion(BuildContext context, MoreOrLessProvider provider,
+      AppLocalizations localizer) {
     final scale = MediaQuery.of(context).size.width >= 600 ? 2.0 : 1.0;
     final symbolSize = 72.0 * scale;
-    final questionWord = provider.isHigherQuestion ? 'more' : 'less';
+    final questionWordKey = provider.isHigherQuestion
+        ? 'more_or_less.more_than'
+        : 'more_or_less.less_than';
 
     final textStyle = TextStyle(
       fontFamily: 'ComicRelief',
@@ -221,19 +259,17 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
         spacing: 8 * scale,
         runSpacing: 8 * scale,
         children: [
-          Text('Is', style: textStyle),
-          SvgPicture.asset(
-            AssetPaths.bslNumber(provider.firstNumber),
-            width: symbolSize,
-            height: symbolSize,
-            fit: BoxFit.contain,
+          Text(localizer('more_or_less.is_label'), style: textStyle),
+          BslNumberDisplay(
+            number: provider.firstNumber,
+            size: symbolSize,
+            hintCounter: _hintCounter,
           ),
-          Text('$questionWord than', style: textStyle),
-          SvgPicture.asset(
-            AssetPaths.bslNumber(provider.secondNumber),
-            width: symbolSize,
-            height: symbolSize,
-            fit: BoxFit.contain,
+          Text(localizer(questionWordKey), style: textStyle),
+          BslNumberDisplay(
+            number: provider.secondNumber,
+            size: symbolSize,
+            hintCounter: _hintCounter,
           ),
           Text('?', style: textStyle),
         ],

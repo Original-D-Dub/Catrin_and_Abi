@@ -95,10 +95,12 @@ class _CalledLetterDisplayState extends State<CalledLetterDisplay> {
               child: Center(
                 child: Text(
                   widget.letter.toLowerCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'ComicRelief',
                     fontWeight: FontWeight.w900,
-                    fontSize: AppSizes.fontSizeTitle,
+                    fontSize: widget.letter.length > 1
+                        ? AppSizes.fontSizeTitle * 0.7
+                        : AppSizes.fontSizeTitle,
                     color: AppColors.accentNavyBlue,
                   ),
                 ),

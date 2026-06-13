@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/game_stats_service.dart';
 import '../models/vowel_target.dart';
@@ -37,6 +38,13 @@ class VowelHandProvider extends ChangeNotifier {
 
   final GameStatsService _statsService = GameStatsService();
   final WordsService _wordsService = WordsService();
+
+  /// The sign system (BSL or IAC) this game instance is playing with.
+  ///
+  /// Determines which vowels are cycled through, whether w/y badges are
+  /// shown, and which level(s) are available.
+  final SignSystem _signSystem;
+  SignSystem get signSystem => _signSystem;
 
   GameResult? _lastResult;
   GameResult? get lastResult => _lastResult;
@@ -142,9 +150,13 @@ class VowelHandProvider extends ChangeNotifier {
 
   /// Initializes the provider.
   ///
-  /// The game starts on the level selection screen.
-  VowelHandProvider() {
-    // Level select shown first, no need to initialize vowel/puzzle yet
+  /// For BSL, the game starts on the level selection screen. IAC has only
+  /// one level (Vowel Match), so it skips level selection entirely.
+  VowelHandProvider({SignSystem signSystem = SignSystem.bsl})
+      : _signSystem = signSystem {
+    if (_signSystem == SignSystem.iac) {
+      _showLevelSelect = false;
+    }
   }
 
   // -------------------------
@@ -278,7 +290,12 @@ class VowelHandProvider extends ChangeNotifier {
     _isInputLocked = false;
     _lastResult = null;
     notifyListeners();
-    _statsService.recordGameResult(GameIds.vowelHand, _score, level: _selectedLevel.number).then((result) {
+
+    final resultFuture = _signSystem == SignSystem.iac
+        ? _statsService.recordGameResult(GameIds.welshVowels, _score)
+        : _statsService.recordGameResult(GameIds.vowelHand, _score, level: _selectedLevel.number);
+
+    resultFuture.then((result) {
       _lastResult = result;
       notifyListeners();
     }).catchError((e) {
@@ -388,10 +405,11 @@ class VowelHandProvider extends ChangeNotifier {
   }) {
     if (_hasScored) return;
 
-    // Find the target for the current vowel
-    final target = VowelHandConstants.targets.firstWhere(
-      (t) => t.vowel == _currentVowel,
-    );
+    // Find the target for the current vowel. IAC-only vowels (w, y) have no
+    // fingertip target — they're matched via onTapAdditionalVowel instead.
+    final matches = VowelHandConstants.targets.where((t) => t.vowel == _currentVowel);
+    if (matches.isEmpty) return;
+    final target = matches.first;
 
     // Calculate the target position in hand coordinates
     final targetPosition = Offset(
@@ -417,20 +435,41 @@ class VowelHandProvider extends ChangeNotifier {
     // debugPrint('Hit: ${distance <= hitRadius}');
 
     if (distance <= hitRadius) {
-      AudioService.playCorrect('vowel_hand');
-      _score++;
-      _hasScored = true;
-      _showScoreAnimation = true;
-      _selectRandomVowel();
-      notifyListeners();
-
-      // Hide score animation after 300ms
-      _scoreAnimationTimer?.cancel();
-      _scoreAnimationTimer = Timer(const Duration(milliseconds: 300), () {
-        _showScoreAnimation = false;
-        notifyListeners();
-      });
+      _scoreCorrectVowel();
     }
+  }
+
+  /// Handles a tap on the 'w' or 'y' vowel badges (IAC, Vowel Match level only).
+  ///
+  /// These vowels have no fingertip target on the hand SVG, so they're
+  /// matched via direct badge taps instead of [onTouchEnd].
+  void onTapAdditionalVowel(String vowel) {
+    if (_gameState != VowelHandGameState.playing) return;
+    if (vowel == _currentVowel) {
+      _scoreCorrectVowel();
+      // This tap is a standalone gesture, not part of an onTouchEnd cycle,
+      // so clear the flag immediately rather than leaving it to block the
+      // next fingertip hit check.
+      _hasScored = false;
+    }
+  }
+
+  /// Awards a point for a correct vowel match, advances to the next vowel,
+  /// and briefly shows the score animation.
+  void _scoreCorrectVowel() {
+    AudioService.playCorrect('vowel_hand');
+    _score++;
+    _hasScored = true;
+    _showScoreAnimation = true;
+    _selectRandomVowel();
+    notifyListeners();
+
+    // Hide score animation after 300ms
+    _scoreAnimationTimer?.cancel();
+    _scoreAnimationTimer = Timer(const Duration(milliseconds: 300), () {
+      _showScoreAnimation = false;
+      notifyListeners();
+    });
   }
 
   // -------------------------
@@ -550,7 +589,7 @@ class VowelHandProvider extends ChangeNotifier {
 
   /// Selects a new random vowel, ensuring it's different from the current one (Level 1).
   void _selectRandomVowel() {
-    final vowels = VowelHandConstants.vowels;
+    final vowels = VowelHandConstants.vowelsForSignSystem(_signSystem);
     String newVowel;
 
     do {

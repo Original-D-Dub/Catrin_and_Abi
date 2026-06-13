@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/game_filters.dart';
+
 /// Represents a fingertip target area for a vowel in the BSL hand game.
 ///
 /// Each vowel (a, e, i, o, u) maps to a specific fingertip position on
@@ -62,8 +64,8 @@ class VowelHandConstants {
   /// SVG viewBox height for the open hand image
   static const double svgViewBoxHeight = 726.2;
 
-  /// Minimum hit target radius (diameter 80px for easier touch targets)
-  static const double minHitRadius = 40.0;
+  /// Minimum hit target radius (diameter 96 for easier touch targets)
+  static const double minHitRadius = 56.0;
 
   /// Game duration in seconds
   static const int gameDurationSeconds = 60;
@@ -71,8 +73,17 @@ class VowelHandConstants {
   /// Duration to show pointer after touch release (milliseconds)
   static const int pointerLingerDuration = 400;
 
-  /// All vowels used in the game
+  /// All vowels used in the game (BSL — fingertip targets only)
   static const List<String> vowels = ['a', 'e', 'i', 'o', 'u'];
+
+  /// All Welsh vowels (IAC). Includes 'w' and 'y', which have no fingertip
+  /// target and are matched via on-screen badges instead.
+  static const List<String> iacVowels = ['a', 'e', 'i', 'o', 'u', 'w', 'y'];
+
+  /// Returns the vowels to cycle through for the given sign system.
+  static List<String> vowelsForSignSystem(SignSystem signSystem) {
+    return signSystem == SignSystem.iac ? iacVowels : vowels;
+  }
 
   /// Fingertip target positions (normalized 0-1 coordinates).
   /// For a LEFT hand as seen by the player looking at their own palm:
@@ -97,28 +108,28 @@ class VowelHandConstants {
     VowelTarget(
       id: 2,
       vowel: 'e',
-      normalizedPosition: Offset(0.31, 0.12),
+      normalizedPosition: Offset(0.32, 0.14),
       hitRadius: minHitRadius,
     ),
     // Middle finger tip - 'i' (tallest finger)
     VowelTarget(
       id: 3,
       vowel: 'i',
-      normalizedPosition: Offset(0.55, 0.05),
+      normalizedPosition: Offset(0.57, 0.08),
       hitRadius: minHitRadius,
     ),
     // Ring finger tip - 'o'
     VowelTarget(
       id: 4,
       vowel: 'o',
-      normalizedPosition: Offset(0.79, 0.13),
+      normalizedPosition: Offset(0.77, 0.16),
       hitRadius: minHitRadius,
     ),
     // Little finger tip - 'u' (rightmost)
     VowelTarget(
       id: 5,
       vowel: 'u',
-      normalizedPosition: Offset(0.95, 0.34),
+      normalizedPosition: Offset(0.95, 0.36),
       hitRadius: minHitRadius,
     ),
   ];
@@ -168,4 +179,14 @@ enum VowelHandLevel {
     required this.name,
     required this.description,
   });
+
+  /// Returns the levels available for the given sign system.
+  ///
+  /// IAC only has the Vowel Match level (a/e/i/o/u plus w/y badges); the
+  /// CVC word levels are BSL/English-only.
+  static List<VowelHandLevel> forSignSystem(SignSystem signSystem) {
+    return signSystem == SignSystem.iac
+        ? const [VowelHandLevel.vowelMatch]
+        : VowelHandLevel.values;
+  }
 }

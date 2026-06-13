@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/config/routes.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../shared/services/audio_service.dart';
 import '../services/auth_provider.dart';
 import 'sign_in_banner_button.dart';
@@ -104,8 +105,14 @@ class GameSuccessOverlay extends StatefulWidget {
   /// and [changeLevelIcon]. When [onNextLevel] is also set the two buttons are
   /// shown side by side on screens wider than 600 px and stacked on narrower ones.
   final bool changeLevelIsButton;
-  final String changeLevelLabel;
+
+  /// Defaults to the localized "Change Level" string for [locale] when null.
+  final String? changeLevelLabel;
   final IconData changeLevelIcon;
+
+  // ── localization ─────────────────────────────────────────────────────────
+  /// UI locale ('en' or 'cy') used for all displayed text.
+  final String locale;
 
   const GameSuccessOverlay({
     super.key,
@@ -124,8 +131,9 @@ class GameSuccessOverlay extends StatefulWidget {
     this.extraContent,
     this.gameId,
     this.changeLevelIsButton = false,
-    this.changeLevelLabel = 'Change Level',
+    this.changeLevelLabel,
     this.changeLevelIcon = Icons.grid_view,
+    this.locale = 'en',
   });
 
   @override
@@ -145,7 +153,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
   @override
   void initState() {
     super.initState();
-    AudioService.playSuccess(widget.gameId ?? '');
+    AudioService.playSuccess(widget.gameId ?? '', locale: widget.locale);
     if (widget.backgroundImage != null && widget.extraContent != null) {
       _extraContentTimer = Timer(const Duration(seconds: 5), () {
         if (mounted) setState(() => _showExtraContent = true);
@@ -161,17 +169,21 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
     super.dispose();
   }
 
-  String get _headingText =>
-      (widget.score != null && widget.score! < 3) ? 'Play Again' : 'Well Done!';
+  String _headingText(AppLocalizations localizer) =>
+      (widget.score != null && widget.score! < 3)
+          ? localizer('general.play_again')
+          : localizer('general.welldone');
 
-  String? get _scoreLine {
+  String? _scoreLine(AppLocalizations localizer) {
     switch (widget.scoreStyle) {
       case SuccessScoreStyle.youScored:
-        return 'You scored ${widget.score}';
+        return localizer('general.you_scored')
+            .replaceAll('{score}', '${widget.score}');
       case SuccessScoreStyle.youMatched:
-        return 'You matched ${widget.score}';
+        return localizer('general.you_matched')
+            .replaceAll('{score}', '${widget.score}');
       case SuccessScoreStyle.got10Correct:
-        return 'You got 10 correct';
+        return localizer('general.got_10_correct');
       case SuccessScoreStyle.custom:
         return widget.customScoreLine;
       case SuccessScoreStyle.none:
@@ -181,6 +193,11 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final localizer = AppLocalizations(locale: widget.locale);
+    final headingText = _headingText(localizer);
+    final scoreLine = _scoreLine(localizer);
+    final changeLevelLabel =
+        widget.changeLevelLabel ?? localizer('general.change_level');
     return Container(
       decoration: widget.backgroundImage != null
           ? BoxDecoration(
@@ -216,7 +233,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                             children: [
                               // Dark-blue 2 px stroke behind the white fill
                               Text(
-                                _headingText,
+                                headingText,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: 'LuckiestGuy',
@@ -229,7 +246,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                                 ),
                               ),
                               Text(
-                                _headingText,
+                                headingText,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontFamily: 'LuckiestGuy',
@@ -241,7 +258,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                             ],
                           )
                         : Text(
-                            _headingText,
+                            headingText,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontFamily: 'LuckiestGuy',
@@ -257,10 +274,10 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
             ),
 
             // ── Score sub-line ──────────────────────────────────────────
-            if (_scoreLine != null) ...[
+            if (scoreLine != null) ...[
               const SizedBox(height: AppSizes.spacingMedium),
               Text(
-                _scoreLine!,
+                scoreLine,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'ComicRelief',
@@ -278,10 +295,10 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
               GestureDetector(
                 onTap: () =>
                     Navigator.pushNamed(context, AppRoutes.linkAccount),
-                child: const Text(
-                  'Sign in to save your changes',
+                child: Text(
+                  localizer('general.sign_in_to_save'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'ComicRelief',
                     fontSize: 16,
                     color: _darkBlue,
@@ -387,7 +404,11 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                               const Icon(Icons.emoji_events, color: Colors.white, size: 22),
                               const SizedBox(width: 8),
                               Text(
-                                'Personal Best! ${widget.personalBest}${widget.personalBestSuffix}',
+                                localizer('general.personal_best')
+                                    .replaceAll(
+                                        '{score}', '${widget.personalBest}')
+                                    .replaceAll('{suffix}',
+                                        widget.personalBestSuffix),
                                 style: const TextStyle(
                                   fontFamily: 'ComicRelief',
                                   fontSize: AppSizes.fontSizeBody,
@@ -423,7 +444,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                           ElevatedButton.icon(
                             onPressed: widget.onPlayAgain,
                             icon: const Icon(Icons.replay),
-                            label: const Text('Play Again'),
+                            label: Text(localizer('general.play_again')),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _green,
                               foregroundColor: Colors.white,
@@ -445,7 +466,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                           final homeBtn = ElevatedButton.icon(
                             onPressed: widget.onChangeLevel,
                             icon: Icon(widget.changeLevelIcon),
-                            label: Text(widget.changeLevelLabel),
+                            label: Text(changeLevelLabel),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white24,
                               foregroundColor: Colors.white,
@@ -464,7 +485,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                               ? ElevatedButton.icon(
                                   onPressed: widget.onNextLevel,
                                   icon: const Icon(Icons.arrow_forward),
-                                  label: const Text('Next Level'),
+                                  label: Text(localizer('general.next_level')),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: _pink,
                                     foregroundColor: Colors.white,
@@ -512,7 +533,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                               ? ElevatedButton.icon(
                                   onPressed: widget.onPlayAgain,
                                   icon: const Icon(Icons.replay),
-                                  label: const Text('Play Again'),
+                                  label: Text(localizer('general.play_again')),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: _green,
                                     foregroundColor: Colors.white,
@@ -533,7 +554,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                               ? ElevatedButton.icon(
                                   onPressed: widget.onNextLevel,
                                   icon: const Icon(Icons.arrow_forward),
-                                  label: const Text('Next Level'),
+                                  label: Text(localizer('general.next_level')),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: _pink,
                                     foregroundColor: Colors.white,
@@ -590,7 +611,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                           onPressed: widget.onChangeLevel,
                           icon: Icon(widget.changeLevelIcon, color: Colors.white),
                           label: Text(
-                            widget.changeLevelLabel,
+                            changeLevelLabel,
                             style: const TextStyle(
                               fontFamily: 'ComicRelief',
                               fontSize: AppSizes.fontSizeBody,

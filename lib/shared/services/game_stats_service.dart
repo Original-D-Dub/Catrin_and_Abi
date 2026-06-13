@@ -5,10 +5,11 @@ class GameIds {
   GameIds._();
 
   static const String cardMatching = 'card_matching';
-  static const String welshCardMatching = 'welsh_card_matching';
   static const String bubblePop = 'bubble_pop';
+  static const String welshBubblePop = 'welsh_bubble_pop';
   static const String colouring = 'colouring';
   static const String vowelHand = 'vowel_hand';
+  static const String welshVowels = 'iac_vowels';
   static const String mySpecialDog = 'my_special_dog';
   static const String bslMaths = 'bsl_maths';
   static const String letterQuest = 'letter_quest';

@@ -90,6 +90,7 @@ class SudokuProvider extends ChangeNotifier {
       selectedCol = col;
       if (selectedNumber != null && !grid[row][col].isGiven) {
         _placeValue(row, col, selectedNumber!);
+        selectedNumber = null;
       }
     }
     notifyListeners();
@@ -99,7 +100,10 @@ class SudokuProvider extends ChangeNotifier {
     selectedNumber = (selectedNumber == n) ? null : n;
     if (selectedNumber != null && selectedRow != null && selectedCol != null) {
       final cell = grid[selectedRow!][selectedCol!];
-      if (!cell.isGiven) _placeValue(selectedRow!, selectedCol!, selectedNumber!);
+      if (!cell.isGiven) {
+        _placeValue(selectedRow!, selectedCol!, selectedNumber!);
+        selectedNumber = null;
+      }
     }
     notifyListeners();
   }

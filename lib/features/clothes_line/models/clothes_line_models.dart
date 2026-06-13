@@ -25,7 +25,20 @@ class ClothingItem {
   const ClothingItem({required this.definition, required this.colour});
 
   String get assetPath => 'assets/images/clothes-svg/${definition.name}.svg';
+
+  /// Path to the looping clothing video for this item, or null if no
+  /// video has been provided for this clothing type yet.
+  String? get videoAssetPath {
+    if (!clothingVideoDefinitions.contains(definition.name)) return null;
+    return 'assets/images/clothes_line_video/${definition.name}-colour-12fps.m4v';
+  }
 }
+
+/// Clothing types that have a matching video in
+/// assets/images/clothes_line_video/.
+const Set<String> clothingVideoDefinitions = {
+  'socks', 'shirt', 'trousers', 'skirt', 't-shirt', 'coat',
+};
 
 /// All clothing types used in the game.
 const List<ClothingDefinition> clothingDefinitions = [

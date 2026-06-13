@@ -12,8 +12,15 @@ class CircleColourPair {
   final Color colorB;
   /// Translation key for the level select display name.
   final String name;
+
+  /// Colour name suffixes used to build `counting_game.colour.<name>`
+  /// translation keys (e.g. 'orange', 'pink').
   final String nameA;
   final String nameB;
+
+  /// The questions asked for each round, in order. Levels with a single
+  /// colour only ask [QuestionType.total]; two-colour levels ask all three.
+  final List<QuestionType> questionOrder;
 
   const CircleColourPair({
     required this.colorA,
@@ -21,28 +28,60 @@ class CircleColourPair {
     required this.name,
     required this.nameA,
     required this.nameB,
+    this.questionOrder = const [
+      QuestionType.colourA,
+      QuestionType.colourB,
+      QuestionType.total,
+    ],
   });
+
+  /// True when this level shows circles in a single colour only.
+  bool get singleColour => questionOrder.length == 1;
 }
 
 const List<CircleColourPair> countingColourPairs = [
   CircleColourPair(
+    colorA: Color(0xFFFF6F00),
+    colorB: Color(0xFFFF6F00),
+    name: 'counting_game.level1.name',
+    nameA: 'orange',
+    nameB: 'orange',
+    questionOrder: [QuestionType.total],
+  ),
+  CircleColourPair(
+    colorA: Color(0xFFFDD835),
+    colorB: Color(0xFFFDD835),
+    name: 'counting_game.level2.name',
+    nameA: 'yellow',
+    nameB: 'yellow',
+    questionOrder: [QuestionType.total],
+  ),
+  CircleColourPair(
+    colorA: Color(0xFF43A047),
+    colorB: Color(0xFF43A047),
+    name: 'counting_game.level3.name',
+    nameA: 'green',
+    nameB: 'green',
+    questionOrder: [QuestionType.total],
+  ),
+  CircleColourPair(
     colorA: Color(0xFFEE009B),
     colorB: Color(0xFFcca815),
-    name: 'counting_game.level1.name',
+    name: 'counting_game.level4.name',
     nameA: 'pink',
     nameB: 'yellow',
   ),
   CircleColourPair(
     colorA: Color(0xFF1E88E5),
     colorB: Color(0xFFE53935),
-    name: 'counting_game.level2.name',
+    name: 'counting_game.level5.name',
     nameA: 'blue',
     nameB: 'red',
   ),
   CircleColourPair(
     colorA: Color(0xFF43A047),
     colorB: Color.fromARGB(255, 112, 67, 160),
-    name: 'counting_game.level3.name',
+    name: 'counting_game.level6.name',
     nameA: 'green',
     nameB: 'purple',
   ),
@@ -54,7 +93,8 @@ enum QuestionType { colourA, colourB, total }
 
 // ── Round ─────────────────────────────────────────────────────────────────────
 
-/// One round = one collection of circles + the 3 questions about it.
+/// One round = one collection of circles + the questions about it
+/// (see [CircleColourPair.questionOrder]).
 class CountingRound {
   final int countA;
   final int countB;
@@ -92,25 +132,22 @@ enum CountingGameState { playing, won }
 ///
 /// Structure:
 /// - 5 rounds per game, each showing a new collection of circles.
-/// - 3 questions per round (colour A → colour B → total).
+/// - Each round asks the questions in [CircleColourPair.questionOrder]:
+///   single-colour levels ask just "total"; two-colour levels ask
+///   colour A → colour B → total.
 /// - 3 BSL number buttons per question; wrong taps are greyed out/disabled.
 /// - Correct answer awards 1 point and advances to the next question.
-/// - After all 15 questions the game is won.
+/// - The game is won once every round's questions have been answered.
 class CountingGameProvider extends ChangeNotifier {
   static const int totalRounds = 5;
-  static const int questionsPerRound = 3;
-  static const int totalQuestions = totalRounds * questionsPerRound;
 
   /// Maximum total circle count per level.
-  static const List<int> _maxTotals = [5, 10, 20];
+  static const List<int> _maxTotals = [5, 7, 10, 5, 10, 20];
 
   int get _maxTotal => _maxTotals[_levelIndex];
 
-  static const List<QuestionType> _questionOrder = [
-    QuestionType.colourA,
-    QuestionType.colourB,
-    QuestionType.total,
-  ];
+  /// Number of questions asked per round for the current level.
+  int get _questionsPerRound => colours.questionOrder.length;
 
   final Random _random = Random();
   final GameStatsService _statsService = GameStatsService();
@@ -130,7 +167,7 @@ class CountingGameProvider extends ChangeNotifier {
 
   CountingRound get currentRound => _rounds[_roundIndex];
   QuestionType get currentQuestionType =>
-      _questionOrder[_questionIndexInRound];
+      colours.questionOrder[_questionIndexInRound];
   int get roundNumber => _roundIndex + 1;
 
   /// The correct answer for the current question.
@@ -195,7 +232,7 @@ class CountingGameProvider extends ChangeNotifier {
   void _advance() {
     final nextQInRound = _questionIndexInRound + 1;
 
-    if (nextQInRound < questionsPerRound) {
+    if (nextQInRound < _questionsPerRound) {
       // More questions in this round
       _questionIndexInRound = nextQInRound;
       _buildOptions();
@@ -247,6 +284,20 @@ class CountingGameProvider extends ChangeNotifier {
 
   CountingRound _generateRound({CountingRound? previous}) {
     final maxTotal = _maxTotal;
+
+    if (colours.singleColour) {
+      while (true) {
+        final count = _random.nextInt(maxTotal) + 1;
+
+        if (previous != null && count == previous.countA) {
+          continue;
+        }
+
+        final positions = _generatePositions(count);
+        return CountingRound(countA: count, countB: 0, positions: positions);
+      }
+    }
+
     while (true) {
       // countA: at least 1, leaving room for at least 1 of colour B.
       final countA = _random.nextInt(maxTotal - 1) + 1;

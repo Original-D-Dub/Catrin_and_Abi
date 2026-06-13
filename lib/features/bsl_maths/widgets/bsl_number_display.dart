@@ -6,12 +6,17 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
 
-/// Displays a BSL number sign SVG for a given number (0-10).
+/// Displays a BSL number sign for a given number.
+///
+/// Single digits (0-10) use SVG hand-sign assets, 11-19 use Rive
+/// animations, and two-digit numbers (20-99) are composed from the
+/// tens and units digit signs shown side by side — BSL denotes place
+/// value positionally, the same way written digits do.
 ///
 /// Used in both the question display area (showing operands) and
 /// on keyboard keys (showing available answers).
 ///
-/// The SVG is rendered with [BoxFit.contain] to maintain aspect ratio
+/// Each sign is rendered with [BoxFit.contain] to maintain aspect ratio
 /// within the given [size] constraints.
 ///
 /// Example:
@@ -57,8 +62,26 @@ class BslNumberDisplay extends StatelessWidget {
         hintCounter: hintCounter,
       );
     }
-    // Numbers outside SVG range (0-10) and not covered by a Rive file.
-    if (number < 0 || number > 10) {
+    if (number >= 20 && number <= 99) {
+      // BSL denotes place value positionally, just like written digits:
+      // sign the tens digit followed by the units digit, left to right.
+      final tens = number ~/ 10;
+      final units = number % 10;
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            BslNumberDisplay(number: tens, size: size / 2),
+            BslNumberDisplay(number: units, size: size / 2),
+          ],
+        ),
+      );
+    }
+    // Numbers outside SVG range (0-10), 20-99, and not covered by a Rive file.
+    if (number < 0 || number > 99) {
       return SizedBox(
         width: size,
         height: size,

@@ -31,7 +31,10 @@ import '../widgets/bsl_number_display.dart';
 ///
 /// Uses [Consumer<BslMathsProvider>] to rebuild when game state changes.
 class BslMathsScreen extends StatefulWidget {
-  const BslMathsScreen({super.key});
+  /// UI locale ('en' or 'cy') used for titles, level info, and overlay text.
+  final String locale;
+
+  const BslMathsScreen({super.key, this.locale = 'en'});
 
   @override
   State<BslMathsScreen> createState() => _BslMathsScreenState();
@@ -70,14 +73,14 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizer = AppLocalizations(locale: 'en');
+    final localizer = AppLocalizations(locale: widget.locale);
     return Consumer<BslMathsProvider>(
       builder: (context, provider, child) {
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
               ? GameAppBar(
-                  title: 'BSL Maths',
+                  title: localizer('bsl_maths.title'),
                   onBack: () => Navigator.of(context).pop(),
                 )
               : null,
@@ -99,6 +102,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                 if (_showingIntro)
                   GameIntroCountdown(
                     gameId: 'bsl_maths',
+                    locale: widget.locale,
                     onComplete: () {
                       setState(() => _showingIntro = false);
                       provider.startGame();
@@ -109,6 +113,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                   Positioned.fill(
                     child: GameSuccessOverlay(
                       gameId: 'bsl_maths',
+                      locale: widget.locale,
                       scoreStyle: SuccessScoreStyle.youScored,
                       score: provider.score,
                       imageAsset: 'assets/success/Star-glowing.png',
@@ -125,6 +130,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                   Positioned.fill(
                     child: GameSuccessOverlay(
                       gameId: 'bsl_maths',
+                      locale: widget.locale,
                       scoreStyle: SuccessScoreStyle.got10Correct,
                       showPersonalBest: false,
                       imageAsset: 'assets/success/Star-glowing.png',
@@ -156,6 +162,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
   ) {
     return LevelSelectScreen(
       subtitle: localizer('bsl_maths.subtitle'),
+      locale: widget.locale,
       levels: BslMathsLevel.all.map((level) {
         return LevelSelectItem(
           number: level.number,
@@ -167,7 +174,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
               setState(() => _showingIntro = true);
             } else {
               provider.startGame();
-              AudioService.playIntro('bsl_maths');
+              AudioService.playIntro('bsl_maths', locale: widget.locale);
             }
           },
         );
@@ -241,7 +248,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                       // Feedback area (correct/wrong message)
                       SizedBox(
                         height: 44 * scale,
-                        child: _buildFeedback(provider, scale),
+                        child: _buildFeedback(provider, scale, localizer),
                       ),
 
                       const SizedBox(height: AppSizes.spacingSmall),
@@ -510,7 +517,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
   }
 
   /// Builds the feedback text area below the question display.
-  Widget _buildFeedback(BslMathsProvider provider, double scale) {
+  Widget _buildFeedback(BslMathsProvider provider, double scale, AppLocalizations localizer) {
     if (provider.gameState == BslMathsGameState.correct) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -518,7 +525,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
           Icon(Icons.check_circle, color: AppColors.success, size: AppSizes.iconLarge * scale),
           const SizedBox(width: AppSizes.spacingSmall),
           Text(
-            'Correct!',
+            localizer('general.correct'),
             style: TextStyle(
               fontSize: AppSizes.fontSizeLarge * scale,
               fontWeight: FontWeight.bold,
@@ -536,7 +543,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
           Icon(Icons.refresh, color: AppColors.accentRed, size: AppSizes.iconLarge * scale),
           const SizedBox(width: AppSizes.spacingSmall),
           Text(
-            'Try again!',
+            localizer('general.try_again'),
             style: TextStyle(
               fontSize: AppSizes.fontSizeLarge * scale,
               fontWeight: FontWeight.bold,

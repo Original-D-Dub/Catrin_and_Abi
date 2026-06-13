@@ -10,6 +10,11 @@ class ClothesLineProvider extends ChangeNotifier {
 
   final Random _rng = Random();
 
+  /// UI locale ('en' or 'cy') used for all displayed text.
+  final String locale;
+
+  ClothesLineProvider({this.locale = 'en'});
+
   int level = 1;
   bool showLevelSelect = true;
 
@@ -25,12 +30,6 @@ class ClothesLineProvider extends ChangeNotifier {
 
   // Convenience getter for widgets that iterate the full item list.
   List<ClothingItem> get items => questions.map((q) => q.item).toList();
-
-  String get question {
-    final item = currentItem;
-    final verb = item.definition.plural ? 'are' : 'is';
-    return 'What colour $verb the ${item.definition.name}?';
-  }
 
   void selectLevel(int lvl) {
     level = lvl;

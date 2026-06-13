@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/game_stats_service.dart';
 import '../models/animal_model.dart';
 import '../models/letter_bingo_level.dart';
@@ -33,6 +34,19 @@ enum LetterBingoPhase {
 /// Uses [ChangeNotifier] for reactive UI updates via Provider.
 class LetterBingoProvider extends ChangeNotifier {
   final GameStatsService _statsService = GameStatsService();
+
+  LetterBingoProvider({SignSystem signSystem = SignSystem.bsl})
+      : _signSystem = signSystem {
+    _loadAnimals();
+  }
+
+  /// The sign system (BSL or IAC) this game instance uses.
+  final SignSystem _signSystem;
+  SignSystem get signSystem => _signSystem;
+
+  /// Levels available for the current sign system.
+  List<LetterBingoLevel> get levels =>
+      LetterBingoLevel.forSignSystem(_signSystem);
 
   LetterBingoPhase _phase = LetterBingoPhase.levelSelect;
   LetterBingoPhase get phase => _phase;
@@ -80,10 +94,6 @@ class LetterBingoProvider extends ChangeNotifier {
 
   final _rng = Random();
 
-  LetterBingoProvider() {
-    _loadAnimals();
-  }
-
   Future<void> _loadAnimals() async {
     try {
       final json = await rootBundle.loadString('assets/data/animals.json');
@@ -99,8 +109,7 @@ class LetterBingoProvider extends ChangeNotifier {
 
   /// Sets the level and starts the game.
   void startLevel({required int levelNumber, int? tileCountOverride}) {
-    _currentLevel =
-        LetterBingoLevel.allLevels.firstWhere((l) => l.number == levelNumber);
+    _currentLevel = levels.firstWhere((l) => l.number == levelNumber);
     _tileCountOverride = tileCountOverride;
     _completedRow = null;
     _tappedLetters.clear();

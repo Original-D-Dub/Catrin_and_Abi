@@ -16,7 +16,9 @@ import '../../../shared/widgets/level_select_screen.dart';
 import '../providers/number_line_provider.dart';
 
 class NumberLineGameScreen extends StatefulWidget {
-  const NumberLineGameScreen({super.key});
+  final String locale;
+
+  const NumberLineGameScreen({super.key, this.locale = 'en'});
 
   @override
   State<NumberLineGameScreen> createState() => _NumberLineGameScreenState();
@@ -73,6 +75,7 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
       'number_line_how_many_cakes_do_we_need_to_make.mp3',
       numberFile,
       leadMs: 240,
+      locale: widget.locale,
     );
   }
 
@@ -109,7 +112,7 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
           AudioService.playMp3('number_line/cake_drop.mp3').ignore();
         });
       } else {
-        AudioService.playSpeechMp3('$next').ignore();
+        AudioService.playSpeechMp3('$next', locale: widget.locale).ignore();
       }
 
       if (next < total) {
@@ -123,9 +126,9 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
           if (answer == correct) {
             AudioService.playCorrect('number_line_game');
           } else if (answer > correct) {
-            AudioService.speakWithMp3('', mp3Path: 'general_oops.mp3').ignore();
+            AudioService.speakWithMp3('', mp3Path: 'general_oops.mp3', locale: widget.locale).ignore();
           } else {
-            AudioService.speakWithMp3('', mp3Path: 'number_line_we_need_more.mp3').ignore();
+            AudioService.speakWithMp3('', mp3Path: 'number_line_we_need_more.mp3', locale: widget.locale).ignore();
           }
 
           Future.delayed(const Duration(milliseconds: 3000), () {
@@ -147,14 +150,14 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizer = AppLocalizations(locale: 'en');
+    final localizer = AppLocalizations(locale: widget.locale);
     return Consumer<NumberLineGameProvider>(
       builder: (context, provider, _) {
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
               ? GameAppBar(
-                  title: 'Number Line',
+                  title: localizer('number_line.title'),
                   onBack: () => Navigator.of(context).pop(),
                 )
               : null,
@@ -171,7 +174,7 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
                 SafeArea(
                   child: provider.showLevelSelect
                       ? _buildLevelSelect(context, provider, localizer)
-                      : _buildGame(context, provider),
+                      : _buildGame(context, provider, localizer),
                 ),
                 if (!provider.showLevelSelect &&
                     provider.state == NumberLineGameState.won)
@@ -207,6 +210,7 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
       BuildContext context, NumberLineGameProvider provider, AppLocalizations localizer) {
     return LevelSelectScreen(
       subtitle: localizer('number_line.subtitle'),
+      locale: localizer.locale,
       levels: List.generate(numberLineLevels.length, (i) {
         final level = numberLineLevels[i];
         return LevelSelectItem(
@@ -224,7 +228,8 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
 
   // ── Game layout ──────────────────────────────────────────────────────────────
 
-  Widget _buildGame(BuildContext context, NumberLineGameProvider provider) {
+  Widget _buildGame(BuildContext context, NumberLineGameProvider provider,
+      AppLocalizations localizer) {
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -235,7 +240,8 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
           levelNumber: provider.levelNumber,
           centerContent: Center(
             child: Text(
-              'Round ${provider.roundNumber} of ${provider.currentLevel.totalRounds}',
+              '${localizer('number_line.round_label')} ${provider.roundNumber} '
+              '${localizer('number_line.of_label')} ${provider.currentLevel.totalRounds}',
               style: const TextStyle(
                 fontFamily: 'ComicRelief',
                 fontSize: 16,
@@ -257,7 +263,8 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'How many cakes do we need to make ${provider.currentLevel.targetNumber}?',
+                  localizer('number_line.question')
+                      .replaceAll('{n}', '${provider.currentLevel.targetNumber}'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'ComicRelief',

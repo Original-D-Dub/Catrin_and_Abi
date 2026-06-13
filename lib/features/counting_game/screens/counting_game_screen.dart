@@ -16,12 +16,15 @@ import '../providers/counting_game_provider.dart';
 
 /// Main screen for the Counting Game.
 ///
-/// Each game has 5 rounds. Each round shows a collection of two-coloured
-/// circles and asks three questions: colour A count, colour B count, total.
-/// The player taps one of three BSL number buttons. Wrong answers are
-/// greyed out; correct answers advance the question. All 15 correct → win.
+/// Each game has 5 rounds. Each round shows a collection of circles and asks
+/// one or more questions (single-colour levels just ask the total; two-colour
+/// levels ask colour A count, colour B count, then total). The player taps
+/// one of three BSL number buttons. Wrong answers are greyed out; correct
+/// answers advance the question. Answering every round's questions wins.
 class CountingGameScreen extends StatefulWidget {
-  const CountingGameScreen({super.key});
+  final String locale;
+
+  const CountingGameScreen({super.key, this.locale = 'en'});
 
   @override
   State<CountingGameScreen> createState() => _CountingGameScreenState();
@@ -62,14 +65,14 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizer = AppLocalizations(locale: 'en');
+    final localizer = AppLocalizations(locale: widget.locale);
     return Consumer<CountingGameProvider>(
       builder: (context, provider, _) {
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
               ? GameAppBar(
-                  title: 'Counting',
+                  title: localizer('counting.title'),
                   onBack: () => Navigator.of(context).pop(),
                 )
               : null,
@@ -86,7 +89,7 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
                 SafeArea(
                   child: provider.showLevelSelect
                       ? _buildLevelSelect(context, provider, localizer)
-                      : _buildGame(context, provider),
+                      : _buildGame(context, provider, localizer),
                 ),
                 if (!provider.showLevelSelect &&
                     provider.state == CountingGameState.won)
@@ -122,6 +125,7 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
       BuildContext context, CountingGameProvider provider, AppLocalizations localizer) {
     return LevelSelectScreen(
       subtitle: localizer('counting_game.subtitle'),
+      locale: localizer.locale,
       levels: List.generate(countingColourPairs.length, (i) {
         final pair = countingColourPairs[i];
         return LevelSelectItem(
@@ -139,11 +143,13 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
 
   // ── Game layout ─────────────────────────────────────────────────────────────
 
-  Widget _buildGame(BuildContext context, CountingGameProvider provider) {
+  Widget _buildGame(BuildContext context, CountingGameProvider provider,
+      AppLocalizations localizer) {
     final round = provider.currentRound;
     final colours = provider.colours;
 
-    final questionText = _questionText(provider.currentQuestionType, colours);
+    final questionText =
+        _questionText(provider.currentQuestionType, colours, localizer);
 
     return Column(
       children: [
@@ -155,7 +161,8 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
           levelNumber: provider.levelNumber,
           centerContent: Center(
             child: Text(
-              'Round ${provider.roundNumber} of ${CountingGameProvider.totalRounds}',
+              '${localizer('counting_game.round_label')} ${provider.roundNumber} '
+              '${localizer('counting_game.of_label')} ${CountingGameProvider.totalRounds}',
               style: const TextStyle(
                 fontFamily: 'ComicRelief',
                 fontSize: 16,
@@ -238,14 +245,14 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
         AnimatedOpacity(
           opacity: provider.disabledAnswers.isNotEmpty ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 200),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.refresh, color: AppColors.accentRed, size: 24),
-              SizedBox(width: AppSizes.spacingSmall),
+              const Icon(Icons.refresh, color: AppColors.accentRed, size: 24),
+              const SizedBox(width: AppSizes.spacingSmall),
               Text(
-                'Try again!',
-                style: TextStyle(
+                localizer('general.try_again'),
+                style: const TextStyle(
                   fontFamily: 'ComicRelief',
                   fontSize: AppSizes.fontSizeLarge,
                   fontWeight: FontWeight.bold,
@@ -276,14 +283,20 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
     );
   }
 
-  String _questionText(QuestionType type, CircleColourPair colours) {
+  String _questionText(
+      QuestionType type, CircleColourPair colours, AppLocalizations localizer) {
     switch (type) {
       case QuestionType.colourA:
-        return 'How many ${colours.nameA} circles?';
+        return localizer('counting_game.question_colour')
+            .replaceAll('{colour}', localizer('counting_game.colour.${colours.nameA}'));
       case QuestionType.colourB:
-        return 'How many ${colours.nameB} circles?';
+        return localizer('counting_game.question_colour')
+            .replaceAll('{colour}', localizer('counting_game.colour.${colours.nameB}'));
       case QuestionType.total:
-        return 'How many circles altogether?';
+        return colours.singleColour
+            ? localizer('counting_game.question_total_single').replaceAll(
+                '{colour}', localizer('counting_game.colour.${colours.nameA}'))
+            : localizer('counting_game.question_total_multi');
     }
   }
 }

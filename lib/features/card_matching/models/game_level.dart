@@ -3,149 +3,171 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/game_constants.dart';
+import '../../../core/constants/game_filters.dart';
 
-/// Configuration for a game level.
+/// Configuration for a card matching game level.
 ///
-/// Defines which letters are included, their colors,
-/// and display information for the level.
-///
-/// Example:
-/// ```dart
-/// final level1 = GameLevel.level1();
-/// print(level1.letters); // ['a', 'e', 'i', 'o', 'u']
-/// ```
+/// [name] is a translation key (e.g. `'card_matching.bsl.level1.name'`),
+/// resolved via [AppLocalizations] when displayed.
 class GameLevel {
-  /// Display name of the level (English)
-  final String name;
-
-  /// Display name of the level (Welsh)
-  final String nameCy;
-
-  /// Level number (1, 2, 3, etc.)
   final int levelNumber;
-
-  /// Letters included in this level
+  final String name;
   final List<String> letters;
-
-  /// Color assignments for each letter pair
   final Map<String, Color> pairColors;
 
-  /// Creates a game level configuration.
   const GameLevel({
-    required this.name,
-    required this.nameCy,
     required this.levelNumber,
+    required this.name,
     required this.letters,
     required this.pairColors,
   });
 
-  /// Level 1: Vowels (a, e, i, o, u)
-  ///
-  /// The simplest level with only 5 pairs (10 cards total).
-  /// Color-coded for easy matching.
-  factory GameLevel.level1() {
-    return GameLevel(
-      name: GameConstants.level1Name,
-      nameCy: GameConstants.level1NameCy,
-      levelNumber: 1,
-      letters: GameConstants.level1Letters,
-      pairColors: AppColors.vowelPairColors,
-    );
+  int get totalPairs => letters.length;
+  int get totalCards => letters.length * 2;
+
+  Color getColorForLetter(String letter) {
+    return pairColors[letter.toLowerCase()] ?? Colors.grey;
   }
 
-  /// Level 2: A to E (a, b, c, d, e)
-  ///
-  /// 5 pairs (10 cards total) with first 5 letters.
-  factory GameLevel.level2() {
-    return GameLevel(
-      name: GameConstants.level2Name,
-      nameCy: GameConstants.level2NameCy,
-      levelNumber: 2,
-      letters: GameConstants.level2Letters,
-      pairColors: AppColors.letterPairColors,
-    );
-  }
+  // ─────────────────────────────────────────
+  // BSL levels (English alphabet)
+  // ─────────────────────────────────────────
 
-  /// Level 3: A to I (a, b, c, d, e, f, g, h, i)
-  ///
-  /// 9 pairs (18 cards total) with letters a through i.
-  factory GameLevel.level3() {
-    return GameLevel(
-      name: GameConstants.level3Name,
-      nameCy: GameConstants.level3NameCy,
-      levelNumber: 3,
-      letters: GameConstants.level3Letters,
-      pairColors: AppColors.letterPairColors,
-    );
-  }
+  static const GameLevel bslLevel1 = GameLevel(
+    levelNumber: 1,
+    name: 'card_matching.bsl.level1.name',
+    letters: GameConstants.level1Letters,
+    pairColors: AppColors.vowelPairColors,
+  );
 
-  /// Level 4: I to O (i, j, k, l, m, n, o)
-  ///
-  /// 7 pairs (14 cards total) with letters i through o.
-  factory GameLevel.level4() {
-    return GameLevel(
-      name: GameConstants.level4Name,
-      nameCy: GameConstants.level4NameCy,
-      levelNumber: 4,
-      letters: GameConstants.level4Letters,
-      pairColors: AppColors.letterPairColors,
-    );
-  }
+  static const GameLevel bslLevel2 = GameLevel(
+    levelNumber: 2,
+    name: 'card_matching.bsl.level2.name',
+    letters: GameConstants.level2Letters,
+    pairColors: AppColors.letterPairColors,
+  );
 
-  /// Level 5: P to Z (p, q, r, s, t, u, v, w, x, y, z)
-  ///
-  /// 11 pairs (22 cards total) with letters p through z.
-  factory GameLevel.level5() {
-    return GameLevel(
-      name: GameConstants.level5Name,
-      nameCy: GameConstants.level5NameCy,
-      levelNumber: 5,
-      letters: GameConstants.level5Letters,
-      pairColors: AppColors.letterPairColors,
-    );
-  }
+  static const GameLevel bslLevel3 = GameLevel(
+    levelNumber: 3,
+    name: 'card_matching.bsl.level3.name',
+    letters: GameConstants.level3Letters,
+    pairColors: AppColors.letterPairColors,
+  );
+
+  static const GameLevel bslLevel4 = GameLevel(
+    levelNumber: 4,
+    name: 'card_matching.bsl.level4.name',
+    letters: GameConstants.level4Letters,
+    pairColors: AppColors.letterPairColors,
+  );
+
+  static const GameLevel bslLevel5 = GameLevel(
+    levelNumber: 5,
+    name: 'card_matching.bsl.level5.name',
+    letters: GameConstants.level5Letters,
+    pairColors: AppColors.letterPairColors,
+  );
 
   /// Level 6: Full Alphabet — 10 letters drawn at random each game.
-  ///
-  /// Generates a fresh random selection every time it is called so replaying
-  /// the level presents a different set of letters.
-  factory GameLevel.level6() {
+  static GameLevel bslLevel6() {
     const fullAlphabet = [
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
       'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
     ];
     final letters = [...fullAlphabet]..shuffle(Random());
     return GameLevel(
-      name: GameConstants.level6Name,
-      nameCy: GameConstants.level6NameCy,
       levelNumber: 6,
+      name: 'card_matching.bsl.level6.name',
       letters: letters.take(10).toList(),
       pairColors: AppColors.letterPairColors,
     );
   }
 
-  /// Returns all available game levels.
-  static List<GameLevel> allLevels() {
-    return [
-      GameLevel.level1(),
-      GameLevel.level2(),
-      GameLevel.level3(),
-      GameLevel.level4(),
-      GameLevel.level5(),
-      GameLevel.level6(),
+  static List<GameLevel> get bslLevels =>
+      [bslLevel1, bslLevel2, bslLevel3, bslLevel4, bslLevel5, bslLevel6()];
+
+  // ─────────────────────────────────────────
+  // IAC levels (Welsh alphabet, incl. digraphs)
+  // ─────────────────────────────────────────
+
+  /// Level 1: Welsh vowels — a, e, i, o, u, w, y (7 pairs)
+  static const GameLevel iacLevel1 = GameLevel(
+    levelNumber: 1,
+    name: 'card_matching.iac.level1.name',
+    letters: ['a', 'e', 'i', 'o', 'u', 'w', 'y'],
+    pairColors: AppColors.welshVowelPairColors,
+  );
+
+  /// Level 2: a to e (a, b, c, ch, d, dd, e — 7 pairs)
+  static const GameLevel iacLevel2 = GameLevel(
+    levelNumber: 2,
+    name: 'card_matching.iac.level2.name',
+    letters: ['a', 'b', 'c', 'ch', 'd', 'dd', 'e'],
+    pairColors: {
+      ...AppColors.letterPairColors,
+      ...AppColors.welshDigraphPairColors,
+    },
+  );
+
+  /// Level 3: e to i (e, f, ff, g, ng, h, i — 7 pairs)
+  static const GameLevel iacLevel3 = GameLevel(
+    levelNumber: 3,
+    name: 'card_matching.iac.level3.name',
+    letters: ['e', 'f', 'ff', 'g', 'ng', 'h', 'i'],
+    pairColors: {
+      ...AppColors.letterPairColors,
+      ...AppColors.welshDigraphPairColors,
+    },
+  );
+
+  /// Level 4: j to s (j, l, ll, m, n, o, p, r, rh, s — 10 pairs)
+  static const GameLevel iacLevel4 = GameLevel(
+    levelNumber: 4,
+    name: 'card_matching.iac.level4.name',
+    letters: ['j', 'l', 'll', 'm', 'n', 'o', 'p', 'r', 'rh', 's'],
+    pairColors: {
+      ...AppColors.letterPairColors,
+      ...AppColors.welshDigraphPairColors,
+    },
+  );
+
+  /// Level 5: o to y (o, p, r, rh, s, t, th, u, w, y — 10 pairs)
+  static const GameLevel iacLevel5 = GameLevel(
+    levelNumber: 5,
+    name: 'card_matching.iac.level5.name',
+    letters: ['o', 'p', 'r', 'rh', 's', 't', 'th', 'u', 'w', 'y'],
+    pairColors: {
+      ...AppColors.letterPairColors,
+      ...AppColors.welshDigraphPairColors,
+    },
+  );
+
+  /// Level 6: Full Welsh alphabet — 10 random letters each game.
+  static GameLevel iacLevel6() {
+    const fullWelsh = [
+      'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g',
+      'h', 'i', 'j', 'l', 'll', 'm', 'n', 'ng', 'o', 'p',
+      'ph', 'r', 'rh', 's', 't', 'th', 'u', 'w', 'y',
     ];
+    final allColors = <String, Color>{
+      ...AppColors.welshVowelPairColors,
+      ...AppColors.welshDigraphPairColors,
+      ...AppColors.letterPairColors,
+    };
+    final letters = [...fullWelsh]..shuffle(Random());
+    final chosen = letters.take(10).toList();
+    return GameLevel(
+      levelNumber: 6,
+      name: 'card_matching.iac.level6.name',
+      letters: chosen,
+      pairColors: {for (final l in chosen) l: allColors[l] ?? Colors.grey},
+    );
   }
 
-  /// Total number of card pairs in this level
-  int get totalPairs => letters.length;
+  static List<GameLevel> get iacLevels =>
+      [iacLevel1, iacLevel2, iacLevel3, iacLevel4, iacLevel5, iacLevel6()];
 
-  /// Total number of cards in this level (pairs * 2)
-  int get totalCards => letters.length * 2;
-
-  /// Gets the color for a specific letter.
-  ///
-  /// Returns grey if the letter is not found (shouldn't happen).
-  Color getColorForLetter(String letter) {
-    return pairColors[letter.toLowerCase()] ?? Colors.grey;
-  }
+  /// Returns the level list for the given sign system.
+  static List<GameLevel> forSignSystem(SignSystem signSystem) =>
+      signSystem == SignSystem.iac ? iacLevels : bslLevels;
 }

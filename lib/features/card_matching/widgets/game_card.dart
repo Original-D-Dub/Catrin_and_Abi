@@ -4,6 +4,7 @@ import 'package:flip_card/flip_card.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/game_constants.dart';
+import '../../../core/constants/game_filters.dart';
 import '../../../shared/widgets/bsl_alphabet_svg.dart';
 import '../models/card_model.dart';
 
@@ -26,10 +27,14 @@ class GameCard extends StatefulWidget {
   /// Callback when card is tapped
   final VoidCallback onTap;
 
+  /// Which sign-asset family to render for [CardType.bslSign] cards.
+  final SignSystem signSystem;
+
   const GameCard({
     super.key,
     required this.card,
     required this.onTap,
+    this.signSystem = SignSystem.bsl,
   });
 
   @override
@@ -146,7 +151,10 @@ class _GameCardState extends State<GameCard> {
   /// Uses [Padding] to give the image breathing room, then
   /// fills the remaining space so signs scale with card size.
   Widget _buildBslSignContent() {
-    return BslAlphabetSvg(letter: widget.card.value);
+    return BslAlphabetSvg(
+      letter: widget.card.value,
+      signSystem: widget.signSystem,
+    );
   }
 
   /// Builds the letter text content.

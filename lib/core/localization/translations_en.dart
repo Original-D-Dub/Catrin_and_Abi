@@ -26,10 +26,13 @@ const Map<String, String> translationsEn = {
   // Home Screen
   // -------------------------
   'home.title': 'Choose a Game',
+  'home.sign_system_label': 'Sign Language',
   'card_matching.title': 'Card Match',
   'bubble_pop.title': 'Bubble Pop',
   'letter_quest.title': 'Letter Quest',
   'bsl_vowels.title': 'BSL Vowels',
+  'iac_vowels.title': 'IAC Vowels',
+  'iac_vowels.intro': 'Tap the correct fingertip or badge to make the sign for each Welsh vowel: a, e, i, o, u, w, y.',
   'colouring.title': 'Colouring',
   'counting.title': 'Counting',
   'number_line.title': 'Make 10',
@@ -43,6 +46,17 @@ const Map<String, String> translationsEn = {
   'clothes_line.level2.description': 'Answer before you press play',
   'clothes_line.level3.name': 'Conveyor Belt',
   'clothes_line.level3.description': 'Answer before the clothes scroll away!',
+  'clothes_line.question': 'What colour {verb} the {item}?',
+  'clothes_line.verb_singular': 'is',
+  'clothes_line.verb_plural': 'are',
+  'clothes_line.item.socks': 'socks',
+  'clothes_line.item.shirt': 'shirt',
+  'clothes_line.item.trousers': 'trousers',
+  'clothes_line.item.skirt': 'skirt',
+  'clothes_line.item.t-shirt': 't-shirt',
+  'clothes_line.item.shorts': 'shorts',
+  'clothes_line.item.coat': 'coat',
+  'clothes_line.speed': 'Speed',
   'bsl_sprint.title': 'BSL Sprint',
   'letter_bingo.title': 'Letter Bingo',
   'character_id.title': 'Who has blue shoes?',
@@ -63,6 +77,13 @@ const Map<String, String> translationsEn = {
   'general.ok': 'OK',
   'general.play': 'Play',
   'general.play_again': 'Play Again',
+  'general.next_level': 'Next Level',
+  'general.change_level': 'Change Level',
+  'general.you_scored': 'You scored {score}',
+  'general.you_matched': 'You matched {score}',
+  'general.got_10_correct': 'You got 10 correct',
+  'general.personal_best': 'Personal Best! {score}{suffix}',
+  'general.sign_in_to_save': 'Sign in to save your changes',
   'general.score': 'Score',
   'general.time': 'Time',
   'general.matches': 'Matches',
@@ -152,41 +173,49 @@ const Map<String, String> translationsEn = {
   // -------------------------
   // Card Matching Game
   // -------------------------
-  'card_matching.instructions': 'Match the BSL signs with their letters!',
-  'card_matching.intro': 'Match the BSL letter signs to the letters.',
   'card_matching.tap_first': 'Tap a card to flip it!',
   'card_matching.tap_second': 'Tap another card to find a match',
-  'card_matching.matches': 'Matches',
-  'card_matching.level1.name': 'Vowels',
-  'card_matching.level2.name': 'a to e',
-  'card_matching.level3.name': 'a to j',
-  'card_matching.level4.name': 'i to r',
-  'card_matching.level5.name': 'q to z',
-  'card_matching.level6.name': 'Full Alphabet',
-
-  // -------------------------
-  // Welsh Card Matching Game
-  // -------------------------
-  'welsh_card_matching.title': 'Welsh Card Match',
-  'welsh_card_matching.instructions': 'Match the Welsh signs with their letters!',
-  'welsh_card_matching.tap_first': 'Tap a card to flip it!',
-  'welsh_card_matching.tap_second': 'Tap another card to find a match',
-  'welsh_card_matching.level1.name': 'Welsh Vowels',
-  'welsh_card_matching.level2.name': 'Digraphs',
-  'welsh_card_matching.level3.name': 'b to n',
-  'welsh_card_matching.level4.name': 'Mixed',
-  'welsh_card_matching.level5.name': 'Full Welsh Alphabet',
+  'card_matching.moves_label': 'Moves',
+  'card_matching.pairs_label': 'pairs',
+  'card_matching.success_moves': 'You did it in {n} moves!',
+  'card_matching.moves_suffix': ' moves',
+  'card_matching.bsl.intro': 'Match the BSL signs with their letters!',
+  'card_matching.bsl.level1.name': 'Vowels',
+  'card_matching.bsl.level2.name': 'a to e',
+  'card_matching.bsl.level3.name': 'a to j',
+  'card_matching.bsl.level4.name': 'i to r',
+  'card_matching.bsl.level5.name': 'q to z',
+  'card_matching.bsl.level6.name': 'Full Alphabet',
+  'card_matching.iac.intro': 'Match the Welsh signs with their letters!',
+  'card_matching.iac.level1.name': 'Welsh Vowels',
+  'card_matching.iac.level2.name': 'a to e',
+  'card_matching.iac.level3.name': 'e to i',
+  'card_matching.iac.level4.name': 'j to s',
+  'card_matching.iac.level5.name': 'o to y',
+  'card_matching.iac.level6.name': 'Full Welsh Alphabet',
 
   // -------------------------
   // Bubble Pop Game
   // -------------------------
   'bubble_pop.intro': 'Look at the BSL letter sign. Pop the bubble that shows the matching letter!',
-  'bubble_pop.level1.name': 'Vowels',
-  'bubble_pop.level2.name': 'a to e',
-  'bubble_pop.level3.name': 'a to j',
-  'bubble_pop.level4.name': 'i to r',
-  'bubble_pop.level5.name': 'q to z',
-  'bubble_pop.level6.name': 'Full Alphabet',
+  'bubble_pop.find_label': 'Find the letter',
+  'bubble_pop.bsl.level1.name': 'Vowels',
+  'bubble_pop.bsl.level2.name': 'a to e',
+  'bubble_pop.bsl.level3.name': 'a to j',
+  'bubble_pop.bsl.level4.name': 'i to r',
+  'bubble_pop.bsl.level5.name': 'q to z',
+  'bubble_pop.bsl.level6.name': 'Full Alphabet',
+  'bubble_pop.iac.level1.name': 'Welsh Vowels',
+  'bubble_pop.iac.level2.name': 'a to f',
+  'bubble_pop.iac.level3.name': 'a to i',
+  'bubble_pop.iac.level4.name': 'a to o',
+  'bubble_pop.iac.level5.name': 'a to u',
+  'bubble_pop.iac.level6.name': 'Full Welsh Alphabet',
+
+  // -------------------------
+  // Welsh (IAC) Bubble Pop intro
+  // -------------------------
+  'welsh_bubble_pop.intro': 'Look at the IAC letter sign. Pop the bubble that shows the matching letter!',
 
   // -------------------------
   // Colouring Game
@@ -198,9 +227,24 @@ const Map<String, String> translationsEn = {
   // -------------------------
   'counting_game.intro': 'Count the circles and tap the matching BSL number sign!',
   'counting_game.subtitle': 'Count the circles!',
-  'counting_game.level1.name': 'Pink & Yellow',
-  'counting_game.level2.name': 'Blue & Red',
-  'counting_game.level3.name': 'Green & Purple',
+  'counting_game.level1.name': 'Orange',
+  'counting_game.level2.name': 'Yellow',
+  'counting_game.level3.name': 'Green',
+  'counting_game.level4.name': 'Pink & Yellow',
+  'counting_game.level5.name': 'Blue & Red',
+  'counting_game.level6.name': 'Green & Purple',
+  'counting_game.round_label': 'Round',
+  'counting_game.of_label': 'of',
+  'counting_game.question_colour': 'How many {colour} circles?',
+  'counting_game.question_total_single': 'How many {colour} circles are there?',
+  'counting_game.question_total_multi': 'How many circles altogether?',
+  'counting_game.colour.orange': 'orange',
+  'counting_game.colour.yellow': 'yellow',
+  'counting_game.colour.green': 'green',
+  'counting_game.colour.pink': 'pink',
+  'counting_game.colour.blue': 'blue',
+  'counting_game.colour.red': 'red',
+  'counting_game.colour.purple': 'purple',
 
   // -------------------------
   // Number Line (Make 10)
@@ -210,15 +254,27 @@ const Map<String, String> translationsEn = {
   'number_line.level1.name': 'Make 5',
   'number_line.level2.name': 'Up to 10',
   'number_line.level3.name': 'Signs Only',
+  'number_line.question': 'How many cakes do we need to make {n}?',
+  'number_line.round_label': 'Round',
+  'number_line.of_label': 'of',
 
 // -------------------------
   // More or Less
   // -------------------------
-  'more_or_less.intro': 'Which is more, which is less?', 
+  'more_or_less.intro': 'Which is more, which is less?',
   'more_or_less.subtitle': 'Is it more or less??',
   'more_or_less.level1.name': 'Numbers 1–5',
   'more_or_less.level2.name': 'Numbers 1–7',
   'more_or_less.level3.name': 'Numbers 1–10',
+  'more_or_less.level4.name': 'Numbers 1–19',
+  'more_or_less.level5.name': 'Numbers 20–99',
+  'more_or_less.round_label': 'Round',
+  'more_or_less.of_label': 'of',
+  'more_or_less.is_label': 'Is',
+  'more_or_less.more_than': 'more than',
+  'more_or_less.less_than': 'less than',
+  'more_or_less.yes': 'YES',
+  'more_or_less.no': 'NO',
 
   // -------------------------
   // BSL Maths
@@ -246,6 +302,10 @@ const Map<String, String> translationsEn = {
   'bsl_sprint.level2.name': 'Sprint',
   'bsl_sprint.level2.description': 'Race for the highest score',
   'bsl_sprint.level2.intro': 'Run and collect the BSL letters to spell the word. Watch out for the wrong letters!',
+  'bsl_sprint.get_ready': 'Get ready!',
+  'bsl_sprint.collect_instruction': 'Collect the letters to spell:',
+  'bsl_sprint.words_label': 'Words',
+  'bsl_sprint.success_summary': 'Words: {words}  •  Score: {score}',
 
   // -------------------------
   // Letter Quest 
@@ -266,8 +326,19 @@ const Map<String, String> translationsEn = {
   // -------------------------
   // Letter Bingo
   // -------------------------
-    'letter_bingo.intro': 'Match the BSL signs to the letters called at the bottom of the screen. Complete a line for BINGO!',
+    'letter_bingo.bsl.intro': 'Match the BSL signs to the letters called at the bottom of the screen. Complete a line for BINGO!',
+    'letter_bingo.iac.intro': 'Match the IAC signs to the letters called at the bottom of the screen. Complete a line for BINGO!',
     'letter_bingo.bingo': 'Bingo!',
+    'letter_bingo.bsl.level1.name': 'a to e',
+    'letter_bingo.bsl.level2.name': 'a to i',
+    'letter_bingo.bsl.level3.name': 'a to o',
+    'letter_bingo.bsl.level4.name': 'a to u',
+    'letter_bingo.bsl.level5.name': 'full alphabet',
+    'letter_bingo.iac.level1.name': 'a to d',
+    'letter_bingo.iac.level2.name': 'a to dd',
+    'letter_bingo.iac.level3.name': 'a to o',
+    'letter_bingo.iac.level4.name': 'a to u',
+    'letter_bingo.iac.level5.name': 'full Welsh alphabet',
 
   // -------------------------
   // So Many People Know Me
@@ -294,6 +365,40 @@ const Map<String, String> translationsEn = {
   'sphere_runner.win_title': 'You did it!',
   'sphere_runner.win_body': 'You collected exactly 20 spheres!',
   'sphere_runner.exit': 'Exit',
+
+  // -------------------------
+  // Word Search
+  // -------------------------
+  'word_search.title': 'Word Search',
+  'word_search.level1.name': 'Questions',
+  'word_search.level2.name': 'Colours',
+  'word_search.level3.name': 'Weather',
+  'word_search.drag_hint': 'Drag the letters to spell the sign',
+  'word_search.video_coming_soon': 'Video coming soon',
+
+  // -------------------------
+  // Sudoku
+  // -------------------------
+  'sudoku.title':    'BSL Sudoku',
+  'sudoku.subtitle': 'Choose your challenge',
+
+  'sudoku.difficulty.mini':       'Mini Sudoku',
+  'sudoku.difficulty.six_by_six': '6×6 Sudoku',
+  'sudoku.difficulty.easy':       'Easy',
+  'sudoku.difficulty.hard':       'Hard',
+  'sudoku.difficulty.extreme':    'Extreme',
+
+  'sudoku.level1.description': '4×4 grid — perfect for starting out',
+  'sudoku.level2.description': '6×6 grid with 2×3 boxes',
+  'sudoku.level3.description': 'Great introduction to Sudoku',
+  'sudoku.level4.description': 'Fewer starting clues',
+  'sudoku.level5.description': 'For true masters',
+
+  'sudoku.clear':              'Clear',
+  'sudoku.new_puzzle':         'New Puzzle',
+  'sudoku.puzzle_solved':      'Puzzle solved!',
+  'sudoku.expert_mode':          'Expert Mode',
+  'sudoku.expert_mode_subtitle': 'No hint highlighting',
 
   // -------------------------
   // Sudoku Walkthrough
@@ -337,5 +442,33 @@ const Map<String, String> translationsEn = {
   'sudoku.walkthrough.step5.normal_note':  'More starting clues',
   'sudoku.walkthrough.step5.hard_note':    'Fewer starting clues',
   'sudoku.walkthrough.step5.extreme_note': 'For true masters',
+
+  // -------------------------
+  // Settings Screen
+  // -------------------------
+  'settings.title': 'Settings',
+  'settings.language_section': 'Language / Iaith',
+  'settings.english': 'English',
+  'settings.english_sub': 'British Sign Language games',
+  'settings.welsh': 'Cymraeg',
+  'settings.welsh_sub': 'Welsh language games',
+  'settings.game_type_section': 'Game Type',
+  'settings.all_games': 'All games',
+  'settings.all_games_sub': 'Show everything',
+  'settings.alphabet': 'Alphabet',
+  'settings.alphabet_sub': 'Letters & BSL hand signs',
+  'settings.numeracy': 'Numeracy',
+  'settings.numeracy_sub': 'Counting, maths & numbers',
+  'settings.vocabulary': 'Vocabulary & Phrases',
+  'settings.vocabulary_sub': 'Colours, clothes & stories',
+  'settings.age_group_section': 'Age Group',
+  'settings.all_ages': 'All ages',
+  'settings.all_ages_sub': 'No age restriction',
+  'settings.years1to3': 'Years 1 – 3',
+  'settings.years1to3_sub': 'Ages 5 to 8',
+  'settings.years3to5': 'Years 3 – 5',
+  'settings.years3to5_sub': 'Ages 7 to 10',
+  'settings.years5plus': 'Year 5 +',
+  'settings.years5plus_sub': 'Ages 10 and above',
 
 };

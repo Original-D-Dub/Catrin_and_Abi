@@ -5,6 +5,7 @@ import 'core/config/routes.dart';
 import 'core/theme/app_theme.dart';
 import 'shared/services/audio_service.dart';
 import 'shared/services/auth_provider.dart';
+import 'shared/services/settings_provider.dart';
 
 /// Stops all audio whenever the Android hardware back button pops a route.
 class _AudioStopObserver extends NavigatorObserver {
@@ -26,8 +27,11 @@ class CatrinAbiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+      ],
       child: MaterialApp(
         title: 'Catrin & Abi BSL',
         debugShowCheckedModeBanner: false,

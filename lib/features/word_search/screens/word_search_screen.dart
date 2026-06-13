@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/level_select_screen.dart';
@@ -17,19 +18,23 @@ class WordSearchScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<WordSearchProvider>(
       builder: (context, provider, _) {
+        final locale = provider.locale;
+        final localizer = AppLocalizations(locale: locale);
+
         if (provider.showLevelSelect) {
           return Scaffold(
             backgroundColor: const Color(0xFF1A237E),
             appBar: GameAppBar(
-              title: 'Word Search',
+              title: localizer('word_search.title'),
               onBack: () => Navigator.of(context).pop(),
             ),
             body: SafeArea(
               child: LevelSelectScreen(
-                levels: WordSearchLevel.all.map((level) {
+                locale: locale,
+                levels: WordSearchLevel.forLocale(locale).map((level) {
                   return LevelSelectItem(
                     number: level.number,
-                    name: level.category,
+                    name: localizer(level.category),
                     color: levelColor(level.number - 1),
                     onTap: () => provider.setLevel(level.randomVariant()),
                   );
@@ -42,7 +47,7 @@ class WordSearchScreen extends StatelessWidget {
         return Scaffold(
           backgroundColor: const Color(0xFF1A237E),
           appBar: GameAppBar(
-            title: provider.level.category,
+            title: localizer(provider.level.category),
             onBack: provider.showLevelSelection,
           ),
           body: SafeArea(
@@ -56,11 +61,12 @@ class WordSearchScreen extends StatelessWidget {
                           _VideoPlayer(
                             key: ValueKey(provider.wordIndex),
                             videoPath: provider.currentWord.videoAssetPath,
+                            localizer: localizer,
                           ),
                           const SizedBox(height: 10),
                           _ProgressDots(provider: provider),
                           const SizedBox(height: 10),
-                          _AttemptStrip(provider: provider),
+                          _AttemptStrip(provider: provider, localizer: localizer),
                           const SizedBox(height: 6),
                           Expanded(
                             child: _LetterCircle(provider: provider),
@@ -74,6 +80,7 @@ class WordSearchScreen extends StatelessWidget {
                   Positioned.fill(
                     child: _CorrectBanner(
                       word: provider.currentWord.word,
+                      localizer: localizer,
                     ),
                   ),
                 if (provider.state == WordSearchState.complete)
@@ -82,6 +89,7 @@ class WordSearchScreen extends StatelessWidget {
                       gameId: 'word_search',
                       scoreStyle: SuccessScoreStyle.youScored,
                       score: provider.score,
+                      locale: locale,
                       onChangeLevel: () => Navigator.of(context).pop(),
                       onNextLevel: provider.nextLevel != null
                           ? () => provider.setLevel(
@@ -89,7 +97,7 @@ class WordSearchScreen extends StatelessWidget {
                               )
                           : null,
                       changeLevelIsButton: true,
-                      changeLevelLabel: 'Home',
+                      changeLevelLabel: localizer('general.home'),
                       changeLevelIcon: Icons.home_rounded,
                     ),
                   ),
@@ -108,7 +116,12 @@ class WordSearchScreen extends StatelessWidget {
 
 class _VideoPlayer extends StatefulWidget {
   final String videoPath;
-  const _VideoPlayer({super.key, required this.videoPath});
+  final AppLocalizations localizer;
+  const _VideoPlayer({
+    super.key,
+    required this.videoPath,
+    required this.localizer,
+  });
 
   @override
   State<_VideoPlayer> createState() => _VideoPlayerState();
@@ -165,16 +178,16 @@ class _VideoPlayerState extends State<_VideoPlayer> {
                   child: VideoPlayer(_controller!),
                 ),
               )
-            : const Center(
+            : Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.videocam_off_outlined,
+                    const Icon(Icons.videocam_off_outlined,
                         color: Colors.white30, size: 40),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Video coming soon',
-                      style: TextStyle(
+                      widget.localizer('word_search.video_coming_soon'),
+                      style: const TextStyle(
                           color: Colors.white30, fontFamily: 'ComicRelief'),
                     ),
                   ],
@@ -227,7 +240,8 @@ class _ProgressDots extends StatelessWidget {
 
 class _AttemptStrip extends StatelessWidget {
   final WordSearchProvider provider;
-  const _AttemptStrip({required this.provider});
+  final AppLocalizations localizer;
+  const _AttemptStrip({required this.provider, required this.localizer});
 
   @override
   Widget build(BuildContext context) {
@@ -246,9 +260,9 @@ class _AttemptStrip extends StatelessWidget {
       ),
       child: Center(
         child: letters.isEmpty
-            ? const Text(
-                'Drag the letters to spell the sign',
-                style: TextStyle(
+            ? Text(
+                localizer('word_search.drag_hint'),
+                style: const TextStyle(
                   fontFamily: 'ComicRelief',
                   color: Colors.white38,
                   fontSize: 13,
@@ -504,7 +518,8 @@ class _LetterTile extends StatelessWidget {
 
 class _CorrectBanner extends StatelessWidget {
   final String word;
-  const _CorrectBanner({required this.word});
+  final AppLocalizations localizer;
+  const _CorrectBanner({required this.word, required this.localizer});
 
   @override
   Widget build(BuildContext context) {
@@ -532,9 +547,9 @@ class _CorrectBanner extends StatelessWidget {
                 const Icon(Icons.check_circle_rounded,
                     color: Colors.white, size: 60),
                 const SizedBox(height: 10),
-                const Text(
-                  'Correct!',
-                  style: TextStyle(
+                Text(
+                  localizer('general.correct'),
+                  style: const TextStyle(
                     fontFamily: 'ComicRelief',
                     fontSize: 44,
                     fontWeight: FontWeight.bold,

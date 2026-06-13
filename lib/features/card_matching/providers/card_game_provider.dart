@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/constants/game_constants.dart';
+import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/game_stats_service.dart';
 import '../models/card_model.dart';
 import '../models/game_level.dart';
@@ -25,6 +26,13 @@ import '../services/card_game_service.dart';
 class CardGameProvider extends ChangeNotifier {
   final CardGameService _gameService = CardGameService();
   final GameStatsService _statsService = GameStatsService();
+
+  /// The sign system (BSL or IAC) this game instance uses.
+  final SignSystem _signSystem;
+  SignSystem get signSystem => _signSystem;
+
+  /// Levels available for the current sign system.
+  List<GameLevel> get levels => GameLevel.forSignSystem(_signSystem);
 
   /// The current game level configuration
   late GameLevel _level;
@@ -74,15 +82,19 @@ class CardGameProvider extends ChangeNotifier {
   /// Total number of pairs in the level
   int get totalPairs => _level.totalPairs;
 
-  /// Creates the provider and initializes Level 1.
-  CardGameProvider() {
-    _initializeGame(GameLevel.level1());
+  /// Creates the provider and initializes the first level for [signSystem].
+  CardGameProvider({SignSystem signSystem = SignSystem.bsl})
+      : _signSystem = signSystem {
+    _initializeGame(GameLevel.forSignSystem(_signSystem).first);
   }
 
   /// Initializes a new game with the specified level.
   void _initializeGame(GameLevel level) {
     _level = level;
-    _cards = _gameService.generateCardsForLevel(level: _level);
+    _cards = _gameService.generateCardsForLevel(
+      level: _level,
+      signSystem: _signSystem,
+    );
     _firstSelection = null;
     _secondSelection = null;
     _isProcessing = false;

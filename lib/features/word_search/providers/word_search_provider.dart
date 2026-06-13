@@ -4,10 +4,15 @@ import '../../../shared/services/audio_service.dart';
 import '../models/word_search_models.dart';
 
 class WordSearchProvider extends ChangeNotifier {
-  WordSearchLevel _level = WordSearchLevel.questions;
+  /// UI locale ('en' or 'cy') — determines which word lists are used.
+  final String locale;
+
+  late WordSearchLevel _level;
   bool showLevelSelect = true;
 
-  WordSearchProvider();
+  WordSearchProvider({this.locale = 'en'}) {
+    _level = WordSearchLevel.forLocale(locale).first;
+  }
 
   // ── State ──────────────────────────────────────────────────────────────────
 
@@ -28,9 +33,9 @@ class WordSearchProvider extends ChangeNotifier {
   int get wordCount => _level.words.length;
   WordSearchWord get currentWord => _level.words[_wordIndex];
 
-  /// The next level in [WordSearchLevel.all], or null if on the last level.
+  /// The next level for [locale], or null if on the last level.
   WordSearchLevel? get nextLevel {
-    final all = WordSearchLevel.all;
+    final all = WordSearchLevel.forLocale(locale);
     final idx = all.indexWhere((l) => l.number == _level.number);
     if (idx == -1 || idx == all.length - 1) return null;
     return all[idx + 1];

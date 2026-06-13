@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
@@ -15,13 +16,15 @@ import '../providers/sudoku_provider.dart';
 import '../widgets/sudoku_walkthrough.dart';
 
 class SudokuScreen extends StatelessWidget {
-  const SudokuScreen({super.key});
+  final String locale;
+
+  const SudokuScreen({super.key, this.locale = 'en'});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => SudokuProvider(),
-      child: const _SudokuBody(),
+      child: _SudokuBody(locale: locale),
     );
   }
 }
@@ -29,7 +32,9 @@ class SudokuScreen extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SudokuBody extends StatefulWidget {
-  const _SudokuBody();
+  final String locale;
+
+  const _SudokuBody({required this.locale});
 
   @override
   State<_SudokuBody> createState() => _SudokuBodyState();
@@ -59,23 +64,25 @@ class _SudokuBodyState extends State<_SudokuBody> {
     if (mounted) setState(() => _showWalkthrough = false);
   }
 
-  static String _difficultyLabel(SudokuDifficulty d) => switch (d) {
-        SudokuDifficulty.mini     => 'Mini Sudoku',
-        SudokuDifficulty.sixBySix => '6×6 Sudoku',
-        SudokuDifficulty.normal   => 'Normal',
-        SudokuDifficulty.hard     => 'Hard',
-        SudokuDifficulty.extreme  => 'Extreme',
+  static String _difficultyLabel(SudokuDifficulty d, AppLocalizations localizer) =>
+      switch (d) {
+        SudokuDifficulty.mini     => localizer('sudoku.difficulty.mini'),
+        SudokuDifficulty.sixBySix => localizer('sudoku.difficulty.six_by_six'),
+        SudokuDifficulty.normal   => localizer('sudoku.difficulty.easy'),
+        SudokuDifficulty.hard     => localizer('sudoku.difficulty.hard'),
+        SudokuDifficulty.extreme  => localizer('sudoku.difficulty.extreme'),
       };
 
   @override
   Widget build(BuildContext context) {
+    final localizer = AppLocalizations(locale: widget.locale);
     return Consumer<SudokuProvider>(
       builder: (context, provider, _) {
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
               ? GameAppBar(
-                  title: 'BSL Sudoku',
+                  title: localizer('sudoku.title'),
                   onBack: () => Navigator.of(context).pop(),
                 )
               : null,
@@ -92,8 +99,8 @@ class _SudokuBodyState extends State<_SudokuBody> {
               // ── All content sits inside SafeArea ─────────────────────────
               SafeArea(
                 child: provider.showLevelSelect
-                    ? _buildLevelSelect(context, provider)
-                    : _buildGame(context, provider),
+                    ? _buildLevelSelect(context, provider, localizer)
+                    : _buildGame(context, provider, localizer),
               ),
 
               // ── Success overlay ──────────────────────────────────────────
@@ -102,8 +109,9 @@ class _SudokuBodyState extends State<_SudokuBody> {
                   child: GameSuccessOverlay(
                     gameId: 'sudoku',
                     scoreStyle: SuccessScoreStyle.custom,
-                    customScoreLine: 'Puzzle solved!',
+                    customScoreLine: localizer('sudoku.puzzle_solved'),
                     showPersonalBest: false,
+                    locale: widget.locale,
                     onPlayAgain: () => provider.nextPuzzle(),
                     onChangeLevel: () => provider.showLevelSelection(),
                   ),
@@ -123,7 +131,8 @@ class _SudokuBodyState extends State<_SudokuBody> {
 
   // ── Game content (grid fills first, picker shrinks to fit) ────────────────
 
-  Widget _buildGame(BuildContext context, SudokuProvider provider) {
+  Widget _buildGame(
+      BuildContext context, SudokuProvider provider, AppLocalizations localizer) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
@@ -152,7 +161,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
               showLevel: false,
               centerContent: Center(
                 child: Text(
-                  _difficultyLabel(provider.difficulty),
+                  _difficultyLabel(provider.difficulty, localizer),
                   style: const TextStyle(
                     fontFamily: 'ComicRelief',
                     fontSize: 16,
@@ -180,13 +189,13 @@ class _SudokuBodyState extends State<_SudokuBody> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _ActionButton(
-                  label: 'Clear',
+                  label: localizer('sudoku.clear'),
                   icon: Icons.backspace_outlined,
                   onTap: provider.clearSelectedCell,
                 ),
                 const SizedBox(width: 16),
                 _ActionButton(
-                  label: 'New Puzzle',
+                  label: localizer('sudoku.new_puzzle'),
                   icon: Icons.refresh,
                   onTap: provider.nextPuzzle,
                 ),
@@ -202,54 +211,51 @@ class _SudokuBodyState extends State<_SudokuBody> {
 
   // ── Level select ──────────────────────────────────────────────────────────
 
-  Widget _buildLevelSelect(BuildContext context, SudokuProvider provider) {
+  Widget _buildLevelSelect(
+      BuildContext context, SudokuProvider provider, AppLocalizations localizer) {
     return Column(
       children: [
         Expanded(
           child: LevelSelectScreen(
-            subtitle: 'Choose your challenge',
+            subtitle: localizer('sudoku.subtitle'),
+            locale: localizer.locale,
             levels: [
               LevelSelectItem(
                 number: 1,
-                name: 'Mini Sudoku',
-                description: '4×4 grid — perfect for starting out',
-                displayLabel: 'Mini',
+                description: localizer('sudoku.level1.description'),
+                displayLabel: localizer('sudoku.difficulty.mini'),
                 color: levelColor(0),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.mini),
               ),
               LevelSelectItem(
                 number: 2,
-                name: '6×6 Sudoku',
-                description: '6×6 grid with 2×3 boxes',
-                displayLabel: '6×6',
+                description: localizer('sudoku.level2.description'),
+                displayLabel: localizer('sudoku.difficulty.six_by_six'),
                 color: levelColor(1),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.sixBySix),
               ),
               LevelSelectItem(
                 number: 3,
-                name: 'Normal',
-                description: 'Great for beginners',
-                displayLabel: 'Normal',
+                description: localizer('sudoku.level3.description'),
+                displayLabel: localizer('sudoku.difficulty.easy'),
                 color: levelColor(2),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.normal),
               ),
               LevelSelectItem(
                 number: 4,
-                name: 'Hard',
-                description: 'Fewer starting clues',
-                displayLabel: 'Hard',
+                description: localizer('sudoku.level4.description'),
+                displayLabel: localizer('sudoku.difficulty.hard'),
                 color: levelColor(3),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.hard),
               ),
               LevelSelectItem(
                 number: 5,
-                name: 'Extreme',
-                description: 'For true masters',
-                displayLabel: 'Extreme',
+                description: localizer('sudoku.level5.description'),
+                displayLabel: localizer('sudoku.difficulty.extreme'),
                 color: levelColor(4),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.extreme),
@@ -259,7 +265,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
         ),
 
         // ── Expert mode toggle ─────────────────────────────────────────────
-        _ExpertModeToggle(provider: provider),
+        _ExpertModeToggle(provider: provider, localizer: localizer),
 
         const SizedBox(height: 16),
       ],
@@ -273,8 +279,9 @@ class _SudokuBodyState extends State<_SudokuBody> {
 
 class _ExpertModeToggle extends StatelessWidget {
   final SudokuProvider provider;
+  final AppLocalizations localizer;
 
-  const _ExpertModeToggle({required this.provider});
+  const _ExpertModeToggle({required this.provider, required this.localizer});
 
   @override
   Widget build(BuildContext context) {
@@ -314,7 +321,7 @@ class _ExpertModeToggle extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Expert Mode',
+                    localizer('sudoku.expert_mode'),
                     style: TextStyle(
                       fontFamily: 'ComicRelief',
                       fontSize: 16,
@@ -325,7 +332,7 @@ class _ExpertModeToggle extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'No hint highlighting',
+                    localizer('sudoku.expert_mode_subtitle'),
                     style: TextStyle(
                       fontFamily: 'ComicRelief',
                       fontSize: 12,

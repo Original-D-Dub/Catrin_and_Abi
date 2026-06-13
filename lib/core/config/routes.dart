@@ -7,8 +7,6 @@ import '../../features/home/screens/home_screen.dart';
 import '../../features/home/screens/welsh_home_screen.dart';
 import '../../features/card_matching/screens/card_game_screen.dart';
 import '../../features/card_matching/providers/card_game_provider.dart';
-import '../../features/welsh_card_matching/screens/welsh_card_game_screen.dart';
-import '../../features/welsh_card_matching/providers/welsh_card_game_provider.dart';
 import '../../features/bubble_pop/screens/bubble_pop_screen.dart';
 import '../../features/bubble_pop/providers/bubble_pop_provider.dart';
 import '../../features/colouring/screens/colouring_screen.dart';
@@ -19,7 +17,6 @@ import '../../features/my_special_dog/screens/my_special_dog_screen.dart';
 import '../../features/my_special_dog/providers/my_special_dog_provider.dart';
 import '../../features/bsl_maths/screens/bsl_maths_screen.dart';
 import '../../features/bsl_maths/providers/bsl_maths_provider.dart';
-import '../../features/welsh_maths/screens/welsh_maths_screen.dart';
 import '../../features/letter_quest/screens/letter_quest_screen.dart';
 import '../../features/letter_quest/screens/letter_quest_level_select_screen.dart';
 import '../../features/letter_quest/screens/outdoor_quest_screen.dart';
@@ -45,9 +42,11 @@ import '../../features/more_or_less/providers/more_or_less_provider.dart';
 import '../../features/sudoku/screens/sudoku_screen.dart';
 import '../../features/privacy/screens/privacy_policy_screen.dart';
 import '../../features/profile/screens/link_account_screen.dart';
+import '../../features/settings/screens/settings_screen.dart';
 import '../../features/sphere_runner/screens/sphere_runner_screen.dart';
 import '../../features/word_search/providers/word_search_provider.dart';
 import '../../features/word_search/screens/word_search_screen.dart';
+import '../../shared/services/settings_provider.dart';
 
 /// Named route constants for navigation throughout the app.
 ///
@@ -72,9 +71,6 @@ class AppRoutes {
   /// Card matching game
   static const String cardMatching = '/games/card-matching';
 
-  /// Welsh card matching game (Wyddor IAC)
-  static const String welshCardMatching = '/games/welsh-card-matching';
-
   /// Welsh home screen (Cymraeg game selection)
   static const String welshHome = '/welsh-home';
 
@@ -92,9 +88,6 @@ class AppRoutes {
 
   /// BSL maths game (addition with BSL number signs)
   static const String bslMaths = '/games/bsl-maths';
-
-  /// Welsh-language version of the BSL maths game
-  static const String welshMaths = '/games/welsh-maths';
 
   /// RPG letter collection game — level select
   static const String letterQuest = '/games/letter-quest';
@@ -156,6 +149,9 @@ class AppRoutes {
   /// Link / manage player account
   static const String linkAccount = '/profile/link-account';
 
+  /// App settings (language, etc.)
+  static const String settings = '/settings';
+
   /// Initial route when app launches
   static const String initial = splash;
 }
@@ -200,29 +196,27 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.cardMatching:
+      final cardMatchingLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => CardGameProvider(),
-          child: const CardGameScreen(),
-        ),
-        settings: settings,
-      );
-
-    case AppRoutes.welshCardMatching:
-      return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => WelshCardGameProvider(),
-          child: const WelshCardGameScreen(),
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => CardGameProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
+          child: CardGameScreen(locale: cardMatchingLocale),
         ),
         settings: settings,
       );
 
     case AppRoutes.bubblePop:
-      // Provide BubblePopProvider scoped to this route
+      // Provide BubblePopProvider scoped to this route, with the player's
+      // current locale and sign-system (BSL/IAC) preference.
+      final bubblePopLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => BubblePopProvider(),
-          child: const BubblePopScreen(),
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => BubblePopProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
+          child: BubblePopScreen(locale: bubblePopLocale),
         ),
         settings: settings,
       );
@@ -238,10 +232,13 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.vowelHand:
+      final vowelHandLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => VowelHandProvider(),
-          child: const VowelHandScreen(),
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => VowelHandProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
+          child: VowelHandScreen(locale: vowelHandLocale),
         ),
         settings: settings,
       );
@@ -256,20 +253,13 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.bslMaths:
-      // Provide BslMathsProvider scoped to this route
+      // Provide BslMathsProvider scoped to this route, with the player's
+      // current locale (English or Welsh UI text).
+      final bslMathsLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => BslMathsProvider(),
-          child: const BslMathsScreen(),
-        ),
-        settings: settings,
-      );
-
-    case AppRoutes.welshMaths:
-      return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => BslMathsProvider(),
-          child: const WelshMathsScreen(),
+          child: BslMathsScreen(locale: bslMathsLocale),
         ),
         settings: settings,
       );
@@ -322,11 +312,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.letterBingo:
-      // Letter Bingo game with provider
+      // Letter Bingo game with provider, scoped with the player's current
+      // locale and sign-system (BSL/IAC) preference.
+      final letterBingoLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => LetterBingoProvider(),
-          child: const LetterBingoScreen(),
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => LetterBingoProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
+          child: LetterBingoScreen(locale: letterBingoLocale),
         ),
         settings: settings,
       );
@@ -340,19 +334,21 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 
 
     case AppRoutes.countingGame:
+      final countingGameLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => CountingGameProvider(),
-          child: const CountingGameScreen(),
+          child: CountingGameScreen(locale: countingGameLocale),
         ),
         settings: settings,
       );
 
     case AppRoutes.numberLineGame:
+      final numberLineLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => NumberLineGameProvider(),
-          child: const NumberLineGameScreen(),
+          child: NumberLineGameScreen(locale: numberLineLocale),
         ),
         settings: settings,
       );
@@ -366,35 +362,39 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
-case AppRoutes.bslSprint:
+    case AppRoutes.bslSprint:
+      final bslSprintLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
-          create: (_) => BslSprintProvider(),
-          child: const BslSprintScreen(),
+          create: (_) => BslSprintProvider(locale: bslSprintLocale),
+          child: BslSprintScreen(locale: bslSprintLocale),
         ),
         settings: settings,
       );
 
     case AppRoutes.clothesLine:
+      final clothesLineLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
-          create: (_) => ClothesLineProvider(),
+          create: (_) => ClothesLineProvider(locale: clothesLineLocale),
           child: const ClothesLineScreen(),
         ),
         settings: settings,
       );
 
     case AppRoutes.sudoku:
+      final sudokuLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => const SudokuScreen(),
+        builder: (_) => SudokuScreen(locale: sudokuLocale),
         settings: settings,
       );
 
     case AppRoutes.moreLessGame:
+      final moreLessLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => MoreOrLessProvider(),
-          child: const MoreOrLessScreen(),
+          child: MoreOrLessScreen(locale: moreLessLocale),
         ),
         settings: settings,
       );
@@ -406,9 +406,10 @@ case AppRoutes.bslSprint:
       );
 
     case AppRoutes.wordSearch:
+      final wordSearchLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
-          create: (_) => WordSearchProvider(),
+          create: (_) => WordSearchProvider(locale: wordSearchLocale),
           child: const WordSearchScreen(),
         ),
         settings: settings,
@@ -429,6 +430,13 @@ case AppRoutes.bslSprint:
     case AppRoutes.linkAccount:
       return MaterialPageRoute(
         builder: (_) => const LinkAccountScreen(),
+        settings: settings,
+      );
+
+    case AppRoutes.settings:
+      final locale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => SettingsScreen(currentLocale: locale),
         settings: settings,
       );
 

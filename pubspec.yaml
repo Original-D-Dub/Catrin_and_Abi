@@ -130,6 +130,7 @@ flutter:
     - assets/images/character_parts/
     - assets/images/colours_BSL/
     - assets/images/clothes-svg/
+    - assets/images/clothes_line_video/
 
   fonts:
     - family: ComicRelief

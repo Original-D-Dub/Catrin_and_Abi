@@ -70,7 +70,10 @@ double _responsiveScale(double gameAreaWidth) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class BslSprintScreen extends StatefulWidget {
-  const BslSprintScreen({super.key});
+  /// UI locale ('en' or 'cy') used for titles, level info, and overlay text.
+  final String locale;
+
+  const BslSprintScreen({super.key, this.locale = 'en'});
 
   @override
   State<BslSprintScreen> createState() => _BslSprintScreenState();
@@ -184,6 +187,7 @@ class _BslSprintScreenState extends State<BslSprintScreen>
   @override
   Widget build(BuildContext context) {
     final provider = _provider;
+    final localizer = AppLocalizations(locale: widget.locale);
     return Focus(
       focusNode: _focusNode,
       autofocus: true,
@@ -192,7 +196,7 @@ class _BslSprintScreenState extends State<BslSprintScreen>
         extendBodyBehindAppBar: true,
         appBar: provider.showLevelSelect
             ? GameAppBar(
-                title: AppLocalizations(locale: 'en').translate('bsl_sprint.title'),
+                title: localizer.translate('bsl_sprint.title'),
                 onBack: () => Navigator.of(context).pop(),
               )
             : null,
@@ -214,9 +218,12 @@ class _BslSprintScreenState extends State<BslSprintScreen>
                 Positioned.fill(
                   child: GameSuccessOverlay(
                     gameId: 'bsl_sprint',
+                    locale: widget.locale,
                     scoreStyle: SuccessScoreStyle.custom,
-                    customScoreLine:
-                        'Words: ${provider.wordsCompleted}  •  Score: ${provider.score}',
+                    customScoreLine: localizer
+                        .translate('bsl_sprint.success_summary')
+                        .replaceAll('{words}', '${provider.wordsCompleted}')
+                        .replaceAll('{score}', '${provider.score}'),
                     showPersonalBest: true,
                     isNewPersonalBest: provider.lastResult?.isNewPersonalBest ?? false,
                     personalBest: provider.lastResult?.personalBest,
@@ -227,6 +234,7 @@ class _BslSprintScreenState extends State<BslSprintScreen>
               if (_showingIntro)
                 GameIntroCountdown(
                   gameId: 'bsl_sprint.level${provider.currentLevel.number}',
+                  locale: widget.locale,
                   onComplete: () {
                     setState(() => _showingIntro = false);
                     _provider.startGame();
@@ -241,8 +249,9 @@ class _BslSprintScreenState extends State<BslSprintScreen>
 
   Widget _buildLevelSelectScreen(
       BuildContext context, BslSprintProvider provider) {
-    final l = AppLocalizations(locale: 'en');
+    final l = AppLocalizations(locale: widget.locale);
     return LevelSelectScreen(
+      locale: widget.locale,
       levels: SprintLevel.all.map((level) {
         return LevelSelectItem(
           number: level.number,
@@ -266,12 +275,13 @@ class _BslSprintScreenState extends State<BslSprintScreen>
           onBack: () => Navigator.of(context).pop(),
           scoreValue: '${provider.score}',
           levelNumber: provider.currentLevel.number,
-          centerContent: _SprintCenterHud(provider: provider),
+          centerContent: _SprintCenterHud(provider: provider, locale: widget.locale),
         ),
         _WordBar(
           word: provider.currentWord,
           letterIndex: provider.letterIndex,
           levelNumber: provider.currentLevel.number,
+          locale: widget.locale,
         ),
         Expanded(
           child: GestureDetector(
@@ -898,10 +908,12 @@ class _ObstacleWidget extends StatelessWidget {
 
 class _SprintCenterHud extends StatelessWidget {
   final BslSprintProvider provider;
-  const _SprintCenterHud({required this.provider});
+  final String locale;
+  const _SprintCenterHud({required this.provider, this.locale = 'en'});
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations(locale: locale);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -922,9 +934,9 @@ class _SprintCenterHud extends StatelessWidget {
         Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Words',
-              style: TextStyle(
+            Text(
+              l.translate('bsl_sprint.words_label'),
+              style: const TextStyle(
                 fontFamily: 'ComicRelief',
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
@@ -956,26 +968,29 @@ class _WordBar extends StatelessWidget {
   final String word;
   final int letterIndex;
   final int levelNumber;
+  final String locale;
 
   const _WordBar({
     required this.word,
     required this.letterIndex,
     required this.levelNumber,
+    this.locale = 'en',
   });
 
   @override
   Widget build(BuildContext context) {
     final s = (levelNumber <= 1 ? 1.5 : 1.0) * 1.25;
     final showBsl = levelNumber <= 1;
+    final l = AppLocalizations(locale: locale);
 
     if (word.isEmpty) {
       return Container(
         height: 80 * s,
         color: const Color(0xFF0D1B6B),
         alignment: Alignment.center,
-        child: const Text(
-          'Get ready!',
-          style: TextStyle(
+        child: Text(
+          l.translate('bsl_sprint.get_ready'),
+          style: const TextStyle(
               color: Colors.white60, fontFamily: 'ComicRelief', fontSize: 20),
         ),
       );
@@ -988,9 +1003,9 @@ class _WordBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Collect the letters to spell:',
-            style: TextStyle(
+          Text(
+            l.translate('bsl_sprint.collect_instruction'),
+            style: const TextStyle(
                 color: Colors.white60, fontSize: 11, fontFamily: 'ComicRelief'),
           ),
           const SizedBox(height: 6),

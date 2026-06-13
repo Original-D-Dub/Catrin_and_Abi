@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/asset_paths.dart';
+import '../../../core/constants/game_filters.dart';
+import '../../../shared/widgets/bsl_alphabet_svg.dart';
 import '../models/letter_bingo_level.dart';
 
-/// A square tile displaying a BSL hand sign or the revealed letter.
+/// A square tile displaying a hand sign or the revealed letter.
 ///
-/// **Unrevealed state**: BSL letter image inside a coloured border
-/// with rounded corners. Responsive sizing:
+/// **Unrevealed state**: hand sign image (BSL or IAC, per [signSystem])
+/// inside a coloured border with rounded corners. Responsive sizing:
 /// - **< 600px**: 4px border, 8px radius, 4px inner padding
 /// - **>= 600px**: 6px border, 16px radius, 8px inner padding
 ///
-/// **Revealed state**: The letter in large bold text on a white background.
+/// **Revealed state**: The letter (or Welsh digraph) in large bold text on
+/// a white background.
 ///
 /// Uses [AnimatedSwitcher] for a smooth transition between states.
 ///
@@ -19,6 +21,7 @@ import '../models/letter_bingo_level.dart';
 /// - [tile]: The [BingoTile] data (letter, reveal state)
 /// - [onTap]: Called when the tile is tapped (null if not interactive)
 /// - [tileColor]: The accent colour for the tile border
+/// - [signSystem]: Which hand-sign family to display (BSL or IAC)
 class BingoTileWidget extends StatelessWidget {
   /// The tile data to display
   final BingoTile tile;
@@ -29,6 +32,9 @@ class BingoTileWidget extends StatelessWidget {
   /// Accent colour for the tile border
   final Color tileColor;
 
+  /// Sign system used for the unrevealed hand-sign image (BSL or IAC).
+  final SignSystem signSystem;
+
   /// Screen width breakpoint for responsive sizing
   static const double _wideBreakpoint = 600;
 
@@ -37,6 +43,7 @@ class BingoTileWidget extends StatelessWidget {
     required this.tile,
     required this.onTap,
     required this.tileColor,
+    this.signSystem = SignSystem.bsl,
   });
 
   @override
@@ -97,8 +104,9 @@ class BingoTileWidget extends StatelessWidget {
               horizontal: innerPadding,
               vertical: innerPadding * 3,
             ),
-            child: Image.asset(
-              AssetPaths.bslLetter(tile.letter),
+            child: BslAlphabetSvg(
+              letter: tile.letter,
+              signSystem: signSystem,
               fit: BoxFit.contain,
             ),
           ),
@@ -132,7 +140,7 @@ class BingoTileWidget extends StatelessWidget {
             tile.letter.toLowerCase(),
             style: TextStyle(
               fontFamily: 'ComicRelief',
-              fontSize: 48,
+              fontSize: tile.letter.length > 1 ? 32 : 48,
               fontWeight: FontWeight.w900,
               color: tileColor,
             ),

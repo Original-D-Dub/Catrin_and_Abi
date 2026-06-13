@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/constants/game_filters.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/auth_provider.dart';
 import '../../../shared/widgets/game_app_bar.dart';
@@ -22,8 +24,14 @@ import '../widgets/called_letter_display.dart';
 ///
 /// The [LetterBingoProvider] is accessed from the widget tree
 /// (provided by the route in routes.dart).
+///
+/// [locale] controls UI text ('en' or 'cy'); the sign system (BSL/IAC) is
+/// read from [LetterBingoProvider.signSystem], set when the route is
+/// created from the player's current [SettingsProvider] preference.
 class LetterBingoScreen extends StatefulWidget {
-  const LetterBingoScreen({super.key});
+  final String locale;
+
+  const LetterBingoScreen({super.key, this.locale = 'en'});
 
   @override
   State<LetterBingoScreen> createState() => _LetterBingoScreenState();
@@ -60,6 +68,8 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizer = AppLocalizations(locale: widget.locale);
+
     return Consumer<LetterBingoProvider>(
       builder: (context, provider, _) {
         // Detect transition to playing phase and play intro
@@ -75,7 +85,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
           extendBodyBehindAppBar: true,
           appBar: provider.phase == LetterBingoPhase.levelSelect
               ? GameAppBar(
-                  title: 'Letter Bingo',
+                  title: localizer('letter_bingo.title'),
                   onBack: () => Navigator.of(context).pop(),
                 )
               : null,
@@ -90,7 +100,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
             child: Stack(
               children: [
                 SafeArea(
-                  child: _buildBody(context, provider),
+                  child: _buildBody(context, provider, localizer),
                 ),
                 if (provider.phase == LetterBingoPhase.bingo)
                   Positioned.fill(
@@ -120,13 +130,14 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
   }
 
 /// Builds the appropriate body widget based on the current phase.
-  Widget _buildBody(BuildContext context, LetterBingoProvider provider) {
+  Widget _buildBody(BuildContext context, LetterBingoProvider provider,
+      AppLocalizations localizer) {
     switch (provider.phase) {
       case LetterBingoPhase.levelSelect:
-        return _buildLevelSelect(context, provider);
+        return _buildLevelSelect(context, provider, localizer);
       case LetterBingoPhase.playing:
       case LetterBingoPhase.bingo:
-        return _buildGameplay(context, provider);
+        return _buildGameplay(context, provider, localizer);
     }
   }
 
@@ -135,48 +146,33 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
   // ─────────────────────────────────────────
 
   /// Builds the level selection view with title and 2-column grid.
-  Widget _buildLevelSelect(
-      BuildContext context, LetterBingoProvider provider) {
+  Widget _buildLevelSelect(BuildContext context, LetterBingoProvider provider,
+      AppLocalizations localizer) {
+    final introKey = provider.signSystem == SignSystem.iac
+        ? 'letter_bingo.iac.intro'
+        : 'letter_bingo.bsl.intro';
+
     return LevelSelectScreen(
-      subtitle: 'Match the B.S.L. signs to the called letters!',
-      levels: [
-        LevelSelectItem(
-          number: 1,
-          name: 'a to e',
-          color: levelColor(0),
+      subtitle: localizer(introKey),
+      locale: widget.locale,
+      levels: provider.levels.map((level) {
+        return LevelSelectItem(
+          number: level.number,
+          name: localizer(level.name),
+          color: levelColor(level.number - 1),
           onTap: () {
-            final isNarrow = MediaQuery.of(context).size.width < 441;
-            provider.startLevel(
-              levelNumber: 1,
-              tileCountOverride: isNarrow ? 3 : null,
-            );
+            if (level.number == 1) {
+              final isNarrow = MediaQuery.of(context).size.width < 441;
+              provider.startLevel(
+                levelNumber: 1,
+                tileCountOverride: isNarrow ? 3 : null,
+              );
+            } else {
+              provider.startLevel(levelNumber: level.number);
+            }
           },
-        ),
-        LevelSelectItem(
-          number: 2,
-          name: 'a to i',
-          color: levelColor(1),
-          onTap: () => provider.startLevel(levelNumber: 2),
-        ),
-        LevelSelectItem(
-          number: 3,
-          name: 'a to o',
-          color: levelColor(2),
-          onTap: () => provider.startLevel(levelNumber: 3),
-        ),
-        LevelSelectItem(
-          number: 4,
-          name: 'a to u',
-          color: levelColor(3),
-          onTap: () => provider.startLevel(levelNumber: 4),
-        ),
-        LevelSelectItem(
-          number: 5,
-          name: 'a to z',
-          color: levelColor(4),
-          onTap: () => provider.startLevel(levelNumber: 5),
-        ),
-      ],
+        );
+      }).toList(),
     );
   }
 
@@ -190,7 +186,12 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
   /// - Expanded center: tile grid (Row of 3 for L1, GridView 2×3 for L2)
   /// - Bottom: [CalledLetterDisplay] widget
   /// - Overlay: [BingoCelebration] when phase == bingo
-  Widget _buildGameplay(BuildContext context, LetterBingoProvider provider) {
+  Widget _buildGameplay(BuildContext context, LetterBingoProvider provider,
+      AppLocalizations localizer) {
+    final levelName = provider.currentLevel != null
+        ? localizer(provider.currentLevel!.name)
+        : '';
+
     return Stack(
       children: [
         // Main gameplay content
@@ -205,7 +206,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
               levelNumber: provider.currentLevel?.number ?? 1,
               centerContent: Center(
                 child: Text(
-                  provider.currentLevel?.name ?? '',
+                  levelName,
                   style: const TextStyle(
                     fontFamily: 'ComicRelief',
                     fontSize: 18,
@@ -283,6 +284,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
                 child: BingoTileWidget(
                   tile: tiles[index],
                   tileColor: tileColorForIndex(index),
+                  signSystem: provider.signSystem,
                   onTap: () => provider.tapTile(index: index),
                 ),
               ),
@@ -306,6 +308,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
           return BingoTileWidget(
             tile: tiles[index],
             tileColor: tileColorForIndex(index),
+            signSystem: provider.signSystem,
             onTap: () => provider.tapTile(index: index),
           );
         },

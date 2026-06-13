@@ -64,20 +64,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           height: double.infinity,
         ),
 
-        // Press-and-hold button — always visible, top-right
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topRight,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: _PressAndHoldButton(
-                onLongPress: () =>
-                    Navigator.pushNamed(context, AppRoutes.privacyPolicy),
-              ),
-            ),
-          ),
-        ),
-
         // Returning users skip straight to language choice
         if (provider.isStoryComplete || provider.hasSeenIntro)
           _buildLanguageChoice(context, provider)
@@ -148,50 +134,55 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   Widget _buildLanguageChoice(BuildContext context, WelcomeProvider provider) {
     return SafeArea(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logos row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    AssetPaths.logoEnglishColour,
-                    height: 64,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 16),
-                  Image.asset(
-                    AssetPaths.logoWelshColour,
-                    height: 64,
-                    fit: BoxFit.contain,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: Column(
+          children: [
+            // Logos row — stays near the top
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  AssetPaths.logoEnglishColour,
+                  height: 64,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 16),
+                Image.asset(
+                  AssetPaths.logoWelshColour,
+                  height: 64,
+                  fit: BoxFit.contain,
+                ),
+              ],
+            ),
 
-              // Welsh button
-              _LanguageButton(
-                label: 'Cymraeg',
-                sublabel: 'Gemau Cymraeg',
-                color: const Color(0xFF00803A), // Welsh green
-                onTap: () =>
-                    _navigateTo(context, provider, AppRoutes.welshHome),
-              ),
-              const SizedBox(height: 20),
+            const Spacer(),
 
-              // English button
-              _LanguageButton(
-                label: 'English',
-                sublabel: 'English Games',
-                color: AppColors.accentNavyBlue,
-                onTap: () => _navigateTo(context, provider, AppRoutes.home),
-              ),
-            ],
-          ),
+            // Welsh button
+            _LanguageButton(
+              label: 'Cymraeg',
+              sublabel: 'Gemau Cymraeg',
+              color: AppColors.abiPink,
+              onTap: () =>
+                  _navigateTo(context, provider, AppRoutes.welshHome),
+            ),
+            const SizedBox(height: 20),
+
+            // English button
+            _LanguageButton(
+              label: 'English',
+              sublabel: 'English Games',
+              color: AppColors.accentNavyBlue,
+              onTap: () => _navigateTo(context, provider, AppRoutes.home),
+            ),
+            const SizedBox(height: 20),
+
+            // Privacy / grown-up button
+            _PressAndHoldButton(
+              onLongPress: () =>
+                  Navigator.pushNamed(context, AppRoutes.privacyPolicy),
+            ),
+          ],
         ),
       ),
     );
@@ -282,31 +273,22 @@ class _PressAndHoldButton extends StatelessWidget {
     return GestureDetector(
       onLongPress: onLongPress,
       child: Container(
-        width: 64,
-        height: 64,
+        width: 128,
+        height: 128,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: 0.88),
+          color: Colors.white.withValues(alpha: 0.5),
           border: Border.all(color: const Color(0xFF1A237E), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
         ),
-        child: const Center(
-          child: Text(
-            'press\nand hold',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'ComicRelief',
-              fontSize: 9.5,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A237E),
-              height: 1.3,
-            ),
+        alignment: Alignment.center,
+        child: const Text(
+          'Grown ups\nPress and hold',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'ComicRelief',
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A237E),
           ),
         ),
       ),

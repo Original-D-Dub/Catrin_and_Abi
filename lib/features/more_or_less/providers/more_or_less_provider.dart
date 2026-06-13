@@ -7,12 +7,14 @@ import '../../../shared/services/game_stats_service.dart';
 class MolLevel {
   final int number;
   final String name;
+  final int minNumber;
   final int maxNumber;
 
   const MolLevel({
     required this.number,
     required this.name,
     required this.maxNumber,
+    this.minNumber = 1,
   });
 }
 
@@ -20,6 +22,8 @@ const List<MolLevel> molLevels = [
   MolLevel(number: 1, name: 'more_or_less.level1.name', maxNumber: 5),
   MolLevel(number: 2, name: 'more_or_less.level2.name', maxNumber: 7),
   MolLevel(number: 3, name: 'more_or_less.level3.name', maxNumber: 10),
+  MolLevel(number: 4, name: 'more_or_less.level4.name', maxNumber: 19),
+  MolLevel(number: 5, name: 'more_or_less.level5.name', minNumber: 20, maxNumber: 99),
 ];
 
 enum MolGameState { playing, won }
@@ -116,10 +120,12 @@ class MoreOrLessProvider extends ChangeNotifier {
   }
 
   void _generateRound() {
+    final min = currentLevel.minNumber;
     final max = currentLevel.maxNumber;
-    _firstNumber = _random.nextInt(max) + 1;
+    final span = max - min + 1;
+    _firstNumber = min + _random.nextInt(span);
     do {
-      _secondNumber = _random.nextInt(max) + 1;
+      _secondNumber = min + _random.nextInt(span);
     } while (_secondNumber == _firstNumber);
     _isHigherQuestion = _random.nextBool();
   }

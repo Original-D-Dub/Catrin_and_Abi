@@ -17,11 +17,15 @@ class GameIntroCountdown extends StatefulWidget {
   /// Defaults to Catrin when not specified.
   final String? characterImage;
 
+  /// UI locale ('en' or 'cy') used to look up the instruction text.
+  final String locale;
+
   const GameIntroCountdown({
     super.key,
     required this.gameId,
     required this.onComplete,
     this.characterImage,
+    this.locale = 'en',
   });
 
   @override
@@ -41,7 +45,7 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
     super.initState();
     // Play intro audio in the background; the player triggers
     // the countdown by tapping Play.
-    AudioService.playIntro(widget.gameId);
+    AudioService.playIntro(widget.gameId, locale: widget.locale);
   }
 
   @override
@@ -67,13 +71,13 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
     for (int i = 3; i >= 1; i--) {
       if (!mounted || _cancelled) return;
       setState(() => _countdownValue = i);
-      AudioService.playSpeechMp3('$i').ignore();
+      AudioService.playSpeechMp3('$i', locale: widget.locale).ignore();
       await Future.delayed(const Duration(seconds: 1));
     }
 
     if (!mounted || _cancelled) return;
     setState(() => _countdownValue = 0);
-    AudioService.playSpeechMp3('Go').ignore();
+    AudioService.playSpeechMp3('Go', locale: widget.locale).ignore();
     await Future.delayed(const Duration(milliseconds: 600));
 
     if (!mounted || _cancelled) return;
@@ -87,7 +91,7 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
 
   @override
   Widget build(BuildContext context) {
-    final localizer = AppLocalizations.of(context);
+    final localizer = AppLocalizations(locale: widget.locale);
     return Positioned.fill(
       child: Stack(
         children: [
@@ -204,7 +208,7 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
   }
 
   Widget _buildCountdown() {
-    final localizer = AppLocalizations.of(context);
+    final localizer = AppLocalizations(locale: widget.locale);
     final isGo = _countdownValue == 0;
     final label = isGo ? localizer('general.go') : '$_countdownValue';
     final color = isGo ? const Color(0xFF43A047) : Colors.white;
