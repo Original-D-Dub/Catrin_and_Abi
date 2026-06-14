@@ -46,6 +46,8 @@ import '../../features/settings/screens/settings_screen.dart';
 import '../../features/sphere_runner/screens/sphere_runner_screen.dart';
 import '../../features/word_search/providers/word_search_provider.dart';
 import '../../features/word_search/screens/word_search_screen.dart';
+import '../../features/number_race/providers/number_race_provider.dart';
+import '../../features/number_race/screens/number_race_screen.dart';
 import '../../shared/services/settings_provider.dart';
 
 /// Named route constants for navigation throughout the app.
@@ -139,6 +141,9 @@ class AppRoutes {
 
   /// BSL Word Search game
   static const String wordSearch = '/games/word-search';
+
+  /// Number Race game
+  static const String numberRace = '/games/number-race';
 
   /// Animal collection screen (Letter Bingo earned animals)
   static const String animalCollection = '/games/letter-bingo/collection';
@@ -266,47 +271,52 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 
     case AppRoutes.letterQuest:
       // Level selection screen (no provider needed)
+      final letterQuestLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => const LetterQuestLevelSelectScreen(),
+        builder: (_) => LetterQuestLevelSelectScreen(locale: letterQuestLocale),
         settings: settings,
       );
 
     case AppRoutes.letterQuestLevel1:
       // Level 1: Intro room with provider (3 letters only)
+      final letterQuestLevel1Locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => LetterQuestProvider(),
-          child: const IntroQuestScreen(),
+          child: IntroQuestScreen(locale: letterQuestLevel1Locale),
         ),
         settings: settings,
       );
 
     case AppRoutes.letterQuestLevel2:
       // Level 2: Simple room with provider
+      final letterQuestLevel2Locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => LetterQuestProvider(),
-          child: const Level2QuestScreen(),
+          child: Level2QuestScreen(locale: letterQuestLevel2Locale),
         ),
         settings: settings,
       );
 
     case AppRoutes.letterQuestLevel3:
       // Level 3: Indoor rooms with provider
+      final letterQuestLevel3Locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => LetterQuestProvider(),
-          child: const LetterQuestScreen(),
+          child: LetterQuestScreen(locale: letterQuestLevel3Locale),
         ),
         settings: settings,
       );
 
     case AppRoutes.letterQuestLevel4:
       // Level 4: Outdoor adventure with provider
+      final letterQuestLevel4Locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => LetterQuestProvider(),
-          child: const OutdoorQuestScreen(),
+          child: OutdoorQuestScreen(locale: letterQuestLevel4Locale),
         ),
         settings: settings,
       );
@@ -411,6 +421,16 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (_) => ChangeNotifierProvider(
           create: (_) => WordSearchProvider(locale: wordSearchLocale),
           child: const WordSearchScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.numberRace:
+      final numberRaceLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => NumberRaceProvider(locale: numberRaceLocale),
+          child: NumberRaceScreen(locale: numberRaceLocale),
         ),
         settings: settings,
       );

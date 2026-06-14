@@ -91,6 +91,7 @@ const Map<String, String> translationsCy = {
   'letter_bingo.iac.level4.name': 'a i u',
   'letter_bingo.iac.level5.name': 'yr wyddor gymraeg lawn',
   'character_id.title': 'Pwy Ydw I?',
+  'number_race.title': 'Ras Rifau',
 
   // -------------------------
   // Level Select (shared widget)
@@ -201,12 +202,18 @@ const Map<String, String> translationsCy = {
   'my_special_dog.words_completed': 'Geiriau wedi\'u cwblhau:',
 
   // -------------------------
-  // Letter Quest Level Select
+  // Letter Quest
   // -------------------------
-  'letter_quest.select_level': 'Dewiswch Lefel',
-  'letter_quest.level1_title': 'Ystafelloedd Dan Do',
-  'letter_quest.level2_title': 'Antur Awyr Agored',
-  'letter_quest.locked': 'Cwblhewch Lefel 1 i ddatgloi!',
+  'letter_quest.subtitle': "Symudwch Pero i ddod o hyd i'r llythrennau i sillafu'r gair!",
+  'letter_quest.level1.name': 'Ystafell Gyflwyno',
+  'letter_quest.level2.name': 'Ystafell Syml',
+  'letter_quest.level3.name': 'Ystafelloedd Dan Do',
+  'letter_quest.level4.name': 'Antur Awyr Agored',
+  'letter_quest.victory_subtitle': "Rwyt wedi casglu'r holl eiriau!",
+  'letter_quest.level4_unlocked': 'Llongyfarchiadau, mae Lefel 4 wedi datgloi',
+  'letter_quest.play_level4': 'Chwarae Lefel 4',
+  'letter_quest.found_gary': 'Rwyt wedi dod o hyd i Gary! Llongyfarchiadau',
+  'letter_quest.words_found': "y geiriau a gasglwyd oedd:",
   'home.coming_soon': 'Yn Dod yn Fuan',
 
   // -------------------------
@@ -293,6 +300,19 @@ const Map<String, String> translationsCy = {
   'more_or_less.less_than': 'yn llai na',
   'more_or_less.yes': 'Ie',
   'more_or_less.no': 'Na',
+
+  // -------------------------
+  // Number Race
+  // -------------------------
+  'number_race.intro': "Cyfrwch y dotiau a tapiwch yr arwydd rhif BSL cywir i symud ymlaen yn y ras. Ennillwch gyda 5 ateb cywir!",
+  'number_race.choose_character': 'Dewiswch eich rasiwr!',
+  'number_race.character.gary': 'Gary',
+  'number_race.character.pero': 'Pero',
+  'number_race.character.jamjam': 'JamJam',
+  'number_race.question': 'Sawl dot?',
+  'number_race.success_summary': 'Enillodd {character} y ras!',
+  'number_race.change_character': 'Newid Rasiwr',
+  'number_race.attempts_suffix': ' cynnig',
 
   // -------------------------
   // BSL Maths

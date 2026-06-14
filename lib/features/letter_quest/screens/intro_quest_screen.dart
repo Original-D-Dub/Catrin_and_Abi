@@ -19,7 +19,10 @@ import '../widgets/word_progress_bar.dart';
 /// The [LetterQuestProvider] is accessed from the widget tree
 /// (provided by the route in routes.dart).
 class IntroQuestScreen extends StatefulWidget {
-  const IntroQuestScreen({super.key});
+  /// UI language for HUD/overlay text ('en' or 'cy').
+  final String locale;
+
+  const IntroQuestScreen({super.key, this.locale = 'en'});
 
   @override
   State<IntroQuestScreen> createState() => _IntroQuestScreenState();
@@ -38,7 +41,7 @@ class _IntroQuestScreenState extends State<IntroQuestScreen> {
     provider.initializeGame(wordCount: 3);
     _game = IntroQuestGame(provider: provider);
 
-    AudioService.playIntro('letter_quest_1');
+    AudioService.playIntro('letter_quest_1', locale: widget.locale);
   }
 
   @override
@@ -49,7 +52,7 @@ class _IntroQuestScreenState extends State<IntroQuestScreen> {
         overlayBuilderMap: {
           // Top HUD with back button, progress, and stars
           'hud': (BuildContext context, IntroQuestGame game) {
-            return const GameHud(levelNumber: 1);
+            return GameHud(levelNumber: 1, locale: widget.locale);
           },
           // Bottom word progress bar with letter tiles
           'wordProgress': (BuildContext context, IntroQuestGame game) {
@@ -58,6 +61,7 @@ class _IntroQuestScreenState extends State<IntroQuestScreen> {
           // Victory overlay when all 3 words are collected
           'victory': (BuildContext context, IntroQuestGame game) {
             return VictoryOverlay(
+              locale: widget.locale,
               onPlayAgain: () {
                 game.overlays.remove('victory');
                 provider.resetGame();

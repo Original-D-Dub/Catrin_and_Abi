@@ -26,10 +26,10 @@ import '../../../core/constants/app_colors.dart';
 /// ```
 class IntroRoomConfig {
   /// Total width of the map in world units
-  static const double mapWidth = 900.0;
+  static const double mapWidth = 800.0;
 
   /// Total height of the map in world units
-  static const double mapHeight = 1200.0;
+  static const double mapHeight = 500.0;
 
   /// Thickness of outer walls and divider wall
   static const double wallThickness = 40.0;
@@ -53,11 +53,16 @@ class IntroRoomConfig {
   ///
   /// Returns 3 positions spread across both halves of the room.
   /// Level 1 only shows the 3 correct letters (no distractors).
-  static List<Vector2> get letterPositions {
+  ///
+  /// When [swapSides] is true, every position is mirrored horizontally
+  /// (left becomes right and vice versa), so the 2-letter/1-letter split
+  /// flips to the opposite half of the room. Used to alternate which
+  /// half holds more letters each time a word is completed.
+  static List<Vector2> letterPositions({bool swapSides = false}) {
     final margin = wallThickness + 60.0;
     final halfWidth = mapWidth / 2;
 
-    return [
+    final positions = [
       // Left half - 2 positions
       Vector2(margin + 60, margin + 120),
       Vector2(margin + 60, mapHeight - margin - 120),
@@ -65,6 +70,10 @@ class IntroRoomConfig {
       // Right half - 1 position
       Vector2(halfWidth + margin + 60, mapHeight / 2),
     ];
+
+    if (!swapSides) return positions;
+
+    return positions.map((p) => Vector2(mapWidth - p.x, p.y)).toList();
   }
 
   /// Vertical position of the top doorway center

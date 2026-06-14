@@ -19,7 +19,10 @@ import '../widgets/word_progress_bar.dart';
 /// The [LetterQuestProvider] is accessed from the widget tree
 /// (provided by the route in routes.dart).
 class LetterQuestScreen extends StatefulWidget {
-  const LetterQuestScreen({super.key});
+  /// UI language for HUD/overlay text ('en' or 'cy').
+  final String locale;
+
+  const LetterQuestScreen({super.key, this.locale = 'en'});
 
   @override
   State<LetterQuestScreen> createState() => _LetterQuestScreenState();
@@ -38,7 +41,7 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
     provider.initializeGame();
     _game = LetterQuestGame(provider: provider);
 
-    AudioService.playIntro('letter_quest_3');
+    AudioService.playIntro('letter_quest_3', locale: widget.locale);
   }
 
   @override
@@ -49,7 +52,7 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
         overlayBuilderMap: {
           // Top HUD with back button, progress, and stars
           'hud': (BuildContext context, LetterQuestGame game) {
-            return const GameHud(levelNumber: 3);
+            return GameHud(levelNumber: 3, locale: widget.locale);
           },
           // Bottom word progress bar with letter tiles
           'wordProgress': (BuildContext context, LetterQuestGame game) {
@@ -58,6 +61,7 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
           // Victory overlay when all 5 words are collected
           'victory': (BuildContext context, LetterQuestGame game) {
             return VictoryOverlay(
+              locale: widget.locale,
               onPlayAgain: () {
                 game.overlays.remove('victory');
                 provider.resetGame();
@@ -69,6 +73,7 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
               onPlayLevel4: () {
                 Navigator.of(context).pushReplacementNamed(
                   AppRoutes.letterQuestLevel4,
+                  arguments: widget.locale,
                 );
               },
               signInBanner: const SignInBannerButton(),

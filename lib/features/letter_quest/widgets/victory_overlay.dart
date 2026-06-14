@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../providers/letter_quest_provider.dart';
 
 /// Full-screen victory overlay shown when all 5 words are collected.
@@ -31,16 +32,22 @@ class VictoryOverlay extends StatelessWidget {
   /// Optional widget shown after the word list (e.g. sign-in banner)
   final Widget? signInBanner;
 
+  /// UI language for overlay text ('en' or 'cy').
+  final String locale;
+
   const VictoryOverlay({
     super.key,
     required this.onPlayAgain,
     required this.onHome,
     this.onPlayLevel4,
     this.signInBanner,
+    this.locale = 'en',
   });
 
   @override
   Widget build(BuildContext context) {
+    final localizer = AppLocalizations(locale: locale);
+
     return Consumer<LetterQuestProvider>(
       builder: (context, provider, _) {
         return Container(
@@ -68,9 +75,9 @@ class VictoryOverlay extends StatelessWidget {
                     const SizedBox(height: AppSizes.spacingSmall),
 
                     // Title
-                    const Text(
-                      'Well Done!',
-                      style: TextStyle(
+                    Text(
+                      localizer('general.welldone'),
+                      style: const TextStyle(
                         fontSize: AppSizes.fontSizeHeading,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
@@ -79,9 +86,9 @@ class VictoryOverlay extends StatelessWidget {
                     const SizedBox(height: AppSizes.spacingSmall),
 
                     // Subtitle
-                    const Text(
-                      'You collected all the words!',
-                      style: TextStyle(
+                    Text(
+                      localizer('letter_quest.victory_subtitle'),
+                      style: const TextStyle(
                         fontSize: AppSizes.fontSizeBody,
                         color: AppColors.textSecondary,
                       ),
@@ -113,7 +120,7 @@ class VictoryOverlay extends StatelessWidget {
                         ElevatedButton.icon(
                           onPressed: onPlayAgain,
                           icon: const Icon(Icons.replay),
-                          label: const Text('Play Again'),
+                          label: Text(localizer('general.play_again')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.abiPink,
                             foregroundColor: Colors.white,
@@ -133,7 +140,7 @@ class VictoryOverlay extends StatelessWidget {
                         ElevatedButton.icon(
                           onPressed: onHome,
                           icon: const Icon(Icons.home),
-                          label: const Text('Home'),
+                          label: Text(localizer('general.home')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.catrinBlue,
                             foregroundColor: Colors.white,
@@ -156,10 +163,10 @@ class VictoryOverlay extends StatelessWidget {
                       const SizedBox(height: AppSizes.spacingLarge),
 
                       // Unlock message
-                      const Text(
-                        'Congratulations Level 4 unlocked',
+                      Text(
+                        localizer('letter_quest.level4_unlocked'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: AppSizes.fontSizeBody,
                           fontWeight: FontWeight.w600,
                           color: AppColors.success,
@@ -171,7 +178,7 @@ class VictoryOverlay extends StatelessWidget {
                       ElevatedButton.icon(
                         onPressed: onPlayLevel4,
                         icon: const Icon(Icons.park),
-                        label: const Text('Play Level 4'),
+                        label: Text(localizer('letter_quest.play_level4')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.success,
                           foregroundColor: Colors.white,

@@ -8,7 +8,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/auth_provider.dart';
 import '../../../shared/services/settings_provider.dart';
 import '../../../shared/widgets/sign_system_toggle.dart';
-import '../widgets/game_tile.dart';
+import '../models/home_game_entry.dart';
 
 /// Welsh-language home screen showing Welsh games.
 class WelshHomeScreen extends StatelessWidget {
@@ -84,15 +84,8 @@ class WelshHomeScreen extends StatelessWidget {
                           ? 2
                           : 3;
 
-                  final List<({
-                    String route,
-                    String titleKey,
-                    String imagePath,
-                    GameCategory category,
-                    Set<AgeGroup> ageGroups,
-                    String? arguments,
-                  })> allGames = [
-                    (
+                  final allGames = <HomeGameEntry>[
+                    homeGameEntry(
                       route: AppRoutes.vowelHand,
                       titleKey: settings.signSystem == SignSystem.iac
                           ? 'iac_vowels.title'
@@ -101,112 +94,118 @@ class WelshHomeScreen extends StatelessWidget {
                           ? 'assets/images/home_screen/llafariaid-iac.jpg'
                           : 'assets/images/home_screen/llafariaid-bsl.jpg',
                       category: GameCategory.alphabet,
-                      ageGroups: <AgeGroup>{AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
                       route: AppRoutes.cardMatching,
                       titleKey: 'card_matching.title',
                       imagePath: 'assets/images/home_screen/paru-cardiau.jpg',
                       category: GameCategory.alphabet,
-                      ageGroups: <AgeGroup>{AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
                       route: AppRoutes.bubblePop,
                       titleKey: 'bubble_pop.title',
                       imagePath: 'assets/images/home_screen/popio-swigod.jpg',
                       category: GameCategory.alphabet,
-                      ageGroups: <AgeGroup>{AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
                       route: AppRoutes.letterBingo,
                       titleKey: 'letter_bingo.title',
                       imagePath: 'assets/images/home_screen/letter-bingo.jpg',
                       category: GameCategory.alphabet,
-                      ageGroups: <AgeGroup>{AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
+                      route: AppRoutes.letterQuest,
+                      titleKey: 'letter_quest.title',
+                      imagePath: 'assets/images/home_screen/cwest-llythren.jpg',
+                      category: GameCategory.alphabet,
+                      ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
+                      arguments: 'cy',
+                    ),
+                    homeGameEntry(
                       route: AppRoutes.clothesLine,
                       titleKey: 'clothes_line.title',
                       imagePath: 'assets/images/home_screen/pa-liw-sanau.jpg',
                       category: GameCategory.vocabulary,
-                      ageGroups: <AgeGroup>{AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
                       route: AppRoutes.numberLineGame,
                       titleKey: 'number_line.title',
                       imagePath: 'assets/images/home_screen/gwenud10.jpg',
                       category: GameCategory.numeracy,
-                      ageGroups: <AgeGroup>{AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
                       route: AppRoutes.moreLessGame,
                       titleKey: 'more_or_less.title',
                       imagePath: 'assets/images/home_screen/mwy-neu-lai.jpg',
                       category: GameCategory.numeracy,
-                      ageGroups: <AgeGroup>{AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
                       route: AppRoutes.countingGame,
                       titleKey: 'counting.title',
                       imagePath: 'assets/images/home_screen/counting-game.jpg',
                       category: GameCategory.numeracy,
-                      ageGroups: <AgeGroup>{AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
                       route: AppRoutes.bslMaths,
                       titleKey: 'bsl_maths.title',
                       imagePath: settings.signSystem == SignSystem.iac
                           ? 'assets/images/home_screen/maths-iac.jpg'
                           : 'assets/images/home_screen/maths-bsl.jpg',
                       category: GameCategory.numeracy,
-                      ageGroups: <AgeGroup>{AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
+                      route: AppRoutes.numberRace,
+                      titleKey: 'number_race.title',
+                      icon: Icons.flag,
+                      category: GameCategory.numeracy,
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+                      arguments: 'cy',
+                    ),
+                    homeGameEntry(
                       route: AppRoutes.sudoku,
                       titleKey: 'sudoku.title',
                       imagePath: 'assets/images/home_screen/sudoku.jpg',
                       category: GameCategory.numeracy,
-                      ageGroups: <AgeGroup>{AgeGroup.years5plus},
+                      ageGroups: const {AgeGroup.years5plus},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
                       route: AppRoutes.bslSprint,
                       titleKey: 'bsl_sprint.title',
                       imagePath: 'assets/images/home_screen/speed-run.png',
                       category: GameCategory.alphabet,
-                      ageGroups: <AgeGroup>{AgeGroup.years3to5, AgeGroup.years5plus},
+                      ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
                       arguments: 'cy',
                     ),
-                    (
+                    homeGameEntry(
                       route: AppRoutes.wordSearch,
                       titleKey: 'word_search.title',
                       imagePath: 'assets/images/home_screen/word-search.png',
                       category: GameCategory.vocabulary,
-                      ageGroups: <AgeGroup>{AgeGroup.years3to5, AgeGroup.years5plus},
+                      ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
                       arguments: 'cy',
                     ),
                   ];
 
-                  final gameTiles = allGames.where((g) {
-                    final catOk = settings.gameCategory == GameCategory.all ||
-                        g.category == settings.gameCategory;
-                    final ageOk = settings.ageGroup == AgeGroup.all ||
-                        g.ageGroups.contains(settings.ageGroup);
-                    return catOk && ageOk;
-                  }).map<Widget>((g) => GameTile(
-                        title: localizer(g.titleKey),
-                        imagePath: g.imagePath,
-                        onTap: () => Navigator.pushNamed(context, g.route, arguments: g.arguments),
-                      )).toList();
+                  final gameTiles = buildGameTiles(context, allGames, settings, localizer);
 
                   final signSystemRow = Row(
                     mainAxisAlignment: MainAxisAlignment.center,

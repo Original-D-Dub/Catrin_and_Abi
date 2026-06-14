@@ -47,8 +47,10 @@ class IntroRoomManager {
     if (!provider.isInitialized) return;
 
     final word = provider.currentWord;
-    final positions = List<Vector2>.from(IntroRoomConfig.letterPositions)
-      ..shuffle(_random);
+    final swapSides = provider.wordsCompleted.isOdd;
+    final positions =
+        List<Vector2>.from(IntroRoomConfig.letterPositions(swapSides: swapSides))
+          ..shuffle(_random);
 
     // Place only the 3 correct letters
     for (int i = 0; i < word.word.length && i < positions.length; i++) {

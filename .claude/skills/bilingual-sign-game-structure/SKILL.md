@@ -172,6 +172,44 @@ for `word_search` and `clothes_line`:
 - Game tiles / routes stay singular per game (no separate "Welsh" route) — the
   screen reads `signSystem` from `SettingsProvider` via `context.watch`.
 
+## Registering a game tile on the home screens
+
+Both `home_screen.dart` (English) and `welsh_home_screen.dart` (Welsh) build their
+grid from a local `allGames` list of `HomeGameEntry` records (defined in
+`lib/features/home/models/home_game_entry.dart`):
+
+```dart
+typedef HomeGameEntry = ({
+  String route,
+  String titleKey,
+  String? imagePath,
+  IconData? icon,
+  GameCategory category,
+  Set<AgeGroup> ageGroups,
+  String? arguments,
+});
+```
+
+- Each screen's `allGames` list is independent — the English and Welsh home
+  screens show different tiles (different artwork, sometimes different games),
+  so do NOT try to share one list between them. What's shared is the *record
+  type* and the rendering pipeline.
+- Build entries with the `homeGameEntry(...)` helper, which defaults
+  `imagePath`, `icon` and `arguments` to null so you only specify what differs
+  from a plain tile.
+- `imagePath` is the normal case (a tile thumbnail under
+  `assets/images/home_screen/`). If a game doesn't have artwork yet, set
+  `icon: Icons.<something>` instead (e.g. `Icons.flag` for `number_race`) —
+  `GameTile` falls back to that icon, or to `Icons.games` if neither is set.
+  Don't invent a fake `imagePath` for art that doesn't exist.
+- Add the entry to `allGames` on each home screen where the game should appear,
+  with that screen's own `titleKey`/`imagePath`/`arguments` (e.g.
+  `arguments: 'en'` vs `arguments: 'cy'`).
+- Call `buildGameTiles(context, allGames, settings, localizer)` to filter by
+  `GameCategory`/`AgeGroup` and map to `GameTile`s wired to
+  `Navigator.pushNamed` — both home screens use this same helper, so don't
+  hand-roll the filter/map `.where().map()` chain again.
+
 ## Migration checklist for an existing forked pair
 
 When asked to "translate" or "add IAC support to" a game that already has a
@@ -199,4 +237,7 @@ When asked to "translate" or "add IAC support to" a game that already has a
 5. Translation keys: `<game>.title`, `<game>.intro`, `<game>.<bsl|iac>.levelN.name`,
    etc., added to both `translations_en.dart` and `translations_cy.dart`.
 6. Single `AppRoutes.<game>` entry, single `GameIds.<game>` entry.
-7. One tile, shown on both home screens, reading the user's current `signSystem`.
+7. One tile added to each home screen's `allGames` list as a `HomeGameEntry`
+   (see "Registering a game tile on the home screens") — reading the user's
+   current `signSystem` for `titleKey`/`imagePath` where relevant, and using
+   `icon:` instead of a fake `imagePath` if artwork isn't ready yet.

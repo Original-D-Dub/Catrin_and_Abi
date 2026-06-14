@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/config/routes.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../game/level2_quest_game.dart';
@@ -18,7 +19,10 @@ import '../widgets/word_progress_bar.dart';
 /// is shown and hidden dynamically by [Level2QuestGame] rather than being
 /// shown from the start.
 class Level2QuestScreen extends StatefulWidget {
-  const Level2QuestScreen({super.key});
+  /// UI language for HUD/overlay text ('en' or 'cy').
+  final String locale;
+
+  const Level2QuestScreen({super.key, this.locale = 'en'});
 
   @override
   State<Level2QuestScreen> createState() => _Level2QuestScreenState();
@@ -33,17 +37,19 @@ class _Level2QuestScreenState extends State<Level2QuestScreen> {
     final provider = context.read<LetterQuestProvider>();
     provider.initializeGame(); // 5 words — one per vowel, one per room
     _game = Level2QuestGame(provider: provider);
-    AudioService.playIntro('letter_quest_2');
+    AudioService.playIntro('letter_quest_2', locale: widget.locale);
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizer = AppLocalizations(locale: widget.locale);
+
     return Scaffold(
       body: GameWidget(
         game: _game,
         overlayBuilderMap: {
           'hud': (BuildContext context, Level2QuestGame game) {
-            return const GameHud(levelNumber: 2);
+            return GameHud(levelNumber: 2, locale: widget.locale);
           },
           // The word progress bar is added/removed by Level2QuestGame on room entry/exit.
           'wordProgress': (BuildContext context, Level2QuestGame game) {
@@ -55,19 +61,21 @@ class _Level2QuestScreenState extends State<Level2QuestScreen> {
                 final done = provider.completedWords;
                 return GameSuccessOverlay(
                   gameId: 'letter_quest_2',
+                  locale: widget.locale,
                   scoreStyle: SuccessScoreStyle.custom,
-                  customScoreLine: 'You found Gary! Congratulations',
-                  onPlayAgain: () => Navigator.of(context)
-                      .pushReplacementNamed(AppRoutes.letterQuestLevel2),
+                  customScoreLine: localizer('letter_quest.found_gary'),
+                  onPlayAgain: () => Navigator.of(context).pushReplacementNamed(
+                      AppRoutes.letterQuestLevel2,
+                      arguments: widget.locale),
                   onChangeLevel: () => Navigator.of(context).pop(),
                   extraContent: done.isEmpty
                       ? null
                       : Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              'words you found were:',
-                              style: TextStyle(
+                            Text(
+                              localizer('letter_quest.words_found'),
+                              style: const TextStyle(
                                 fontFamily: 'ComicRelief',
                                 fontSize: AppSizes.fontSizeBody,
                                 color: Colors.white70,

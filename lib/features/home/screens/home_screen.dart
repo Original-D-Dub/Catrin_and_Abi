@@ -11,16 +11,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/auth_provider.dart';
 import '../../../shared/services/settings_provider.dart';
 import '../../../shared/widgets/sign_system_toggle.dart';
-import '../widgets/game_tile.dart';
-
-/// Pairs a [GameTile] with its filter metadata.
-class _GameEntry {
-  final Widget tile;
-  final GameCategory category;
-  final Set<AgeGroup> ageGroups;
-  const _GameEntry({required this.tile, required this.category, required this.ageGroups});
-}
-
+import '../models/home_game_entry.dart';
 
 /// Home screen displaying game selection tiles.
 ///
@@ -206,177 +197,148 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Every game is tagged with a category and the school-year bands it
         // suits. Adjust these sets here if the difficulty/topic of a game changes.
-        final allGames = <_GameEntry>[
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate(settings.signSystem == SignSystem.iac
-                  ? 'iac_vowels.title'
-                  : 'bsl_vowels.title'),
-              imagePath: settings.signSystem == SignSystem.iac
-                  ? 'assets/images/home_screen/iac-vowels.jpg'
-                  : 'assets/images/home_screen/bsl-vowels.jpg',
-              onTap: () => _navigateToVowelHand(context),
-            ),
+        final allGames = <HomeGameEntry>[
+          homeGameEntry(
+            route: AppRoutes.vowelHand,
+            titleKey: settings.signSystem == SignSystem.iac
+                ? 'iac_vowels.title'
+                : 'bsl_vowels.title',
+            imagePath: settings.signSystem == SignSystem.iac
+                ? 'assets/images/home_screen/iac-vowels.jpg'
+                : 'assets/images/home_screen/bsl-vowels.jpg',
             category: GameCategory.alphabet,
             ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+            arguments: 'en',
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('my_special_dog.title'),
-              imagePath: 'assets/images/home_screen/my-special-dog.jpg',
-              onTap: () => _navigateToMySpecialDog(context),
-            ),
+          homeGameEntry(
+            route: AppRoutes.mySpecialDog,
+            titleKey: 'my_special_dog.title',
+            imagePath: 'assets/images/home_screen/my-special-dog.jpg',
             category: GameCategory.vocabulary,
             ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('card_matching.title'),
-              imagePath: 'assets/images/home_screen/card-match.jpg',
-              onTap: () => _navigateToCardMatching(context),
-            ),
+          homeGameEntry(
+            route: AppRoutes.cardMatching,
+            titleKey: 'card_matching.title',
+            imagePath: 'assets/images/home_screen/card-match.jpg',
             category: GameCategory.alphabet,
             ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('bubble_pop.title'),
-              imagePath: 'assets/images/home_screen/bubble-pop.jpg',
-              onTap: () => _navigateToBubblePop(context),
-            ),
+          homeGameEntry(
+            route: AppRoutes.bubblePop,
+            titleKey: 'bubble_pop.title',
+            imagePath: 'assets/images/home_screen/bubble-pop.jpg',
             category: GameCategory.alphabet,
             ageGroups: const {AgeGroup.years1to3},
+            arguments: 'en',
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('colouring.title'),
-              imagePath: 'assets/images/home_screen/colouring.jpg',
-              onTap: () => _navigateToColouring(context),
-            ),
+          homeGameEntry(
+            route: AppRoutes.colouring,
+            titleKey: 'colouring.title',
+            imagePath: 'assets/images/home_screen/colouring.jpg',
             category: GameCategory.vocabulary,
             ageGroups: const {AgeGroup.years1to3},
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('counting.title'),
-              imagePath: 'assets/images/home_screen/counting-game.jpg',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.countingGame,
-                  arguments: 'en'),
-            ),
+          homeGameEntry(
+            route: AppRoutes.countingGame,
+            titleKey: 'counting.title',
+            imagePath: 'assets/images/home_screen/counting-game.jpg',
+            category: GameCategory.numeracy,
+            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+            arguments: 'en',
+          ),
+          homeGameEntry(
+            route: AppRoutes.numberLineGame,
+            titleKey: 'number_line.title',
+            imagePath: 'assets/images/home_screen/make10.jpg',
             category: GameCategory.numeracy,
             ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('number_line.title'),
-              imagePath: 'assets/images/home_screen/make10.jpg',
-              onTap: () =>
-                  Navigator.pushNamed(context, AppRoutes.numberLineGame),
-            ),
+          homeGameEntry(
+            route: AppRoutes.moreLessGame,
+            titleKey: 'more_or_less.title',
+            imagePath: 'assets/images/home_screen/more-or-Less.png',
             category: GameCategory.numeracy,
             ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('more_or_less.title'),
-              imagePath: 'assets/images/home_screen/more-or-Less.png',
-              onTap: () =>
-                  Navigator.pushNamed(context, AppRoutes.moreLessGame),
-            ),
-            category: GameCategory.numeracy,
-            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
-          ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('bsl_maths.title'),
-              imagePath: 'assets/images/home_screen/bsl-maths.jpg',
-              onTap: () => _navigateToBslMaths(context),
-            ),
+          homeGameEntry(
+            route: AppRoutes.bslMaths,
+            titleKey: 'bsl_maths.title',
+            imagePath: 'assets/images/home_screen/bsl-maths.jpg',
             category: GameCategory.numeracy,
             ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
+            arguments: 'en',
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('bsl_sprint.title'),
-              imagePath: 'assets/images/home_screen/speed-run.png',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.bslSprint,
-                  arguments: 'en'),
-            ),
+          homeGameEntry(
+            route: AppRoutes.numberRace,
+            titleKey: 'number_race.title',
+            icon: Icons.flag,
+            category: GameCategory.numeracy,
+            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+            arguments: 'en',
+          ),
+          homeGameEntry(
+            route: AppRoutes.bslSprint,
+            titleKey: 'bsl_sprint.title',
+            imagePath: 'assets/images/home_screen/speed-run.png',
             category: GameCategory.alphabet,
             ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
+            arguments: 'en',
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('letter_quest.title'),
-              imagePath: 'assets/images/home_screen/letter-quest.jpg',
-              onTap: () => _navigateToLetterQuest(context),
-            ),
+          homeGameEntry(
+            route: AppRoutes.letterQuest,
+            titleKey: 'letter_quest.title',
+            imagePath: 'assets/images/home_screen/letter-quest.jpg',
             category: GameCategory.alphabet,
             ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
+            arguments: 'en',
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('letter_bingo.title'),
-              imagePath: 'assets/images/home_screen/letter-bingo.jpg',
-              onTap: () => _navigateToLetterBingo(context),
-            ),
+          homeGameEntry(
+            route: AppRoutes.letterBingo,
+            titleKey: 'letter_bingo.title',
+            imagePath: 'assets/images/home_screen/letter-bingo.jpg',
             category: GameCategory.alphabet,
             ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+            arguments: 'en',
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('character_id.title'),
-              imagePath: 'assets/images/home_screen/who-am-i.jpg',
-              onTap: () => _navigateToCharacterId(context),
-            ),
+          homeGameEntry(
+            route: AppRoutes.characterId,
+            titleKey: 'character_id.title',
+            imagePath: 'assets/images/home_screen/who-am-i.jpg',
             category: GameCategory.vocabulary,
             ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('clothes_line.title'),
-              imagePath: 'assets/images/home_screen/clothesline-home.jpg',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.clothesLine),
-            ),
+          homeGameEntry(
+            route: AppRoutes.clothesLine,
+            titleKey: 'clothes_line.title',
+            imagePath: 'assets/images/home_screen/clothesline-home.jpg',
             category: GameCategory.vocabulary,
             ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('sudoku.title'),
-              imagePath: 'assets/images/home_screen/sudoku.jpg',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.sudoku),
-            ),
+          homeGameEntry(
+            route: AppRoutes.sudoku,
+            titleKey: 'sudoku.title',
+            imagePath: 'assets/images/home_screen/sudoku.jpg',
             category: GameCategory.numeracy,
             ageGroups: const {AgeGroup.years5plus},
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: localizer.translate('sphere_runner.title'),
-              imagePath: 'assets/images/home_screen/sphere-runner.jpg',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.sphereRunner),
-            ),
+          homeGameEntry(
+            route: AppRoutes.sphereRunner,
+            titleKey: 'sphere_runner.title',
+            imagePath: 'assets/images/home_screen/sphere-runner.jpg',
             category: GameCategory.numeracy,
             ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
           ),
-          _GameEntry(
-            tile: GameTile(
-              title: 'BSL Word Search',
-              imagePath: 'assets/images/home_screen/word-search.png',
-              onTap: () => Navigator.pushNamed(context, AppRoutes.wordSearch),
-            ),
+          homeGameEntry(
+            route: AppRoutes.wordSearch,
+            titleKey: 'word_search.title',
+            imagePath: 'assets/images/home_screen/word-search.png',
             category: GameCategory.vocabulary,
             ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
           ),
         ];
 
-        final gameTiles = allGames.where((g) {
-          final catOk = settings.gameCategory == GameCategory.all ||
-              g.category == settings.gameCategory;
-          final ageOk = settings.ageGroup == AgeGroup.all ||
-              g.ageGroups.contains(settings.ageGroup);
-          return catOk && ageOk;
-        }).map((g) => g.tile).toList();
+        final gameTiles = buildGameTiles(context, allGames, settings, localizer);
 
         if (gameTiles.isEmpty) {
           return const SizedBox(
@@ -421,49 +383,4 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-
-  /// Navigates to the card matching game.
-  void _navigateToCardMatching(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.cardMatching);
-  }
-
-  /// Navigates to the bubble pop game.
-  void _navigateToBubblePop(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.bubblePop, arguments: 'en');
-  }
-
-  /// Navigates to the colouring game.
-  void _navigateToColouring(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.colouring);
-  }
-
-  /// Navigates to the BSL vowel hand game.
-  void _navigateToVowelHand(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.vowelHand, arguments: 'en');
-  }
-
-  void _navigateToMySpecialDog(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.mySpecialDog);
-  }
-
-  /// Navigates to the BSL maths game.
-  void _navigateToBslMaths(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.bslMaths, arguments: 'en');
-  }
-
-  /// Navigates to the letter quest RPG game.
-  void _navigateToLetterQuest(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.letterQuest);
-  }
-
-  /// Navigates to the letter bingo game.
-  void _navigateToLetterBingo(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.letterBingo, arguments: 'en');
-  }
-
-  /// Navigates to the character identification game.
-  void _navigateToCharacterId(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.characterId);
-  }
-
 }

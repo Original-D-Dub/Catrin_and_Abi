@@ -60,6 +60,7 @@ const Map<String, String> translationsEn = {
   'bsl_sprint.title': 'BSL Sprint',
   'letter_bingo.title': 'Letter Bingo',
   'character_id.title': 'Who has blue shoes?',
+  'number_race.title': 'Number Race',
 
   // -------------------------
   // Level Select (shared widget)
@@ -277,6 +278,19 @@ const Map<String, String> translationsEn = {
   'more_or_less.no': 'NO',
 
   // -------------------------
+  // Number Race
+  // -------------------------
+  'number_race.intro': 'Count the dots and tap the matching BSL number sign to race ahead. Get 5 right to win!',
+  'number_race.choose_character': 'Choose your racer!',
+  'number_race.character.gary': 'Gary',
+  'number_race.character.pero': 'Pero',
+  'number_race.character.jamjam': 'JamJam',
+  'number_race.question': 'How many dots?',
+  'number_race.success_summary': '{character} won the race!',
+  'number_race.change_character': 'Change Racer',
+  'number_race.attempts_suffix': ' tries',
+
+  // -------------------------
   // BSL Maths
   // -------------------------
   'bsl_maths.intro': 'Look at the BSL number signs and work out the answer!',
@@ -308,19 +322,18 @@ const Map<String, String> translationsEn = {
   'bsl_sprint.success_summary': 'Words: {words}  •  Score: {score}',
 
   // -------------------------
-  // Letter Quest 
+  // Letter Quest
   // -------------------------
-  'letter_quest.select_level': 'Choose a Level',
-  'letter_quest.level1.intro': 'Move Pero to find the BSL letter, to spell the word at the bottom of the screen.',
-  'letter_quest.level1_title': 'Introduction Rooms',
-  'letter_quest.level2.intro': 'Gary is hiding in the house can you find him? Collect BSL letters on the way to spell the things you find on the way',
-  'letter_quest.level2_title': 'Find Gary',
-  'letter_quest.level3.intro': 'Move Pero to search the rooms and find the BSL symbols in order, to spell the words at the bottom of the screen. before Gary catches you.',
-  'letter_quest.level3_title': 'Roam the House',
-  'letter_quest.locked': 'Complete Level 3 to unlock!',
-  'letter_quest.level4.intro': 'Move Pero through the outdoor adventure and collect the BSl letters to spell each word! Watch out for Gary!',
-  'letter_quest.level4_title': 'Outdoor Adventure',
-  'letter_quest.congratulations': 'You collected all the words', 
+  'letter_quest.subtitle': 'Move Pero to find the letters to spell the word!',
+  'letter_quest.level1.name': 'Intro Room',
+  'letter_quest.level2.name': 'Simple Room',
+  'letter_quest.level3.name': 'Indoor Rooms',
+  'letter_quest.level4.name': 'Outdoor Adventure',
+  'letter_quest.victory_subtitle': 'You collected all the words!',
+  'letter_quest.level4_unlocked': 'Congratulations Level 4 unlocked',
+  'letter_quest.play_level4': 'Play Level 4',
+  'letter_quest.found_gary': 'You found Gary! Congratulations',
+  'letter_quest.words_found': 'words you found were:',
 
 
   // -------------------------

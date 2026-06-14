@@ -21,6 +21,7 @@ class GameIds {
 static const String bslSprint = 'bsl_sprint';
   static const String moreLessGame = 'higher_or_lower';
   static const String wordSearch = 'word_search';
+  static const String numberRace = 'number_race';
 }
 
 /// The result returned by [GameStatsService.recordGameResult].

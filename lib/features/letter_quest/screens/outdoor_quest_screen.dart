@@ -18,7 +18,10 @@ import '../widgets/word_progress_bar.dart';
 /// The [LetterQuestProvider] is accessed from the widget tree
 /// (provided by the route in routes.dart).
 class OutdoorQuestScreen extends StatefulWidget {
-  const OutdoorQuestScreen({super.key});
+  /// UI language for HUD/overlay text ('en' or 'cy').
+  final String locale;
+
+  const OutdoorQuestScreen({super.key, this.locale = 'en'});
 
   @override
   State<OutdoorQuestScreen> createState() => _OutdoorQuestScreenState();
@@ -37,7 +40,7 @@ class _OutdoorQuestScreenState extends State<OutdoorQuestScreen> {
     provider.initializeGame();
     _game = OutdoorQuestGame(provider: provider);
 
-    AudioService.playIntro('letter_quest_4');
+    AudioService.playIntro('letter_quest_4', locale: widget.locale);
   }
 
   @override
@@ -48,7 +51,7 @@ class _OutdoorQuestScreenState extends State<OutdoorQuestScreen> {
         overlayBuilderMap: {
           // Top HUD with back button, progress, and stars
           'hud': (BuildContext context, OutdoorQuestGame game) {
-            return const GameHud(levelNumber: 4);
+            return GameHud(levelNumber: 4, locale: widget.locale);
           },
           // Bottom word progress bar with letter tiles
           'wordProgress': (BuildContext context, OutdoorQuestGame game) {
@@ -57,6 +60,7 @@ class _OutdoorQuestScreenState extends State<OutdoorQuestScreen> {
           // Victory overlay when all 5 words are collected
           'victory': (BuildContext context, OutdoorQuestGame game) {
             return VictoryOverlay(
+              locale: widget.locale,
               onPlayAgain: () {
                 game.overlays.remove('victory');
                 provider.resetGame();

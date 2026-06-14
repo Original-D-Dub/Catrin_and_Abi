@@ -254,6 +254,36 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
 
         const SizedBox(height: 16),
 
+        // Header illustration — full width in portrait, but sized to the
+        // available height (not the full width) in landscape so it doesn't
+        // push the question/answers off screen.
+        Builder(builder: (context) {
+          final isLandscape =
+              MediaQuery.of(context).orientation == Orientation.landscape;
+          final image = ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: AspectRatio(
+              aspectRatio: 503 / 345,
+              child: Image.asset(
+                'assets/images/make10_number_line/make10-screen.jpg',
+                fit: BoxFit.cover,
+              ),
+            ),
+          );
+          if (isLandscape) {
+            return Center(
+              child: SizedBox(height: 110, child: image),
+            );
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.paddingLarge),
+            child: image,
+          );
+        }),
+
+        const SizedBox(height: 16),
+
         // Question + number line + pool circles — all in one container
         Padding(
           padding:

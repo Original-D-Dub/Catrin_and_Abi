@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/config/routes.dart';
 import '../../../core/constants/game_constants.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/level_select_screen.dart';
@@ -18,7 +19,10 @@ import '../../../shared/widgets/level_select_screen.dart';
 /// Unlock state is read from [SharedPreferences] using
 /// [GameConstants.letterQuestLevel3CompletedKey].
 class LetterQuestLevelSelectScreen extends StatefulWidget {
-  const LetterQuestLevelSelectScreen({super.key});
+  /// UI language for level names and instructions ('en' or 'cy').
+  final String locale;
+
+  const LetterQuestLevelSelectScreen({super.key, this.locale = 'en'});
 
   @override
   State<LetterQuestLevelSelectScreen> createState() =>
@@ -62,10 +66,12 @@ class _LetterQuestLevelSelectScreenState
 
   @override
   Widget build(BuildContext context) {
+    final localizer = AppLocalizations(locale: widget.locale);
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: GameAppBar(
-        title: 'Letter Quest',
+        title: localizer('letter_quest.title'),
         onBack: () => Navigator.of(context).pop(),
       ),
       body: Container(
@@ -78,52 +84,58 @@ class _LetterQuestLevelSelectScreenState
         ),
         child: SafeArea(
           child: _loaded
-              ? _buildLevelSelect(context)
+              ? _buildLevelSelect(context, localizer)
               : const Center(child: CircularProgressIndicator()),
         ),
       ),
     );
   }
 
-  Widget _buildLevelSelect(BuildContext context) {
+  Widget _buildLevelSelect(BuildContext context, AppLocalizations localizer) {
+    final locale = widget.locale;
     return LevelSelectScreen(
-      subtitle: 'Move Pero to find the letters to spell the word!',
+      locale: locale,
+      subtitle: localizer('letter_quest.subtitle'),
       levels: [
         LevelSelectItem(
           number: 1,
-          name: 'Intro Room',
+          name: localizer('letter_quest.level1.name'),
           color: levelColor(0),
           onTap: () {
-            AudioService.playIntro('letter_quest_1');
-            Navigator.pushNamed(context, AppRoutes.letterQuestLevel1);
+            AudioService.playIntro('letter_quest_1', locale: locale);
+            Navigator.pushNamed(context, AppRoutes.letterQuestLevel1,
+                arguments: locale);
           },
         ),
         LevelSelectItem(
           number: 2,
-          name: 'Simple Room',
+          name: localizer('letter_quest.level2.name'),
           color: levelColor(1),
           onTap: () {
-            AudioService.playIntro('letter_quest_2');
-            Navigator.pushNamed(context, AppRoutes.letterQuestLevel2);
+            AudioService.playIntro('letter_quest_2', locale: locale);
+            Navigator.pushNamed(context, AppRoutes.letterQuestLevel2,
+                arguments: locale);
           },
         ),
         LevelSelectItem(
           number: 3,
-          name: 'Indoor Rooms',
+          name: localizer('letter_quest.level3.name'),
           color: levelColor(2),
           onTap: () {
-            AudioService.playIntro('letter_quest_3');
-            Navigator.pushNamed(context, AppRoutes.letterQuestLevel3);
+            AudioService.playIntro('letter_quest_3', locale: locale);
+            Navigator.pushNamed(context, AppRoutes.letterQuestLevel3,
+                arguments: locale);
           },
         ),
         LevelSelectItem(
           number: 4,
-          name: 'Outdoor Adventure',
+          name: localizer('letter_quest.level4.name'),
           color: levelColor(3),
           isLocked: !_level4Unlocked,
           onTap: () {
-            AudioService.playIntro('letter_quest_4');
-            Navigator.pushNamed(context, AppRoutes.letterQuestLevel4);
+            AudioService.playIntro('letter_quest_4', locale: locale);
+            Navigator.pushNamed(context, AppRoutes.letterQuestLevel4,
+                arguments: locale);
           },
         ),
       ],
