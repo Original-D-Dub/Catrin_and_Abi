@@ -29,7 +29,7 @@ class SimpleRoomManager {
   final Random _random = Random();
 
   /// All consonants used as distractors
-  static const String _consonants = 'bcdfghjklmnpqrstvwxyz';
+  String get _consonants => provider.consonants;
 
   /// Creates a simple room manager.
   SimpleRoomManager({

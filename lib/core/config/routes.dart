@@ -17,10 +17,12 @@ import '../../features/my_special_dog/screens/my_special_dog_screen.dart';
 import '../../features/my_special_dog/providers/my_special_dog_provider.dart';
 import '../../features/bsl_maths/screens/bsl_maths_screen.dart';
 import '../../features/bsl_maths/providers/bsl_maths_provider.dart';
+import '../../features/letter_quest/screens/bungalow_quest_screen.dart';
 import '../../features/letter_quest/screens/letter_quest_screen.dart';
 import '../../features/letter_quest/screens/letter_quest_level_select_screen.dart';
 import '../../features/letter_quest/screens/outdoor_quest_screen.dart';
 import '../../features/letter_quest/screens/level2_quest_screen.dart';
+import '../../features/letter_quest/screens/house_quest_screen.dart';
 import '../../features/letter_quest/screens/intro_quest_screen.dart';
 import '../../features/letter_quest/providers/letter_quest_provider.dart';
 import '../../features/character_id/screens/character_id_screen.dart';
@@ -100,10 +102,16 @@ class AppRoutes {
   /// Letter Quest Level 2 (simple room)
   static const String letterQuestLevel2 = '/games/letter-quest/level-2';
 
+  /// Letter Quest House level (top floor of Catrin & Abi's house)
+  static const String letterQuestHouse = '/games/letter-quest/house';
+
   /// Letter Quest Level 3 (indoor rooms)
   static const String letterQuestLevel3 = '/games/letter-quest/level-3';
 
-  /// Letter Quest Level 4 (outdoor adventure)
+  /// Letter Quest Level 5 — Bungalow (Gary chase)
+  static const String letterQuestBungalow = '/games/letter-quest/bungalow';
+
+  /// Letter Quest Level 6 (outdoor adventure)
   static const String letterQuestLevel4 = '/games/letter-quest/level-4';
 
   /// Ear game (placeholder for future)
@@ -278,44 +286,72 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.letterQuestLevel1:
-      // Level 1: Intro room with provider (3 letters only)
       final letterQuestLevel1Locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => LetterQuestProvider(),
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => LetterQuestProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
           child: IntroQuestScreen(locale: letterQuestLevel1Locale),
         ),
         settings: settings,
       );
 
     case AppRoutes.letterQuestLevel2:
-      // Level 2: Simple room with provider
       final letterQuestLevel2Locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => LetterQuestProvider(),
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => LetterQuestProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
           child: Level2QuestScreen(locale: letterQuestLevel2Locale),
         ),
         settings: settings,
       );
 
+    case AppRoutes.letterQuestHouse:
+      final houseLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => LetterQuestProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
+          child: HouseQuestScreen(locale: houseLocale),
+        ),
+        settings: settings,
+      );
+
     case AppRoutes.letterQuestLevel3:
-      // Level 3: Indoor rooms with provider
       final letterQuestLevel3Locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => LetterQuestProvider(),
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => LetterQuestProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
           child: LetterQuestScreen(locale: letterQuestLevel3Locale),
         ),
         settings: settings,
       );
 
+    case AppRoutes.letterQuestBungalow:
+      final bungalowLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => LetterQuestProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
+          child: BungalowQuestScreen(locale: bungalowLocale),
+        ),
+        settings: settings,
+      );
+
     case AppRoutes.letterQuestLevel4:
-      // Level 4: Outdoor adventure with provider
       final letterQuestLevel4Locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => LetterQuestProvider(),
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => LetterQuestProvider(
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
           child: OutdoorQuestScreen(locale: letterQuestLevel4Locale),
         ),
         settings: settings,

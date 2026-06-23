@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 
 import 'base_letter_quest_game.dart';
+import 'bed_component.dart';
 import 'letter_collectible.dart';
 import 'outdoor/boundary_wall_component.dart';
 import 'outdoor/rock_component.dart';
@@ -48,7 +51,7 @@ class PlayerComponent extends SpriteAnimationGroupComponent<_PeroDirection>
   static const double playerHeight = 80.0;
 
   /// Movement speed in world units per second
-  static const double moveSpeed = 200.0;
+  static const double moveSpeed = 250.0;
 
   /// Virtual drag radius in canvas pixels.
   ///
@@ -65,6 +68,28 @@ class PlayerComponent extends SpriteAnimationGroupComponent<_PeroDirection>
   /// Animation step time (seconds per frame)
   static const double _stepTime = 0.15;
 
+  /// Duration of the jump arc in seconds.
+  static const double _jumpDuration = 0.6;
+
+  /// Distance Pero lunges forward during a jump (world units).
+  static const double _jumpForwardDistance = 150.0;
+
+  /// Whether Pero is mid-jump (ignores bed collision, Gary can't catch).
+  bool isJumping = false;
+
+  /// Set on jump, cleared only when Pero no longer overlaps any bed.
+  /// While true, bed and nearby-furniture collision is skipped so Pero
+  /// can land on a bed and walk off freely in any direction.
+  bool _bedPassthrough = false;
+  final Set<BedComponent> _activeBedContacts = {};
+
+  double _jumpTimer = 0;
+  Vector2 _jumpDirection = Vector2.zero();
+
+  /// Position saved before each frame's movement, used by collision
+  /// resolution to cancel movement into obstacles without jitter.
+  final Vector2 _preMovementPos = Vector2.zero();
+
   /// Current movement direction (magnitude 0-1).
   ///
   /// Set by [onDragUpdate] and cleared by [onDragEnd].
@@ -79,10 +104,13 @@ class PlayerComponent extends SpriteAnimationGroupComponent<_PeroDirection>
   Vector2? _dragAnchorCanvas;
 
   /// Creates the player at the given world position.
-  PlayerComponent({required super.position})
+  /// [sizeMultiplier] scales both visuals and collision (2.0 on >600px devices).
+  PlayerComponent({required super.position, double sizeMultiplier = 1.0})
       : super(
-          size: Vector2(playerWidth, playerHeight),
+          size: Vector2(
+              playerWidth * sizeMultiplier, playerHeight * sizeMultiplier),
           anchor: Anchor.center,
+          priority: 1,
           current: _PeroDirection.idle,
         );
 
@@ -191,9 +219,40 @@ class PlayerComponent extends SpriteAnimationGroupComponent<_PeroDirection>
   // Movement
   // -------------------------
 
+  /// Triggers a jump arc lasting [_jumpDuration] seconds.
+  /// Pero lunges forward in the current movement direction.
+  void jump() {
+    if (isJumping) return;
+    isJumping = true;
+    _bedPassthrough = true;
+    _jumpTimer = _jumpDuration;
+    _jumpDirection = moveDirection.length > 0.1
+        ? moveDirection.normalized()
+        : Vector2.zero();
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
+
+    _preMovementPos.setFrom(position);
+
+    // Jump arc — smooth scale pulse + forward lunge
+    if (isJumping) {
+      _jumpTimer -= dt;
+      if (_jumpTimer <= 0) {
+        isJumping = false;
+        _jumpTimer = 0;
+        scale = Vector2.all(1.0);
+      } else {
+        final progress = 1.0 - (_jumpTimer / _jumpDuration);
+        scale = Vector2.all(1.0 + 0.3 * sin(progress * pi));
+        if (_jumpDirection.length > 0) {
+          position +=
+              _jumpDirection * (_jumpForwardDistance / _jumpDuration) * dt;
+        }
+      }
+    }
 
     // Apply drag movement and update animation direction
     if (moveDirection.length > 0.1) {
@@ -218,6 +277,23 @@ class PlayerComponent extends SpriteAnimationGroupComponent<_PeroDirection>
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
 
+    // Track bed contacts regardless of state
+    if (other is BedComponent) {
+      _activeBedContacts.add(other);
+      if (!isJumping && !_bedPassthrough) {
+        _resolveRectCollision(other);
+      }
+      return;
+    }
+
+    // Letters are always collectible
+    if (other is LetterCollectible) {
+      other.onPlayerContact(game.provider);
+      return;
+    }
+
+    if (_bedPassthrough && _overlapsBed(other)) return;
+
     if (other is WallComponent || other is TiledWallComponent) {
       _resolveRectCollision(other);
     }
@@ -239,32 +315,45 @@ class PlayerComponent extends SpriteAnimationGroupComponent<_PeroDirection>
     if (other is BoundaryWallComponent) {
       _resolveRectCollision(other);
     }
+  }
 
-    if (other is LetterCollectible) {
-      other.onPlayerContact(game.provider);
+  @override
+  void onCollisionEnd(PositionComponent other) {
+    super.onCollisionEnd(other);
+    if (other is BedComponent) {
+      _activeBedContacts.remove(other);
+      if (_activeBedContacts.isEmpty) {
+        _bedPassthrough = false;
+      }
     }
   }
 
-  /// Resolves collision with a rectangular obstacle by pushing the player out.
-  ///
-  /// Works for any [PositionComponent] with a size (walls, water, etc.).
-  /// Uses the component's position and size to determine which side
-  /// the player hit and pushes them back along that axis only,
-  /// allowing sliding along obstacles.
+  bool _overlapsBed(PositionComponent obstacle) {
+    final oPos = obstacle.absolutePosition;
+    for (final bed in _activeBedContacts) {
+      final bPos = bed.absolutePosition;
+      if (oPos.x < bPos.x + bed.size.x &&
+          oPos.x + obstacle.size.x > bPos.x &&
+          oPos.y < bPos.y + bed.size.y &&
+          oPos.y + obstacle.size.y > bPos.y) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Resolves collision by pushing Pero out along the axis of least overlap.
   void _resolveRectCollision(PositionComponent obstacle) {
     final obstacleCenter = obstacle.absolutePosition + obstacle.size / 2;
-    final playerCenter = position;
-    final delta = playerCenter - obstacleCenter;
+    final delta = position - obstacleCenter;
 
-    // Calculate overlap on each axis
-    final halfW = obstacle.size.x / 2 + playerWidth / 2;
-    final halfH = obstacle.size.y / 2 + playerHeight / 2;
+    final halfW = obstacle.size.x / 2 + size.x / 2;
+    final halfH = obstacle.size.y / 2 + size.y / 2;
     final overlapX = halfW - delta.x.abs();
     final overlapY = halfH - delta.y.abs();
 
     if (overlapX <= 0 || overlapY <= 0) return;
 
-    // Push out along the axis with less overlap (minimum penetration)
     if (overlapX < overlapY) {
       position.x += delta.x > 0 ? overlapX : -overlapX;
     } else {

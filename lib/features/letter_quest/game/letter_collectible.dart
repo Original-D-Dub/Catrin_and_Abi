@@ -4,6 +4,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame_audio/flame_audio.dart';
+import 'package:flame_svg/flame_svg.dart';
 import 'package:flutter/animation.dart';
 import 'package:flutter/services.dart';
 
@@ -14,19 +15,10 @@ import 'base_letter_quest_game.dart';
 
 /// A BSL letter sign collectible placed on the map.
 ///
-/// Displays the BSL alphabet PNG for a letter, with a gentle floating
-/// animation and soft white glow behind it. When the player walks over it:
-///
-/// - **Correct letter**: Scale-down removal + chime + light haptic
-/// - **Wrong letter**: Fade out, reappear after 10 seconds + buzz + medium haptic
-///
-/// BSL alphabet PNGs are at `assets/bsl_alphabet/A.png` (150x100 pixels),
-/// scaled down to 64x43 in-game.
-///
-/// Used by both Level 3 (indoor rooms) and Level 4 (outdoor) via
-/// [BaseLetterQuestGame].
-class LetterCollectible extends SpriteComponent
-    with CollisionCallbacks, HasGameReference<BaseLetterQuestGame> {
+/// Displays a BSL alphabet SVG for a letter, with a gentle floating
+/// animation and coloured circle behind it.
+class LetterCollectible extends PositionComponent
+    with CollisionCallbacks, HasGameReference<BaseLetterQuestGame>, HasPaint {
   /// The lowercase letter this collectible represents
   final String letter;
 
@@ -41,6 +33,8 @@ class LetterCollectible extends SpriteComponent
 
   /// Border thickness of the coloured circle
   static const double circleBorderWidth = 4.0;
+
+  Svg? _svg;
 
   /// Whether this letter has been correctly collected (permanently removed)
   bool _collected = false;
@@ -71,10 +65,7 @@ class LetterCollectible extends SpriteComponent
 
   @override
   Future<void> onLoad() async {
-    // Load the BSL alphabet sprite for this letter
-    sprite = Sprite(
-      game.images.fromCache('bsl_alphabet/${letter.toUpperCase()}.png'),
-    );
+    _svg = game.signSvgs[letter.toLowerCase()];
 
     // Collision hitbox
     add(RectangleHitbox());
@@ -104,14 +95,26 @@ class LetterCollectible extends SpriteComponent
 
   @override
   void render(Canvas canvas) {
-    if (!_hidden && !_collected) {
+    if (_collected) return;
+
+    final opacity = paint.color.a;
+    if (opacity == 0) return;
+
+    final useLayer = opacity < 1.0;
+    if (useLayer) {
+      canvas.saveLayer(null, Paint()..color = Color.fromARGB((opacity * 255).round(), 0, 0, 0));
+    }
+
+    if (!_hidden) {
       final center = Offset(displayWidth / 2, displayHeight / 2);
-      // White filled circle background
       canvas.drawCircle(center, circleRadius, _circleFillPaint);
-      // Coloured circle border
       canvas.drawCircle(center, circleRadius, _circleBorderPaint);
     }
-    super.render(canvas);
+    _svg?.render(canvas, size);
+
+    if (useLayer) {
+      canvas.restore();
+    }
   }
 
   @override

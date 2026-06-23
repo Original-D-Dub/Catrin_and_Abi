@@ -32,7 +32,7 @@ class RoomManager {
   final Random _random = Random();
 
   /// All consonants used as distractors
-  static const String _consonants = 'bcdfghjklmnpqrstvwxyz';
+  String get _consonants => provider.consonants;
 
   /// Creates a room manager.
   RoomManager({

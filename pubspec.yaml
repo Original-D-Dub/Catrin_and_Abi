@@ -30,6 +30,7 @@ dependencies:
   # Game engine for Letter Quest RPG game
   flame: ^1.23.0
   flame_audio: ^2.10.4
+  flame_svg: ^1.10.0
 
   # Rive animation runtime (files to be provided separately)
   rive: ^0.14.4
@@ -61,6 +62,7 @@ flutter:
     - assets/characters/abi/
     - assets/characters/catrin/
     - assets/characters/pero/
+    - assets/characters/Gary/
 
     # BSL Alphabet (for card game)
     - assets/bsl_alphabet/
@@ -90,6 +92,11 @@ flutter:
     - assets/games/vowel_hand/
     - assets/games/my_special_dog/
     - assets/games/letter_quest/
+    - assets/games/letter_quest/catrin-bedroom/
+    - assets/games/letter_quest/abi-bedroom/
+    - assets/games/letter_quest/bathroom/
+    - assets/games/letter_quest/mum-dad-bedroom/
+    - assets/games/letter_quest/bungalow/bathroom/
     - assets/images/make10_number_line/
     - assets/games/bsl_sprint/
 
@@ -114,6 +121,9 @@ flutter:
     # Speech audio files
     - assets/audio/speech files/
     - assets/audio/speech files/alphabet_english/
+
+    # Number Race map
+    - assets/images/number_race/
 
     # Bingo assets
     - assets/images/animals/

@@ -119,8 +119,18 @@ class _LetterQuestLevelSelectScreenState
         ),
         LevelSelectItem(
           number: 3,
-          name: localizer('letter_quest.level3.name'),
+          name: localizer('letter_quest.level3_house.name'),
           color: levelColor(2),
+          onTap: () {
+            AudioService.playIntro('letter_quest_3', locale: locale);
+            Navigator.pushNamed(context, AppRoutes.letterQuestHouse,
+                arguments: locale);
+          },
+        ),
+        LevelSelectItem(
+          number: 4,
+          name: localizer('letter_quest.level3.name'),
+          color: levelColor(3),
           onTap: () {
             AudioService.playIntro('letter_quest_3', locale: locale);
             Navigator.pushNamed(context, AppRoutes.letterQuestLevel3,
@@ -128,9 +138,19 @@ class _LetterQuestLevelSelectScreenState
           },
         ),
         LevelSelectItem(
-          number: 4,
+          number: 5,
+          name: localizer('letter_quest.level5_bungalow.name'),
+          color: levelColor(4),
+          onTap: () {
+            AudioService.playIntro('letter_quest_5', locale: locale);
+            Navigator.pushNamed(context, AppRoutes.letterQuestBungalow,
+                arguments: locale);
+          },
+        ),
+        LevelSelectItem(
+          number: 6,
           name: localizer('letter_quest.level4.name'),
-          color: levelColor(3),
+          color: levelColor(5),
           isLocked: !_level4Unlocked,
           onTap: () {
             AudioService.playIntro('letter_quest_4', locale: locale);

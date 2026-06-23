@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/game_stats_service.dart';
 import '../models/letter_quest_word.dart';
 
@@ -38,6 +39,18 @@ enum LetterQuestPhase {
 /// ```
 class LetterQuestProvider extends ChangeNotifier {
   final GameStatsService _statsService = GameStatsService();
+
+  /// Which sign-language alphabet to display (BSL or IAC).
+  final SignSystem signSystem;
+
+  LetterQuestProvider({this.signSystem = SignSystem.bsl});
+
+  /// Consonants available in the current sign system's alphabet.
+  /// IAC (Welsh) has no k, q, v, x, or z.
+  static const _bslConsonants = 'bcdfghjklmnpqrstvwxyz';
+  static const _iacConsonants = 'bcdfghjlmnprst';
+  String get consonants =>
+      signSystem == SignSystem.iac ? _iacConsonants : _bslConsonants;
 
   LetterQuestPhase _phase = LetterQuestPhase.playing;
 

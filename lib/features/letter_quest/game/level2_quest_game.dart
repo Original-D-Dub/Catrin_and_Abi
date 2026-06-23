@@ -67,8 +67,9 @@ class Level2QuestGame extends BaseLetterQuestGame {
 
   // ── Room geometry constants ─────────────────────────────────────────────────
 
-  static const double _rw = RoomConfig.roomWidth;  // 900
-  static const double _rh = RoomConfig.roomHeight; // 680
+  static const double _rw = RoomConfig.roomWidth;   // 900
+  static const double _rh = RoomConfig.roomHeight;  // 680
+  static const double _t  = RoomConfig.wallThickness; // 40
 
   // ── Flame lifecycle ─────────────────────────────────────────────────────────
 
@@ -76,13 +77,12 @@ class Level2QuestGame extends BaseLetterQuestGame {
   Future<void> onLoad() async {
     images.prefix = 'assets/';
 
-    for (final letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) {
-      await images.load('bsl_alphabet/$letter.png');
-    }
+    await loadSignSvgs();
+
     await images.load('games/letter_quest/peroSprite4.png');
     await images.load('games/letter_quest/floor-tile-wood-pale.png');
     await images.load('games/letter_quest/wall-tile-brick.png');
-    await images.load('games/letter_quest/Gary.png');
+    await images.load('characters/Gary/Gary-sprite.png');
 
     try {
       await FlameAudio.audioCache.loadAll([
@@ -312,31 +312,47 @@ class Level2QuestGame extends BaseLetterQuestGame {
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   /// Returns the vowel character for the room containing [p], or 'i' for hub.
+  ///
+  /// Boundaries match Room I's inner wall edges (with overlapping layout).
   String _roomVowelAt(Vector2 p) {
-    if (p.x < _rw && p.y >= _rh && p.y < _rh * 2) return 'a';
-    if (p.x >= _rw && p.x < _rw * 2 && p.y < _rh) return 'e';
-    if (p.x >= _rw * 2 && p.y >= _rh && p.y < _rh * 2) return 'o';
-    if (p.x >= _rw && p.x < _rw * 2 && p.y >= _rh * 2) return 'u';
+    // Room I inner edges define the transition boundaries.
+    const iRight = _rw * 2 - _t * 2; // 1720
+    const iBottom = _rh * 2 - _t * 2; // 1280
+    if (p.x < _rw && p.y >= _rh && p.y < iBottom) return 'a';
+    if (p.x >= _rw && p.x < iRight && p.y < _rh) return 'e';
+    if (p.x >= iRight && p.y >= _rh && p.y < iBottom) return 'o';
+    if (p.x >= _rw && p.x < iRight && p.y >= iBottom) return 'u';
     return 'i'; // hub
   }
 
   /// World-space top-left corner of the doorway gap for [vowel]'s room.
   ///
-  /// The gap spans both wall segments (one on each side of the threshold).
-  /// Geometry derived from [RoomConfig] wall placement:
-  ///   wallThickness = 40, doorwayWidth = 120, centred on each wall face.
+  /// With overlapping rooms, each shared wall is a single [_t]-thick band.
+  /// Doorway gaps are [RoomConfig.doorwayWidth] (120) centered on each wall.
   Vector2 _doorwayPos(String vowel) {
-    if (vowel == 'a') return Vector2(860, 960);   // A right / I left
-    if (vowel == 'e') return Vector2(1290, 640);  // E bottom / I top
-    if (vowel == 'o') return Vector2(1760, 960);  // I right / O left
-    if (vowel == 'u') return Vector2(1290, 1320); // I bottom / U top
-    return Vector2.zero();
+    // Shared walls (overlap region):
+    //   A↔I  vertical  at x = _rw - _t .. _rw        (860–900)
+    //   E↔I  horizontal at y = _rh - _t .. _rh        (640–680)
+    //   I↔O  vertical  at x = 2_rw-2_t .. 2_rw-_t    (1720–1760)
+    //   I↔U  horizontal at y = 2_rh-2_t .. 2_rh-_t    (1280–1320)
+    // Centre of hub row = _rh - _t + _rh/2 = 980
+    // Centre of hub col = _rw - _t + _rw/2 = 1310
+    const cx = _rw - _t + _rw / 2;        // 1310
+    const cy = _rh - _t + _rh / 2;        // 980
+    const hd = RoomConfig.doorwayWidth / 2; // 60
+    return switch (vowel) {
+      'a' => Vector2(_rw - _t, cy - hd),              // (860, 920)
+      'e' => Vector2(cx - hd, _rh - _t),              // (1250, 640)
+      'o' => Vector2(_rw * 2 - _t * 2, cy - hd),      // (1720, 920)
+      'u' => Vector2(cx - hd, _rh * 2 - _t * 2),      // (1250, 1280)
+      _ => Vector2.zero(),
+    };
   }
 
   /// Size of the locked door component for [vowel]'s room.
   Vector2 _doorwaySize(String vowel) {
-    if (vowel == 'a' || vowel == 'o') return Vector2(80, 120); // vertical gap
-    if (vowel == 'e' || vowel == 'u') return Vector2(120, 80); // horizontal gap
-    return Vector2(80, 120);
+    if (vowel == 'a' || vowel == 'o') return Vector2(_t, RoomConfig.doorwayWidth);
+    if (vowel == 'e' || vowel == 'u') return Vector2(RoomConfig.doorwayWidth, _t);
+    return Vector2(_t, RoomConfig.doorwayWidth);
   }
 }

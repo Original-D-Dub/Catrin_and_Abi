@@ -207,7 +207,9 @@ const Map<String, String> translationsCy = {
   'letter_quest.subtitle': "Symudwch Pero i ddod o hyd i'r llythrennau i sillafu'r gair!",
   'letter_quest.level1.name': 'Ystafell Gyflwyno',
   'letter_quest.level2.name': 'Ystafell Syml',
+  'letter_quest.level3_house.name': 'Lan Lofft',
   'letter_quest.level3.name': 'Ystafelloedd Dan Do',
+  'letter_quest.level5_bungalow.name': 'Byngalo',
   'letter_quest.level4.name': 'Antur Awyr Agored',
   'letter_quest.victory_subtitle': "Rwyt wedi casglu'r holl eiriau!",
   'letter_quest.level4_unlocked': 'Llongyfarchiadau, mae Lefel 4 wedi datgloi',
@@ -313,6 +315,12 @@ const Map<String, String> translationsCy = {
   'number_race.success_summary': 'Enillodd {character} y ras!',
   'number_race.change_character': 'Newid Rasiwr',
   'number_race.attempts_suffix': ' cynnig',
+  'number_race.podium_title': 'Safleoedd Terfynol',
+  'number_race.position.1': '1af',
+  'number_race.position.2': '2il',
+  'number_race.position.3': '3ydd',
+  'number_race.your_time': 'Eich Amser:',
+  'number_race.time_suffix': ' eiliad',
 
   // -------------------------
   // BSL Maths

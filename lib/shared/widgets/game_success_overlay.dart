@@ -94,6 +94,11 @@ class GameSuccessOverlay extends StatefulWidget {
   // ── extra content (e.g. word list for Letter Quest) ──────────────────────
   final Widget? extraContent;
 
+  /// When true (and no [backgroundImage]/[imageAsset]), [extraContent] is
+  /// shown centred in the main image slot instead of below the personal
+  /// best badge — e.g. Number Race's podium.
+  final bool centerExtraContent;
+
   // ── audio ─────────────────────────────────────────────────────────────────
   /// Game identifier used to look up a custom success sound in [AudioService].
   /// When null, "Well Done!" is spoken via TTS.
@@ -129,6 +134,7 @@ class GameSuccessOverlay extends StatefulWidget {
     this.imageAsset,
     this.backgroundImage,
     this.extraContent,
+    this.centerExtraContent = false,
     this.gameId,
     this.changeLevelIsButton = false,
     this.changeLevelLabel,
@@ -372,7 +378,17 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                             fit: BoxFit.contain,
                           ),
                         )
-                      : const SizedBox.shrink()),
+                      : (widget.centerExtraContent && widget.extraContent != null
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSizes.paddingLarge,
+                                  vertical: AppSizes.spacingMedium,
+                                ),
+                                child: widget.extraContent!,
+                              ),
+                            )
+                          : const SizedBox.shrink())),
             ),
 
             // ── Bottom elements ─────────────────────────────────────────
@@ -422,10 +438,11 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                         const SizedBox(height: AppSizes.spacingMedium),
                       ],
 
-                      // Extra content — only here when no backgroundImage;
-                      // otherwise it lives in the Expanded centre slot above.
+                      // Extra content — only here when no backgroundImage and
+                      // not already shown in the Expanded centre slot above.
                       if (widget.extraContent != null &&
-                          widget.backgroundImage == null) ...[
+                          widget.backgroundImage == null &&
+                          !widget.centerExtraContent) ...[
                         widget.extraContent!,
                         const SizedBox(height: AppSizes.spacingMedium),
                       ],

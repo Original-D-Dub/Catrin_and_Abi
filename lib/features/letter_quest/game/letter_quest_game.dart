@@ -51,10 +51,7 @@ class LetterQuestGame extends BaseLetterQuestGame {
     // Set image prefix to match project asset structure
     images.prefix = 'assets/';
 
-    // Pre-load all BSL alphabet sprites (A-Z)
-    for (final letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')) {
-      await images.load('bsl_alphabet/$letter.png');
-    }
+    await loadSignSvgs();
 
     // Pre-load Pero sprite sheet
     await images.load('games/letter_quest/peroSprite4.png');
@@ -62,7 +59,7 @@ class LetterQuestGame extends BaseLetterQuestGame {
     // Pre-load floor and wall tile sprites (same as Levels 1 & 2)
     await images.load('games/letter_quest/floor-tile-wood-pale.png');
     await images.load('games/letter_quest/wall-tile-brick.png');
-    await images.load('games/letter_quest/Gary.png');
+    await images.load('characters/Gary/Gary-sprite.png');
 
     // Pre-cache audio files
     try {

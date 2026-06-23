@@ -1,9 +1,13 @@
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flame/sprite.dart';
 import 'package:flutter/material.dart' show VoidCallback;
 
 import '../models/room_config.dart';
 import 'base_letter_quest_game.dart';
+import 'bed_component.dart';
+import 'desk_component.dart';
+import 'player_component.dart';
 import 'simple_room_component.dart';
 
 /// Which room of the five-room cross layout a position belongs to.
@@ -24,7 +28,7 @@ enum _Room { a, e, i, o, u }
 /// When Gary is within [_catchRadius] of the player [onPlayerCaught] is called.
 /// A [_startDelay] gives the player a head-start at the beginning and after
 /// each catch-and-reset.
-class GaryComponent extends SpriteComponent
+class GaryComponent extends SpriteAnimationComponent
     with CollisionCallbacks, HasGameReference<BaseLetterQuestGame> {
   // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -55,17 +59,22 @@ class GaryComponent extends SpriteComponent
 
   // ── Constructor ────────────────────────────────────────────────────────────
 
+  final double _sizeMultiplier;
+
   GaryComponent({
     required Vector2 position,
     required PositionComponent player,
     required this.onPlayerCaught,
     this.isHiding = false,
     double startDelay = _graceSeconds,
+    double sizeMultiplier = 1.0,
   })  : _player = player,
         _startDelay = startDelay,
+        _sizeMultiplier = sizeMultiplier,
         super(
           position: position,
-          size: Vector2(diameter * 2, diameter * 2),
+          size: Vector2(
+              diameter * 2 * sizeMultiplier, diameter * 2 * sizeMultiplier),
           anchor: Anchor.center,
         );
 
@@ -73,7 +82,11 @@ class GaryComponent extends SpriteComponent
 
   @override
   Future<void> onLoad() async {
-    sprite = Sprite(game.images.fromCache('games/letter_quest/Gary.png'));
+    final sheet = SpriteSheet(
+      image: game.images.fromCache('characters/Gary/Gary-sprite.png'),
+      srcSize: Vector2.all(256),
+    );
+    animation = sheet.createAnimation(row: 0, stepTime: 0.1);
     _previousX = position.x;
     add(CircleHitbox());
   }
@@ -85,8 +98,12 @@ class GaryComponent extends SpriteComponent
     super.update(dt);
     if (_isCaught) return;
 
-    // Catch check always runs — even when hiding (Level 2 stationary Gary).
-    if (position.distanceTo(_player.position) <= _catchRadius) {
+    // Catch check — skip if the player is mid-jump (safe on a bed).
+    final p = _player;
+    final playerJumping = p is PlayerComponent && p.isJumping;
+    if (!playerJumping &&
+        position.distanceTo(_player.position) <=
+            _catchRadius * _sizeMultiplier) {
       _isCaught = true;
       onPlayerCaught();
       return;
@@ -209,14 +226,17 @@ class GaryComponent extends SpriteComponent
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
     if (other is TiledWallComponent) _resolveRectCollision(other);
+    if (other is BedComponent) _resolveRectCollision(other);
+    if (other is DeskComponent) _resolveRectCollision(other);
   }
 
   /// Identical minimum-penetration pushback to [PlayerComponent._resolveRectCollision].
   void _resolveRectCollision(PositionComponent obstacle) {
     final obstacleCenter = obstacle.absolutePosition + obstacle.size / 2;
     final delta = position - obstacleCenter;
-    final halfW = obstacle.size.x / 2 + diameter / 2;
-    final halfH = obstacle.size.y / 2 + diameter / 2;
+    final scaledRadius = diameter / 2 * _sizeMultiplier;
+    final halfW = obstacle.size.x / 2 + scaledRadius;
+    final halfH = obstacle.size.y / 2 + scaledRadius;
     final overlapX = halfW - delta.x.abs();
     final overlapY = halfH - delta.y.abs();
     if (overlapX <= 0 || overlapY <= 0) return;

@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/circular_video_container.dart';
+import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/level_select_screen.dart';
 import '../models/colouring_page.dart';
@@ -80,22 +82,9 @@ class _ColouringScreenState extends State<ColouringScreen> {
   Widget _buildLevelSelect(ColouringProvider provider) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Colouring',
-          style: TextStyle(
-            fontSize: AppSizes.fontSizeLarge,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+      appBar: GameAppBar(
+        title: AppLocalizations.of(context)('colouring.title'),
+        onBack: () => Navigator.pop(context),
       ),
       body: Container(
         decoration: const BoxDecoration(

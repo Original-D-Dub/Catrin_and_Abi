@@ -103,12 +103,16 @@ class RoomConfig {
   ///
   /// Room I is the central hub with doorways on all 4 sides.
   /// Each edge room has one doorway connecting back to Room I.
+  ///
+  /// Adjacent rooms overlap by [wallThickness] so shared borders render
+  /// as a single wall rather than a double-thick seam.
   static List<RoomConfig> generateAllRooms() {
+    const t = wallThickness;
     return [
       // Room A — left of center
       RoomConfig(
         vowel: 'a',
-        worldPosition: Vector2(0, roomHeight),
+        worldPosition: Vector2(0, roomHeight - t),
         floorColor: AppColors.vowelPairColors['a']!,
         wallColor: _darken(AppColors.vowelPairColors['a']!),
         doorways: {DoorwaySide.right},
@@ -116,7 +120,7 @@ class RoomConfig {
       // Room E — above center
       RoomConfig(
         vowel: 'e',
-        worldPosition: Vector2(roomWidth, 0),
+        worldPosition: Vector2(roomWidth - t, 0),
         floorColor: AppColors.vowelPairColors['e']!,
         wallColor: _darken(AppColors.vowelPairColors['e']!),
         doorways: {DoorwaySide.bottom},
@@ -124,7 +128,7 @@ class RoomConfig {
       // Room I — center hub
       RoomConfig(
         vowel: 'i',
-        worldPosition: Vector2(roomWidth, roomHeight),
+        worldPosition: Vector2(roomWidth - t, roomHeight - t),
         floorColor: AppColors.vowelPairColors['i']!,
         wallColor: _darken(AppColors.vowelPairColors['i']!),
         doorways: {
@@ -137,7 +141,7 @@ class RoomConfig {
       // Room O — right of center
       RoomConfig(
         vowel: 'o',
-        worldPosition: Vector2(roomWidth * 2, roomHeight),
+        worldPosition: Vector2(roomWidth * 2 - t * 2, roomHeight - t),
         floorColor: AppColors.vowelPairColors['o']!,
         wallColor: _darken(AppColors.vowelPairColors['o']!),
         doorways: {DoorwaySide.left},
@@ -145,7 +149,7 @@ class RoomConfig {
       // Room U — below center
       RoomConfig(
         vowel: 'u',
-        worldPosition: Vector2(roomWidth, roomHeight * 2),
+        worldPosition: Vector2(roomWidth - t, roomHeight * 2 - t * 2),
         floorColor: AppColors.vowelPairColors['u']!,
         wallColor: _darken(AppColors.vowelPairColors['u']!),
         doorways: {DoorwaySide.top},

@@ -289,6 +289,12 @@ const Map<String, String> translationsEn = {
   'number_race.success_summary': '{character} won the race!',
   'number_race.change_character': 'Change Racer',
   'number_race.attempts_suffix': ' tries',
+  'number_race.podium_title': 'Final Positions',
+  'number_race.position.1': '1st',
+  'number_race.position.2': '2nd',
+  'number_race.position.3': '3rd',
+  'number_race.your_time': 'Your Time:',
+  'number_race.time_suffix': ' seconds',
 
   // -------------------------
   // BSL Maths
@@ -327,7 +333,9 @@ const Map<String, String> translationsEn = {
   'letter_quest.subtitle': 'Move Pero to find the letters to spell the word!',
   'letter_quest.level1.name': 'Intro Room',
   'letter_quest.level2.name': 'Simple Room',
+  'letter_quest.level3_house.name': 'Upstairs',
   'letter_quest.level3.name': 'Indoor Rooms',
+  'letter_quest.level5_bungalow.name': 'Bungalow',
   'letter_quest.level4.name': 'Outdoor Adventure',
   'letter_quest.victory_subtitle': 'You collected all the words!',
   'letter_quest.level4_unlocked': 'Congratulations Level 4 unlocked',
