@@ -45,10 +45,10 @@ class PlayerComponent extends SpriteAnimationGroupComponent<_PeroDirection>
         HasGameReference<BaseLetterQuestGame>,
         DragCallbacks {
   /// Player width in world units
-  static const double playerWidth = 100.0;
+  static const double playerWidth = 150.0;
 
   /// Player height in world units
-  static const double playerHeight = 80.0;
+  static const double playerHeight = 120.0;
 
   /// Movement speed in world units per second
   static const double moveSpeed = 250.0;

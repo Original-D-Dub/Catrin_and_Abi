@@ -19,11 +19,13 @@ class VowelBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final size = isMobile ? 160.0 : 300.0;
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 300,
-        height: 300,
+        width: size,
+        height: size,
         child: BslAlphabetSvg(
           letter: vowel,
           signSystem: SignSystem.iac,

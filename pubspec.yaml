@@ -26,6 +26,7 @@ dependencies:
 
   # SVG rendering
   flutter_svg: ^2.0.10
+  path_drawing: ^1.0.1
 
   # Game engine for Letter Quest RPG game
   flame: ^1.23.0
@@ -50,10 +51,14 @@ flutter:
   uses-material-design: true
 
   assets:
+    # Shared UI icons
+    - assets/icons/
+
     # Success screen images
     - assets/success/
 
     # Logos
+    - assets/logos/
     - assets/logos/english/
     - assets/logos/welsh/
 
@@ -84,6 +89,9 @@ flutter:
     # BSL colour videos for the colouring game
     - assets/colours_video/
 
+    # BSL colour videos for the word search game (level 2)
+    - assets/colours_video2/
+
     # Game-specific assets
     - assets/games/bubble_pop/
     - assets/games/ear_game/
@@ -96,9 +104,17 @@ flutter:
     - assets/games/letter_quest/abi-bedroom/
     - assets/games/letter_quest/bathroom/
     - assets/games/letter_quest/mum-dad-bedroom/
+    - assets/games/letter_quest/bungalow/bedroom/
     - assets/games/letter_quest/bungalow/bathroom/
+    - assets/games/letter_quest/bungalow/kitchen/
+    - assets/games/letter_quest/bungalow/garden/
+    - assets/games/letter_quest/bungalow/livingroom/
     - assets/images/make10_number_line/
     - assets/games/bsl_sprint/
+    - assets/games/zoo/
+    - assets/games/zoo/videos/
+    - assets/games/zoo/photos/
+    - lib/features/zoo/characters/
 
     # BSL number signs (for maths game)
     - assets/bsl_numbers/
@@ -117,6 +133,12 @@ flutter:
 
     # Number Line game audio
     - assets/audio/number_line/
+
+    # Sudoku How to Play audio
+    - assets/audio/sudoku/
+
+    # Zoo game audio
+    - assets/audio/zoo/
 
     # Speech audio files
     - assets/audio/speech files/

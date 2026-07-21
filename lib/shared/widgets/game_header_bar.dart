@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/constants/app_colors.dart';
 import '../services/audio_service.dart';
+import 'back_arrow_icon.dart';
 
 /// In-game header bar: back arrow (inside rectangle, far left), score circle
 /// (overlapping the rectangle just after the arrow), optional centre content,
@@ -109,11 +110,7 @@ class GameHeaderBar extends StatelessWidget {
                         child: const SizedBox(
                           width: _arrowWidth,
                           child: Center(
-                            child: Icon(
-                              Icons.arrow_back,
-                              color: Colors.white,
-                              size: 26,
-                            ),
+                            child: BackArrowIcon(size: 26),
                           ),
                         ),
                       ),
@@ -236,6 +233,13 @@ class GameTimerDisplay extends StatelessWidget {
   final String formattedTime;
 
   const GameTimerDisplay({super.key, required this.formattedTime});
+
+  /// Formats [duration] as `m:ss`, e.g. "1:23", for [formattedTime].
+  static String format(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {

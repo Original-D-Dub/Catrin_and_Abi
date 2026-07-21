@@ -30,6 +30,7 @@ class HouseRoomManager {
 
     final word = provider.currentWord;
     final positions = List<Vector2>.from(HouseRoomConfig.letterPositions)
+      ..removeWhere((p) => HouseRoomConfig.isPositionBlocked(p))
       ..shuffle(_random);
 
     for (int i = 0; i < word.word.length && i < positions.length; i++) {
@@ -72,10 +73,34 @@ class HouseRoomManager {
   }
 
   void clearAndReplaceLetters() {
+    if (!provider.isInitialized) return;
+    final needed = provider.currentWord.word.split('');
+    final kept = <LetterCollectible>[];
+
     for (final letter in _activeLetters) {
-      if (letter.isMounted) letter.removeFromParent();
+      final idx = needed.indexOf(letter.letter);
+      if (idx >= 0 && letter.isMounted) {
+        needed.removeAt(idx);
+        kept.add(letter);
+      } else if (letter.isMounted) {
+        letter.removeFromParent();
+      }
     }
-    _activeLetters.clear();
-    placeLettersForCurrentWord();
+    _activeLetters
+      ..clear()
+      ..addAll(kept);
+
+    if (needed.isEmpty) return;
+    final positions = List<Vector2>.from(HouseRoomConfig.letterPositions)
+      ..removeWhere((p) => HouseRoomConfig.isPositionBlocked(p))
+      ..shuffle(_random);
+    int posIdx = 0;
+    for (final ch in needed) {
+      if (posIdx >= positions.length) break;
+      final letter = LetterCollectible(letter: ch, position: positions[posIdx]);
+      gameWorld.add(letter);
+      _activeLetters.add(letter);
+      posIdx++;
+    }
   }
 }

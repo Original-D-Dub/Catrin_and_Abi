@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/widgets/back_arrow_icon.dart';
 import '../game/sphere_runner_game.dart';
 
 /// Flutter screen that hosts the [SphereRunnerGame] Flame game.
@@ -68,11 +69,7 @@ class _SphereRunnerScreenState extends State<SphereRunnerScreen> {
                       color: Colors.black.withAlpha(140),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    child: const BackArrowIcon(size: 20),
                   ),
                 ),
 

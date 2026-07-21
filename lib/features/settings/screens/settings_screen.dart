@@ -5,6 +5,7 @@ import '../../../core/config/routes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/settings_provider.dart';
+import '../../../shared/widgets/back_arrow_icon.dart';
 
 /// Settings screen — accessible from the home screen app bar.
 ///
@@ -32,7 +33,7 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          icon: const BackArrowIcon(),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(

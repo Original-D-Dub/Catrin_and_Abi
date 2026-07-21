@@ -212,16 +212,37 @@ class OutdoorMapManager {
     }
   }
 
-  /// Removes all current letter collectibles and places new ones
-  /// for the next word.
   void clearAndReplaceLetters() {
+    if (!provider.isInitialized) return;
+    final needed = provider.currentWord.word.split('');
+    final kept = <LetterCollectible>[];
+
     for (final letter in _activeLetters) {
-      if (letter.isMounted) {
+      final idx = needed.indexOf(letter.letter);
+      if (idx >= 0 && letter.isMounted) {
+        needed.removeAt(idx);
+        kept.add(letter);
+      } else if (letter.isMounted) {
         letter.removeFromParent();
       }
     }
-    _activeLetters.clear();
+    _activeLetters
+      ..clear()
+      ..addAll(kept);
 
-    placeLettersForCurrentWord();
+    if (needed.isEmpty) return;
+    final candidates = List<Vector2>.from(mapData.letterCandidatePositions)
+      ..shuffle(_random);
+    int posIdx = 0;
+    for (final ch in needed) {
+      if (posIdx >= candidates.length) break;
+      final letter = LetterCollectible(
+        letter: ch,
+        position: candidates[posIdx].clone(),
+      );
+      gameWorld.add(letter);
+      _activeLetters.add(letter);
+      posIdx++;
+    }
   }
 }

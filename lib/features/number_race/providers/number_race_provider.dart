@@ -20,7 +20,7 @@ import '../models/number_race_models.dart';
 ///
 /// After picking a racer, the player chooses a level (1-[totalLevels]) from
 /// a map screen. Levels are grouped into sections of [levelsPerSection]:
-/// within each section [opponentTickInterval] shortens (30s, 28s, 25s, 25s)
+/// within each section [opponentTickInterval] shortens (7s, 5s, 3s, 3s)
 /// and the last level times the player, recording how long the race took
 /// instead of their number of attempts. The dot grid is 3x2 for levels
 /// 1-[levelsPerSection] and 4x2 for the next section.
@@ -121,13 +121,13 @@ class NumberRaceProvider extends ChangeNotifier {
   Duration get opponentTickInterval {
     switch (_sectionLevel) {
       case 1:
-        return const Duration(seconds: 30);
+        return const Duration(seconds: 7);
       case 2:
-        return const Duration(seconds: 28);
+        return const Duration(seconds: 5);
       case 3:
-        return const Duration(seconds: 25);
+        return const Duration(seconds: 3);
       default:
-        return const Duration(seconds: 25);
+        return const Duration(seconds: 3);
     }
   }
 
@@ -157,6 +157,31 @@ class NumberRaceProvider extends ChangeNotifier {
   void selectLevel(int level) {
     this.level = level;
     _showLevelMap = false;
+    resetForIntro();
+  }
+
+  /// Clears score, progress and the current question, without starting the
+  /// opponent timer or stopwatch early — those only start once [startGame]
+  /// runs at the end of the countdown. Called whenever a fresh race is
+  /// about to begin (picking a level, Play Again, Next Level) so the race
+  /// is already reset by the time the intro countdown appears, instead of
+  /// showing stale state from the previous race through it.
+  void resetForIntro() {
+    score = 0;
+    attempts = 0;
+    lastResult = null;
+    currentDotCount = -1;
+    dotCells = List.filled(dotGridSize, false);
+    answerOptions = const [];
+    _finishOrder.clear();
+    for (final character in RaceCharacter.values) {
+      progress[character] = 0;
+    }
+    _stopOpponentTimer();
+    _stopDisplayTimer();
+    _stopwatch
+      ..stop()
+      ..reset();
     notifyListeners();
   }
 
@@ -171,15 +196,10 @@ class NumberRaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Resets the race and generates the first question.
+  /// Starts the race: generates the first question and starts timers.
+  /// Score, progress and the current question are already cleared by
+  /// [resetForIntro], called before the intro countdown begins.
   void startGame() {
-    score = 0;
-    attempts = 0;
-    lastResult = null;
-    _finishOrder.clear();
-    for (final character in RaceCharacter.values) {
-      progress[character] = 0;
-    }
     _nextRound();
     _startOpponentTimer();
     if (isTimedLevel) {
@@ -281,10 +301,14 @@ class NumberRaceProvider extends ChangeNotifier {
     } while (next == currentDotCount);
     currentDotCount = next;
 
-    // Dots fill the grid left to right, top to bottom.
+    // Dots fill the grid column by column (top to bottom within each
+    // column, then moving to the next column) rather than row by row.
     dotCells = List.filled(dotGridSize, false);
+    const rows = 2;
     for (int i = 0; i < currentDotCount; i++) {
-      dotCells[i] = true;
+      final column = i ~/ rows;
+      final row = i % rows;
+      dotCells[row * gridColumns + column] = true;
     }
 
     _buildOptions();

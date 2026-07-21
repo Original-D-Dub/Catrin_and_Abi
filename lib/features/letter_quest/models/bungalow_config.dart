@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 
 /// Rooms in the bungalow layout.
@@ -5,61 +7,65 @@ enum BungalowRoom { garden, bedroom1, bathroom, bedroom2, hallway, kitchen, livi
 
 /// Layout for the bungalow level of Letter Quest.
 ///
+/// Room and furniture dimensions match the Level 3 house scale
+/// (Pero is 150×120 world units in every level).
+///
 /// ```
-///  0       900  1400  1800     2200     2700
-///  +-------+----+-----+--------+-------+ 0
-///  |       |    Bed1   | Bath   | Bed2  |
-///  | Garden|   900×640 | 400×640| 500×640|
-///  | 900×  |           |        |       |
-///  | 1560  +--[D]-+[D]-+--[D]--+--[D]--+ 640
-///  |  [D]  | Kit [D]     Hallway        |
-///  |  [D]  | 500 +[D]-------[D]---------+ 840
-///  |       | ×920|     Living Room      |
-///  |       |  [D]D      1300×720        |
-///  +-------+-----+---------------------+ 1560
+///  0       1400      2650  3200    3950
+///  +--------+--------+------+------+ 0
+///  |        |  Bed1   | Bath | Bed2 |
+///  | Garden | 1250×860| 550× | 750× |
+///  | 1400×  |         |  860 |  860 |
+///  | 1980   +--[D]--+-[D]-+--[D]--+ 860
+///  |  [D]   | Kit  [D]   Hallway    |
+///  |  [D]   | 782  +[D]----[D]------+ 1180
+///  |        | ×1120|   Living Room  |
+///  |        |  [D] |    1768×800    |
+///  +--------+------+----------------+ 1980
 /// ```
 class BungalowConfig {
-  static const double mapWidth = 2700.0;
-  static const double mapHeight = 1680.0;
+  static const double mapWidth = 3950.0;
+  static const double mapHeight = 1980.0;
   static const double wallThickness = 40.0;
-  static const double doorwayWidth = 200.0;
+  static const double doorwayWidth = 240.0;
 
   // ── Room dimensions ────────────────────────────────────────────────────
 
-  static const double gardenW = 900.0;
-  static const double bed1W = 900.0;
-  static const double bathW = 400.0;
-  static const double bed2W = 500.0;
-  static const double kitchenW = 500.0;
-  static const double kitchenH = 1040.0;
-  static const double livingW = 1300.0;
-  static const double livingH = 720.0;
-  static const double hallwayW = 1300.0;
+  static const double gardenW = 1400.0;
+  static const double bed1W = 1250.0;
+  static const double bathW = 550.0;
+  static const double bed2W = 750.0;
+  static const double kitchenW = 782.0;
+  static const double kitchenH = 1120.0;
+  static const double livingW = 1768.0;
+  static const double livingH = 800.0;
+  static const double hallwayW = 1768.0;
   static const double hallwayH = 320.0;
 
-  static const double topRowH = 640.0;
+  static const double topRowH = 860.0;
 
   // ── Derived positions ──────────────────────────────────────────────────
 
-  static const double indoorX = gardenW;                  // 900
-  static const double hallwayX = indoorX + kitchenW;      // 1400
-  static const double hallwayY = topRowH;                 // 640
-  static const double bottomY = hallwayY + hallwayH;      // 840
+  static const double indoorX = gardenW;                  // 1400
+  static const double hallwayX = indoorX + kitchenW;      // 2100
+  static const double hallwayY = topRowH;                 // 860
+  static const double bottomY = hallwayY + hallwayH;      // 1180
 
   // ── Doorway centres (world coords) ─────────────────────────────────────
 
   // Vertical wall doors
-  static const double gardenBed1DoorY = topRowH / 2;                        // 320
-  static const double gardenKitchenDoorY = hallwayY + kitchenH / 2;         // 1100
-  static const double kitchenHallDoorY = hallwayY + hallwayH / 2;          // 740
-  static const double kitchenLivingDoorY = bottomY + livingH / 2;          // 1200
+  // Sits above centre so the dressing table in bedroom 1's bottom-left corner
+  // leaves a full-width corridor through the door.
+  static const double gardenBed1DoorY = 330.0;
+  static const double gardenKitchenDoorY = kitchenHallDoorY;                // aligned with hallway
+  static const double kitchenHallDoorY = hallwayY + hallwayH / 2;          // 1020
+  static const double kitchenLivingDoorY = bottomY + livingH / 2;          // 1580
 
   // Horizontal wall doors
-  static const double bed1KitchenDoorX = indoorX + kitchenW / 2;           // 1150
-  static const double bed1HallDoorX = hallwayX + (indoorX + bed1W - hallwayX) / 2; // 1600
-  static const double bathHallDoorX = indoorX + bed1W + bathW / 2 + 96;    // 2096
-  static const double bed2HallDoorX = indoorX + bed1W + bathW + bed2W / 2; // 2450
-  static const double hallLivingDoorX = hallwayX + livingW / 2;            // 2050
+  static const double bed1HallDoorX = hallwayX + (indoorX + bed1W - hallwayX) / 2; // 2375
+  static const double bathHallDoorX = indoorX + bed1W + bathW / 2 + 96;    // 3021
+  static const double bed2HallDoorX = indoorX + bed1W + bathW + wallThickness + doorwayWidth / 2 + 20;
+  static const double hallLivingDoorX = hallwayX + livingW / 2;            // 3025
 
   // ── Player / Gary spawn ────────────────────────────────────────────────
 
@@ -67,57 +73,190 @@ class BungalowConfig {
       Vector2(hallwayX + hallwayW / 2, hallwayY + hallwayH / 2);
 
   static Vector2 get garyStart =>
-      Vector2(gardenW / 2, mapHeight / 2);
+      Vector2(gardenW * 0.75, mapHeight / 2);
 
   // ── Letter positions per room ──────────────────────────────────────────
+  //
+  // Generates a 200-unit grid across each room's inner bounds.
+  // Positions that overlap solid furniture are filtered out by
+  // BungalowRoomManager._safePositions via isPositionBlocked.
 
   static List<Vector2> letterPositionsFor(BungalowRoom room) {
-    const m = wallThickness + 50.0;
+    const step = 200.0;
+    const margin = wallThickness + 80.0; // min clearance from each wall
+
+    List<Vector2> grid(double x0, double y0, double x1, double y1) {
+      final out = <Vector2>[];
+      for (var x = x0; x <= x1; x += step) {
+        for (var y = y0; y <= y1; y += step) {
+          out.add(Vector2(x, y));
+        }
+      }
+      return out;
+    }
+
     return switch (room) {
-      BungalowRoom.garden => [
-        Vector2(m, m),
-        Vector2(gardenW / 2, m + 200),
-        Vector2(m, mapHeight / 2),
-        Vector2(gardenW / 2, mapHeight - m),
-        Vector2(m, mapHeight - m - 200),
-      ],
-      BungalowRoom.bedroom1 => [
-        Vector2(indoorX + m, m),
-        Vector2(indoorX + bed1W - m, m),
-        Vector2(indoorX + bed1W / 2, topRowH / 2),
-        Vector2(indoorX + m, topRowH - m - 60),
-        Vector2(indoorX + bed1W - m, topRowH - m - 60),
-      ],
-      BungalowRoom.bathroom => [
-        Vector2(indoorX + bed1W + m, 250),
-        Vector2(indoorX + bed1W + bathW - m, 250),
-        Vector2(indoorX + bed1W + bathW / 2, topRowH / 2),
-      ],
-      BungalowRoom.bedroom2 => [
-        Vector2(indoorX + bed1W + bathW + m, m),
-        Vector2(mapWidth - m, m),
-        Vector2(indoorX + bed1W + bathW + bed2W / 2, topRowH / 2),
-        Vector2(mapWidth - m, topRowH - m - 60),
-      ],
-      BungalowRoom.hallway => [
-        Vector2(hallwayX + m + 60, hallwayY + hallwayH / 2),
-        Vector2(mapWidth - m - 60, hallwayY + hallwayH / 2),
-      ],
-      BungalowRoom.kitchen => [
-        Vector2(indoorX + m, hallwayY + m),
-        Vector2(hallwayX - m, hallwayY + m),
-        Vector2(indoorX + kitchenW / 2, hallwayY + kitchenH / 2),
-        Vector2(indoorX + m, mapHeight - m),
-        Vector2(hallwayX - m, mapHeight - m),
-      ],
-      BungalowRoom.livingRoom => [
-        Vector2(hallwayX + m, bottomY + m),
-        Vector2(mapWidth - m, bottomY + m),
-        Vector2(hallwayX + livingW / 2, bottomY + livingH / 2),
-        Vector2(mapWidth - m, mapHeight - m),
-        Vector2(hallwayX + m, mapHeight - m),
-      ],
+      BungalowRoom.garden => grid(
+          gardenW * 0.5, margin, gardenW - margin, mapHeight - margin),
+      BungalowRoom.bedroom1 => grid(
+          indoorX + margin, margin,
+          indoorX + bed1W - margin, topRowH - margin),
+      BungalowRoom.bathroom => grid(
+          indoorX + bed1W + margin, margin,
+          indoorX + bed1W + bathW - margin, topRowH - margin),
+      BungalowRoom.bedroom2 => grid(
+          indoorX + bed1W + bathW + margin, margin,
+          mapWidth - margin, topRowH - margin),
+      BungalowRoom.hallway => grid(
+          hallwayX + margin, hallwayY + margin,
+          mapWidth - margin, bottomY - margin),
+      BungalowRoom.kitchen => grid(
+          indoorX + margin, hallwayY + margin,
+          hallwayX - margin, hallwayY + kitchenH - margin),
+      BungalowRoom.livingRoom => grid(
+          hallwayX + margin, bottomY + margin,
+          mapWidth - margin, mapHeight - margin),
     };
+  }
+
+  // ── Solid furniture bounds (must mirror bungalow_room_component.dart) ──
+
+  static List<Rect> get furnitureRects {
+    const t = wallThickness;
+
+    // ── Garden ──
+    final gardenBorderW = gardenW - t * 2;
+    final gardenBorderH = gardenBorderW * (240.0 / 643.0);
+    const shedW = 700.0;
+    const shedH = shedW * (658.0 / 1034.0);
+    const shedX = t;
+    const shedY = gardenKitchenDoorY - shedH / 2;
+    const treeW = gardenW * 0.5;
+
+    // ── Bathroom ──
+    final bx = indoorX + bed1W + t;
+    const toiletW = 148.0;
+    const toiletH = 217.0;
+    const tubW = 231.0;
+    const tubH = tubW * 497.0 / 217.0;
+    final tubY = topRowH - t - tubH;
+    const matW = 163.0;
+    const matH = 270.0;
+    final matX = bx + tubW + 20;
+    final matY = tubY + tubH / 2 - matH / 2;
+
+    // ── Bedroom 1 ──
+    const b1BedW = 500.0;
+    const b1BedH = b1BedW * (627.0 / 609.0);
+    const b1BedX = indoorX + (bed1W - b1BedW) / 2;
+    const b1DressingTableH = 333.0;
+    const b1DressingTableW = b1DressingTableH * (145.0 / 343.0);
+
+    // ── Kitchen ──
+    const kx = indoorX + t;
+    const ky = hallwayY + t;
+    const kh = kitchenH - t * 2;
+    const leftWallW = 170.0;
+    const leftWallH = 476.0;
+    const counterW = 450.0;
+    const counterH = 179.0;
+    const kTableW = 340.0;
+    const kTableH = 260.0;
+    const kTableX = kx + leftWallW + (counterW - kTableW) / 2;
+    const kTableY = ky + 360.0;
+    const kChairW = 130.0;
+    const kChairH = 72.0;
+    const kBottom = ky + kh;
+
+    // ── Living room ──
+    const lx = hallwayX + t;
+    const ly = bottomY + t;
+    const lw = mapWidth - hallwayX - t * 2;
+    const lh = mapHeight - bottomY - t * 2;
+    const cx = lx + lw / 2;
+    const rugW = 450.0;
+    const rugH = 330.0;
+    const rugX = cx - rugW / 2;
+    const rugY = ly + (lh - rugH) / 2 + 140;
+    const sofaW = 450.0;
+    const sofaH = 183.0;
+    const toyW = 320.0;
+    const toyH = toyW * (654.0 / 803.0);
+    const twoSeatH = 280.0 * (228.0 / 440.0);
+
+    // ── Bedroom 2 ──
+    const bed2X = indoorX + bed1W + bathW;
+    const bed2Right = mapWidth - t;
+    const bed2WardW = 158.0;
+    const bed2WardH = 333.0;
+
+    return [
+      // ── Garden ──
+      Rect.fromLTWH(shedX, shedY, shedW, shedH),
+      Rect.fromLTWH(t, mapHeight - t - gardenBorderH, gardenBorderW, gardenBorderH),
+      Rect.fromLTWH(t + 40, t + 40, treeW, treeW),
+
+      // ── Bathroom ──
+      Rect.fromLTWH(bx + 5, t + 5, 201, 163),
+      Rect.fromLTWH(indoorX + bed1W + bathW - toiletW - 5, t + 5, toiletW, toiletH),
+      Rect.fromLTWH(bx, tubY, tubW, tubH),
+      Rect.fromLTWH(matX, matY, matW, matH),
+
+      // ── Kitchen ──
+      Rect.fromLTWH(kTableX, kTableY, kTableW, kTableH),
+      Rect.fromLTWH(
+          kTableX + (kTableW - kChairW) / 2, kTableY - kChairH, kChairW, kChairH),
+      Rect.fromLTWH(kx, kBottom - leftWallH, leftWallW, leftWallH),
+      Rect.fromLTWH(kx + leftWallW, kBottom - counterH, counterW, counterH),
+      Rect.fromLTWH(kx + 165, ky + 2, 320, 126),
+      Rect.fromLTWH(kx + 495, ky + 10, 70, 77),
+      Rect.fromLTWH(kx + 5, ky + 340, 70, 105),
+      Rect.fromLTWH(kx + 5, ky + 190, 100, 98),
+
+      // ── Bedroom 1 ──
+      Rect.fromLTWH(b1BedX, t + 5, b1BedW, b1BedH),
+      Rect.fromLTWH(b1BedX - 150 - 8, t + 5, 150, 150 * 149 / 186),
+      Rect.fromLTWH(b1BedX + b1BedW + 8, t + 5, 150, 150 * 153 / 203),
+      Rect.fromLTWH(indoorX + t, topRowH - t - b1DressingTableH,
+          b1DressingTableW, b1DressingTableH),
+      Rect.fromLTWH(indoorX + bed1W - t - 158, t, 158, 333),
+      Rect.fromLTWH(indoorX + t + 5, t + 10, 120, 120 * 145 / 151),
+
+      // ── Bedroom 2 ──
+      Rect.fromLTWH(bed2X + t + 8, t + 5, 289, 495),
+      Rect.fromLTWH(bed2X + t + 8 + 289 + 8, t + 5, 120, 101),
+      Rect.fromLTWH(bed2Right - bed2WardW - 5, t + 5, bed2WardW, bed2WardH),
+      Rect.fromLTWH(bed2Right - 150 * 99 / 120 - 5,
+          t + 5 + bed2WardH + 10, 150 * 99 / 120, 150),
+      Rect.fromLTWH(bed2Right - 150 - 5,
+          t + 5 + bed2WardH + 10 + 150 + 5, 150, 150 * 210 / 232),
+      Rect.fromLTWH(bed2Right - 340 - 5,
+          topRowH - t - 340 * 279 / 344 - 5, 340, 340 * 279 / 344),
+      Rect.fromLTWH(bed2Right - 340 - 15,
+          topRowH - t - 340 * 279 / 344 - 206 + 5, 207, 206),
+      Rect.fromLTWH(bed2X + t + 289 + 55, 270, 32, 50),
+      Rect.fromLTWH(bed2X + t + 289 + 30, 340, 50, 40),
+
+      // ── Living room ──
+      Rect.fromLTWH(rugX + (rugW - 220) / 2,
+          rugY + (rugH - 220 * 177 / 358) / 2, 220, 220 * 177 / 358),
+      Rect.fromLTWH(cx - sofaW / 2, rugY - sofaH - 20, sofaW, sofaH),
+      Rect.fromLTWH(lx + lw - toyW, ly + lh - toyH, toyW, toyH),
+      Rect.fromLTWH(rugX - twoSeatH - 42, rugY + rugH / 2 - 280 / 2,
+          twoSeatH, 280),
+      Rect.fromLTWH(cx - 380 / 2, ly + lh - 30, 380, 30),
+      Rect.fromLTWH(rugX, rugY, rugW, rugH),
+    ];
+  }
+
+  static bool isPositionBlocked(Vector2 pos) {
+    const pad = 36.0;
+    final point = Rect.fromCenter(
+      center: Offset(pos.x, pos.y),
+      width: pad * 2,
+      height: pad * 2,
+    );
+    return furnitureRects.any((r) => r.overlaps(point));
   }
 
   // ── Room detection ─────────────────────────────────────────────────────
@@ -138,11 +277,11 @@ class BungalowConfig {
 
   static const Map<BungalowRoom, List<BungalowRoom>> _adjacency = {
     BungalowRoom.garden:     [BungalowRoom.bedroom1, BungalowRoom.kitchen],
-    BungalowRoom.bedroom1:   [BungalowRoom.garden, BungalowRoom.kitchen, BungalowRoom.hallway],
+    BungalowRoom.bedroom1:   [BungalowRoom.garden, BungalowRoom.hallway],
     BungalowRoom.bathroom:   [BungalowRoom.hallway],
     BungalowRoom.bedroom2:   [BungalowRoom.hallway],
     BungalowRoom.hallway:    [BungalowRoom.bedroom1, BungalowRoom.bathroom, BungalowRoom.bedroom2, BungalowRoom.kitchen, BungalowRoom.livingRoom],
-    BungalowRoom.kitchen:    [BungalowRoom.garden, BungalowRoom.bedroom1, BungalowRoom.hallway, BungalowRoom.livingRoom],
+    BungalowRoom.kitchen:    [BungalowRoom.garden, BungalowRoom.hallway, BungalowRoom.livingRoom],
     BungalowRoom.livingRoom: [BungalowRoom.hallway, BungalowRoom.kitchen],
   };
 
@@ -199,11 +338,6 @@ class BungalowConfig {
     }
 
     // Horizontal wall doorways ─────────────────────────────────────────
-    if (pair.containsAll({BungalowRoom.bedroom1, BungalowRoom.kitchen})) {
-      return to == BungalowRoom.kitchen
-          ? Vector2(bed1KitchenDoorX, hallwayY + past)
-          : Vector2(bed1KitchenDoorX, hallwayY - past);
-    }
     if (pair.containsAll({BungalowRoom.bedroom1, BungalowRoom.hallway})) {
       return to == BungalowRoom.hallway
           ? Vector2(bed1HallDoorX, hallwayY + past)
@@ -242,9 +376,6 @@ class BungalowConfig {
     if (pair.containsAll({BungalowRoom.kitchen, BungalowRoom.livingRoom})) {
       return Vector2(hallwayX, kitchenLivingDoorY);
     }
-    if (pair.containsAll({BungalowRoom.bedroom1, BungalowRoom.kitchen})) {
-      return Vector2(bed1KitchenDoorX, hallwayY);
-    }
     if (pair.containsAll({BungalowRoom.bedroom1, BungalowRoom.hallway})) {
       return Vector2(bed1HallDoorX, hallwayY);
     }
@@ -258,6 +389,30 @@ class BungalowConfig {
       return Vector2(hallLivingDoorX, bottomY);
     }
     return Vector2.zero();
+  }
+
+  // ── Category → room mapping (for Level 5 letter placement) ───────────────
+
+  /// Returns the rooms that match a word's [category] from the Supabase table.
+  /// Returns an empty list for unknown or null categories.
+  /// "bedroom" maps to both bedrooms so letters spread between them.
+  static List<BungalowRoom> categoryRooms(String? category) {
+    if (category == null) return [];
+    switch (category.toLowerCase()) {
+      case 'bedroom':
+        return [BungalowRoom.bedroom1, BungalowRoom.bedroom2];
+      case 'bathroom':
+        return [BungalowRoom.bathroom];
+      case 'kitchen':
+        return [BungalowRoom.kitchen];
+      case 'garden':
+        return [BungalowRoom.garden];
+      case 'livingroom':
+      case 'living':
+        return [BungalowRoom.livingRoom];
+      default:
+        return [];
+    }
   }
 
   static bool isDoorwayVertical(BungalowRoom a, BungalowRoom b) {

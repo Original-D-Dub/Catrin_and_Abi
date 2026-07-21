@@ -71,6 +71,9 @@ class AudioService {
       wrongSfx: 'letter_quest/collect_wrong.wav',
       successSfx: 'letter_quest/game_complete.wav',
     ),
+    'word_search': GameAudioConfig(
+      introMp3: 'speech files/word_whirl_instructions.mp3',
+    ),
   };
 
   // ── Active player tracking ─────────────────────────────────────────────────
@@ -122,6 +125,26 @@ class AudioService {
         _trackPlayer(player);
       } catch (e) {
         debugPrint('AudioService: intro MP3 playback error ($mp3): $e');
+      }
+    }
+  }
+
+  /// Plays the zoo's camera shutter click (`assets/audio/zoo/camera_shutter.wav`).
+  ///
+  /// Awaits playback (capped at [_shutterTimeout], comfortably longer than
+  /// the ~0.4s clip) so callers can play it before a correct/wrong SFX
+  /// rather than have the two overlap. Silent if the asset is missing.
+  static const Duration _shutterTimeout = Duration(milliseconds: 500);
+
+  static Future<void> playCameraShutter() async {
+    const path = 'zoo/camera_shutter.wav';
+    if (await _hasAudioAsset(path)) {
+      try {
+        final player = await FlameAudio.play(path);
+        _trackPlayer(player);
+        await _awaitCompletion(player, _shutterTimeout);
+      } catch (e) {
+        debugPrint('AudioService: camera shutter playback error: $e');
       }
     }
   }
@@ -223,7 +246,9 @@ class AudioService {
       if (duration != null && duration.inMilliseconds > leadMs) {
         await Future.delayed(duration - Duration(milliseconds: leadMs));
       } else {
-        await _awaitCompletion(player1, const Duration(seconds: 30));
+        // getDuration() unavailable (e.g. Android SoundPool in low-latency mode);
+        // use a fixed delay rather than hanging on onPlayerComplete for 30 s.
+        await Future.delayed(const Duration(milliseconds: 3500));
       }
       final player2 = await FlameAudio.play(path2);
       _trackPlayer(player2);

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 
 /// Room layout for the top floor of Catrin and Abi's house.
@@ -70,22 +72,86 @@ class HouseRoomConfig {
 
   static List<Vector2> get letterPositions {
     return [
-      // Catrin's bedroom — clear floor away from bed, table, nightstand
+      // Catrin's bedroom
       Vector2(160, 160),
+      Vector2(450, 650),
       Vector2(550, 650),
       Vector2(900, 630),
-      // Abi's bedroom — clear floor below bed and lamp
+      // Abi's bedroom
       Vector2(catrinWidth + 210, 620),
       Vector2(catrinWidth + 80, 650),
-      // Bathroom — clear floor away from bath, toilet, sink
+      Vector2(catrinWidth + 500, 200),
+      // Bathroom
       Vector2(160, bottomRowTop + 160),
       Vector2(300, bottomRowTop + 300),
       Vector2(160, bottomRowTop + 420),
-      // Mum & Dad's bedroom — clear floor left of bed and below bed
+      // Mum & Dad's bedroom
       Vector2(bathroomWidth + 100, bottomRowTop + 160),
+      Vector2(bathroomWidth + 150, bottomRowTop + 350),
       Vector2(bathroomWidth + 100, bottomRowTop + 500),
       Vector2(bathroomWidth + 350, bottomRowTop + 650),
       Vector2(bathroomWidth + 100, bottomRowTop + 650),
     ];
+  }
+
+  // ── Furniture rects (for letter-placement blocking) ───────────────────
+
+  static List<Rect> get furnitureRects {
+    const ox = catrinWidth;
+    const oy = bottomRowTop;
+    const mdOx = bathroomWidth;
+    const t = wallThickness;
+
+    return [
+      // ── Catrin's bedroom ──
+      Rect.fromLTWH(290, 40, 517, 532),
+      Rect.fromLTWH(807, 40, 180, 180 * 102 / 121),
+      Rect.fromLTWH(40, 230, 234, 430),
+      Rect.fromLTWH(815, 45, 151, 102),
+      Rect.fromLTWH(940, 90, 59, 61),
+      Rect.fromLTWH(40, 50, 131, 104),
+      Rect.fromLTWH(55, 280, 56, 109),
+      Rect.fromLTWH(110, 270, 83, 179),
+      Rect.fromLTWH(110, 460, 44, 93),
+      Rect.fromLTWH(170, 490, 39, 33),
+
+      // ── Abi's bedroom ──
+      Rect.fromLTWH(ox + 315, 40, 120, 101),
+      Rect.fromLTWH(ox + 20, 50, 289, 495),
+      Rect.fromLTWH(ox + 486, 370, 207, 206),
+      Rect.fromLTWH(ox + 321, 450, 372, 302),
+      Rect.fromLTWH(ox + 365, 42, 127, 78),
+      Rect.fromLTWH(ox + 415, 100, 115, 89),
+      Rect.fromLTWH(ox + 331, 42, 72, 69),
+      Rect.fromLTWH(ox + 380, 60, 19, 50),
+      Rect.fromLTWH(ox + 140, 570, 50, 40),
+      Rect.fromLTWH(ox + 360, 380, 32, 50),
+
+      // ── Bathroom ──
+      Rect.fromLTWH(494, oy + 240, 239, 585),
+      Rect.fromLTWH(t, oy + bottomRowHeight - t - 218, 136, 218),
+      Rect.fromLTWH(280, oy + bottomRowHeight - t - 163, 201, 163),
+      Rect.fromLTWH(494, oy + 40, 231, 232),
+      Rect.fromLTWH(100, oy + 200, 227, 313),
+
+      // ── Mum & Dad's bedroom ──
+      Rect.fromLTWH(mdOx + 240, oy + bottomRowHeight - t - 577, 496, 577),
+      Rect.fromLTWH(mdOx + 200, oy + 380, 621, 408),
+      Rect.fromLTWH(mdOx + 784, oy + 30, 151, 145),
+      Rect.fromLTWH(mdOx + 940, oy + 50, 158, 333),
+      Rect.fromLTWH(mdOx + 940, oy + 400, 158, 333),
+      Rect.fromLTWH(mdOx + 50, oy + 660, 186, 149),
+      Rect.fromLTWH(mdOx + 736, oy + bottomRowHeight - t - 107, 128, 107),
+    ];
+  }
+
+  static bool isPositionBlocked(Vector2 pos) {
+    const pad = 36.0;
+    final point = Rect.fromCenter(
+      center: Offset(pos.x, pos.y),
+      width: pad * 2,
+      height: pad * 2,
+    );
+    return furnitureRects.any((r) => r.overlaps(point));
   }
 }

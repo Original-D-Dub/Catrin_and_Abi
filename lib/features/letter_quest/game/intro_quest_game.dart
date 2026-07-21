@@ -84,6 +84,7 @@ class IntroQuestGame extends BaseLetterQuestGame {
     // Set up camera to follow player
     final cameraComponent = CameraComponent(world: gameWorld)
       ..viewfinder.anchor = Anchor.center
+      ..viewfinder.zoom = mapZoom
       ..follow(player);
     add(cameraComponent);
 

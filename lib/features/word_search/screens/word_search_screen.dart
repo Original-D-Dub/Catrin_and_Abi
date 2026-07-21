@@ -6,6 +6,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/game_app_bar.dart';
+import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/level_select_screen.dart';
 import '../models/word_search_models.dart';
@@ -21,87 +22,118 @@ class WordSearchScreen extends StatelessWidget {
         final locale = provider.locale;
         final localizer = AppLocalizations(locale: locale);
 
-        if (provider.showLevelSelect) {
-          return Scaffold(
-            backgroundColor: const Color(0xFF1A237E),
-            appBar: GameAppBar(
-              title: localizer('word_search.title'),
-              onBack: () => Navigator.of(context).pop(),
-            ),
-            body: SafeArea(
-              child: LevelSelectScreen(
-                locale: locale,
-                levels: WordSearchLevel.forLocale(locale).map((level) {
-                  return LevelSelectItem(
-                    number: level.number,
-                    name: localizer(level.category),
-                    color: levelColor(level.number - 1),
-                    onTap: () => provider.setLevel(level.randomVariant()),
-                  );
-                }).toList(),
-              ),
-            ),
-          );
-        }
-
         return Scaffold(
-          backgroundColor: const Color(0xFF1A237E),
-          appBar: GameAppBar(
-            title: localizer(provider.level.category),
-            onBack: provider.showLevelSelection,
-          ),
-          body: SafeArea(
-            child: Stack(
-              children: [
-                Column(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          _VideoPlayer(
-                            key: ValueKey(provider.wordIndex),
-                            videoPath: provider.currentWord.videoAssetPath,
-                            localizer: localizer,
-                          ),
-                          const SizedBox(height: 10),
-                          _ProgressDots(provider: provider),
-                          const SizedBox(height: 10),
-                          _AttemptStrip(provider: provider, localizer: localizer),
-                          const SizedBox(height: 6),
-                          Expanded(
-                            child: _LetterCircle(provider: provider),
-                          ),
-                        ],
-                      ),
+          extendBodyBehindAppBar: true,
+          appBar: provider.showLevelSelect
+              ? GameAppBar(
+                  title: localizer('word_search.title'),
+                  onBack: () => Navigator.of(context).pop(),
+                )
+              : null,
+          body: Container(
+            decoration: provider.showLevelSelect
+                ? const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(
+                          'assets/backgrounds/math-background-1080x1920.jpg'),
+                      fit: BoxFit.cover,
                     ),
-                  ],
-                ),
-                if (provider.state == WordSearchState.correct)
-                  Positioned.fill(
-                    child: _CorrectBanner(
-                      word: provider.currentWord.word,
-                      localizer: localizer,
-                    ),
-                  ),
-                if (provider.state == WordSearchState.complete)
-                  Positioned.fill(
-                    child: GameSuccessOverlay(
-                      gameId: 'word_search',
-                      scoreStyle: SuccessScoreStyle.youScored,
-                      score: provider.score,
+                  )
+                : const BoxDecoration(color: Color(0xFF1A237E)),
+            child: SafeArea(
+              child: provider.showLevelSelect
+                  ? LevelSelectScreen(
                       locale: locale,
-                      onChangeLevel: () => Navigator.of(context).pop(),
-                      onNextLevel: provider.nextLevel != null
-                          ? () => provider.setLevel(
-                                provider.nextLevel!.randomVariant(),
-                              )
-                          : null,
-                      changeLevelIsButton: true,
-                      changeLevelLabel: localizer('general.home'),
-                      changeLevelIcon: Icons.home_rounded,
+                      subtitle: localizer('word_search.instructions'),
+                      levels: WordSearchLevel.forLocale(locale).map((level) {
+                        return LevelSelectItem(
+                          number: level.number,
+                          name: localizer(level.category),
+                          color: levelColor(level.number - 1),
+                          onTap: () => provider.setLevel(level.randomVariant()),
+                        );
+                      }).toList(),
+                    )
+                  : Stack(
+                      children: [
+                        Column(
+                          children: [
+                            GameHeaderBar(
+                              onBack: provider.showLevelSelection,
+                              scoreValue: '${provider.score}',
+                              levelNumber: provider.level.number,
+                              centerContent: Center(
+                                child: Text(
+                                  localizer(provider.level.category),
+                                  style: const TextStyle(
+                                    fontFamily: 'ComicRelief',
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  _VideoPlayer(
+                                    key: ValueKey(provider.wordIndex),
+                                    videoPath: provider.currentWord.videoAssetPath,
+                                    localizer: localizer,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _ProgressDots(provider: provider),
+                                  const SizedBox(height: 10),
+                                  _AttemptStrip(provider: provider),
+                                  const SizedBox(height: 6),
+                                  Expanded(
+                                    child: _LetterCircle(provider: provider),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (provider.state == WordSearchState.correct)
+                          Positioned.fill(
+                            child: _CorrectBanner(
+                              word: provider.currentWord.word,
+                              localizer: localizer,
+                            ),
+                          ),
+                        if (provider.state == WordSearchState.complete)
+                          Positioned.fill(
+                            child: GameSuccessOverlay(
+                              gameId: 'word_search',
+                              scoreStyle: SuccessScoreStyle.youScored,
+                              score: provider.score,
+                              locale: locale,
+                              onChangeLevel: () => Navigator.of(context).pop(),
+                              onNextLevel: provider.nextLevel != null
+                                  ? () => provider.setLevel(
+                                        provider.nextLevel!.randomVariant(),
+                                      )
+                                  : null,
+                              changeLevelIsButton: true,
+                              changeLevelLabel: localizer('general.home'),
+                              changeLevelIcon: Icons.home_rounded,
+                            ),
+                          ),
+                        if (provider.state == WordSearchState.playing)
+                          Positioned(
+                            right: 16,
+                            bottom: 16,
+                            child: _ClearButton(
+                              label: localizer('word_search.clear'),
+                              onTap: provider.clearAttempt,
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-              ],
             ),
           ),
         );
@@ -130,6 +162,7 @@ class _VideoPlayer extends StatefulWidget {
 class _VideoPlayerState extends State<_VideoPlayer> {
   VideoPlayerController? _controller;
   bool _initialized = false;
+  bool _ended = false;
 
   @override
   void initState() {
@@ -139,6 +172,7 @@ class _VideoPlayerState extends State<_VideoPlayer> {
 
   @override
   void dispose() {
+    _controller?.removeListener(_onVideoUpdate);
     _controller?.dispose();
     super.dispose();
   }
@@ -155,12 +189,29 @@ class _VideoPlayerState extends State<_VideoPlayer> {
         _controller = controller;
         _initialized = true;
       });
-      await controller.setLooping(true);
+      controller.addListener(_onVideoUpdate);
       controller.play();
     } catch (_) {
       // Video not yet available — placeholder is shown.
       controller.dispose();
     }
+  }
+
+  void _onVideoUpdate() {
+    final controller = _controller;
+    if (controller == null || !mounted) return;
+    final value = controller.value;
+    final ended = value.isInitialized &&
+        !value.isPlaying &&
+        value.position >= value.duration;
+    if (ended != _ended) setState(() => _ended = ended);
+  }
+
+  Future<void> _replay() async {
+    final controller = _controller;
+    if (controller == null) return;
+    await controller.seekTo(Duration.zero);
+    controller.play();
   }
 
   @override
@@ -170,13 +221,46 @@ class _VideoPlayerState extends State<_VideoPlayer> {
       child: Container(
         color: Colors.black,
         child: _initialized && _controller != null
-            ? FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _controller!.value.size.width,
-                  height: _controller!.value.size.height,
-                  child: VideoPlayer(_controller!),
-                ),
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: _controller!.value.size.width,
+                      height: _controller!.value.size.height,
+                      child: VideoPlayer(_controller!),
+                    ),
+                  ),
+                  if (_ended)
+                    GestureDetector(
+                      onTap: _replay,
+                      child: Container(
+                        color: Colors.black45,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF9E9E9E),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.play_arrow_rounded,
+                              size: 36,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               )
             : Center(
                 child: Column(
@@ -240,8 +324,7 @@ class _ProgressDots extends StatelessWidget {
 
 class _AttemptStrip extends StatelessWidget {
   final WordSearchProvider provider;
-  final AppLocalizations localizer;
-  const _AttemptStrip({required this.provider, required this.localizer});
+  const _AttemptStrip({required this.provider});
 
   @override
   Widget build(BuildContext context) {
@@ -260,14 +343,7 @@ class _AttemptStrip extends StatelessWidget {
       ),
       child: Center(
         child: letters.isEmpty
-            ? Text(
-                localizer('word_search.drag_hint'),
-                style: const TextStyle(
-                  fontFamily: 'ComicRelief',
-                  color: Colors.white38,
-                  fontSize: 13,
-                ),
-              )
+            ? const SizedBox.shrink()
             : Text(
                 letters.join(' '),
                 style: TextStyle(
@@ -316,11 +392,19 @@ class _LetterCircleState extends State<_LetterCircle> {
         return center + Offset(circleR * cos(angle), circleR * sin(angle));
       });
 
+      // Nearest tile within range wins, so crowded circles (larger pools with
+      // doubled letters) never snag a neighbouring tile first.
       int? hitTest(Offset pos) {
+        int? nearest;
+        double best = tileR * 1.3;
         for (int i = 0; i < positions.length; i++) {
-          if ((pos - positions[i]).distance < tileR * 1.3) return i;
+          final d = (pos - positions[i]).distance;
+          if (d < best) {
+            best = d;
+            nearest = i;
+          }
         }
-        return null;
+        return nearest;
       }
 
       return GestureDetector(
@@ -506,6 +590,55 @@ class _LetterTile extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clear button — resets the current attempt
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ClearButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _ClearButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.backspace_outlined,
+                size: 18, color: Color(0xFF69F0AE)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'ComicRelief',
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );

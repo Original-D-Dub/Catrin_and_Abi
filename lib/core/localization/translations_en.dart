@@ -34,6 +34,8 @@ const Map<String, String> translationsEn = {
   'iac_vowels.title': 'IAC Vowels',
   'iac_vowels.intro': 'Tap the correct fingertip or badge to make the sign for each Welsh vowel: a, e, i, o, u, w, y.',
   'colouring.title': 'Colouring',
+  // A/B test duplicate of colouring — delete with lib/features/colouring2/.
+  'colouring2.title': 'Colouring 2',
   'counting.title': 'Counting',
   'number_line.title': 'Make 10',
   'more_or_less.title': 'More or Less',
@@ -391,11 +393,69 @@ const Map<String, String> translationsEn = {
   // Word Search
   // -------------------------
   'word_search.title': 'Word Search',
+  'word_search.instructions':
+      'Drag your finger from letter to letter to spell the word. Letters can be used more than once.',
   'word_search.level1.name': 'Questions',
   'word_search.level2.name': 'Colours',
   'word_search.level3.name': 'Weather',
-  'word_search.drag_hint': 'Drag the letters to spell the sign',
   'word_search.video_coming_soon': 'Video coming soon',
+  'word_search.clear': 'Clear',
+
+  // -------------------------
+  // Zoo Adventure
+  // -------------------------
+  'zoo.title': 'Zoo Adventure',
+  'zoo.start.title': 'Let\'s find some animals!',
+  'zoo.start.intro':
+      'Watch the BSL video, and move around the zoo to find the animal and take pictures by tapping the camera button when it appears at the bottom of the screen.',
+  'zoo.pick_player.title': 'Pick a Player',
+  'zoo.change_player': 'Change Player',
+  'zoo.choose': 'Go',
+  'zoo.character.abi': 'Abi',
+  'zoo.character.catrin': 'Catrin',
+  'zoo.character.ruby': 'Ruby',
+  'zoo.character.osian': 'Osian',
+  'zoo.character.player5': 'Player 5',
+  'zoo.character.player6': 'Player 6',
+  'zoo.enter': 'Enter',
+  'zoo.find_building.aquarium': 'Find the Aquarium!',
+  'zoo.find_building.reptile_house': 'Find the Reptile House!',
+  'zoo.aviary': 'Aviary',
+  'zoo.reptile_house': 'Reptile House',
+  'zoo.aquarium': 'Aquarium',
+  'zoo.coming_soon': 'More to explore here soon!',
+  'zoo.take_picture': 'Take a picture',
+  'zoo.photos_label': 'Photos',
+  'zoo.exit': 'Exit',
+  'zoo.quiz.watch_sign': 'Watch the sign',
+  'zoo.quiz.success': 'You found all the animals!',
+  'zoo.animal.lion': 'Lion',
+  'zoo.animal.elephant': 'Elephant',
+  'zoo.animal.tiger': 'Tiger',
+  'zoo.animal.rhino': 'Rhino',
+  'zoo.animal.crocodile': 'Crocodile',
+  'zoo.animal.kangaroo': 'Kangaroo',
+  'zoo.animal.giraffe': 'Giraffe',
+  'zoo.animal.gorilla': 'Gorilla',
+  'zoo.animal.monkey': 'Monkey',
+  'zoo.animal.hippo': 'Hippo',
+  'zoo.animal.bear': 'Bear',
+  'zoo.animal.penguin': 'Penguin',
+  'zoo.animal.dolphin': 'Dolphins',
+  'zoo.animal.pig': 'Pig',
+  'zoo.animal.horse': 'Horse',
+  'zoo.animal.cow': 'Cow',
+  'zoo.animal.sheep': 'Sheep',
+  'zoo.aquarium.sharks': 'Sharks',
+  'zoo.aquarium.clownfish': 'Clownfish',
+  'zoo.aquarium.seahorses': 'Seahorses',
+  'zoo.aquarium.turtles': 'Sea Turtles',
+  'zoo.aquarium.jellyfish': 'Jellyfish',
+  'zoo.reptile_house.snakes': 'Snakes',
+  'zoo.reptile_house.crocodiles': 'Crocodiles',
+  'zoo.reptile_house.lizards': 'Lizards',
+  'zoo.reptile_house.tortoises': 'Tortoises',
+  'zoo.reptile_house.geckos': 'Geckos',
 
   // -------------------------
   // Sudoku
@@ -403,12 +463,14 @@ const Map<String, String> translationsEn = {
   'sudoku.title':    'BSL Sudoku',
   'sudoku.subtitle': 'Choose your challenge',
 
-  'sudoku.difficulty.mini':       'Mini Sudoku',
-  'sudoku.difficulty.six_by_six': '6×6 Sudoku',
-  'sudoku.difficulty.easy':       'Easy',
-  'sudoku.difficulty.hard':       'Hard',
-  'sudoku.difficulty.extreme':    'Extreme',
+  'sudoku.difficulty.how_to_play': 'How to Play',
+  'sudoku.difficulty.mini':        'Mini Sudoku',
+  'sudoku.difficulty.six_by_six':  '6×6 Sudoku',
+  'sudoku.difficulty.easy':        'Easy',
+  'sudoku.difficulty.hard':        'Hard',
+  'sudoku.difficulty.extreme':     'Extreme',
 
+  'sudoku.level0.description': '4×4 grid — learn the basics',
   'sudoku.level1.description': '4×4 grid — perfect for starting out',
   'sudoku.level2.description': '6×6 grid with 2×3 boxes',
   'sudoku.level3.description': 'Great introduction to Sudoku',
@@ -422,47 +484,22 @@ const Map<String, String> translationsEn = {
   'sudoku.expert_mode_subtitle': 'No hint highlighting',
 
   // -------------------------
-  // Sudoku Walkthrough
+  // Sudoku How to Play Tutorial
   // -------------------------
-  'sudoku.walkthrough.skip':         'Skip',
-  'sudoku.walkthrough.back':         '← Back',
-  'sudoku.walkthrough.next':         'Next →',
-  'sudoku.walkthrough.lets_play':    "Let's Play!",
-  'sudoku.walkthrough.picker_label': 'BSL number picker',
+  'sudoku.howtoplay.next':  'Next',
 
-  'sudoku.walkthrough.legend.selected': 'Selected',
-  'sudoku.walkthrough.legend.related':  'Related',
-  'sudoku.walkthrough.legend.same':     'Same no.',
-  'sudoku.walkthrough.legend.conflict': 'Conflict',
+  'sudoku.howtoplay.step0': 'Fill the grid with BSL numbers 1, 2, 3 and 4, but remember each number can only appear once in each square in the grid, column or row.',
+  'sudoku.howtoplay.step1': 'The numbers 1, 3 and 4 are already in this square. Add 2 to complete the square.',
+  'sudoku.howtoplay.step2': 'Numbers can only appear once in a column. Tap 4 to complete the column.',
+  'sudoku.howtoplay.step3': 'Numbers can only appear once in a row. Tap 1 to complete the row.',
+  'sudoku.howtoplay.step4': 'The squares, rows and columns for the selected area show blue to help you choose the right number.',
+  'sudoku.howtoplay.step5': 'Now complete the puzzle. Tap a cell to select it, then tap a number to fill it in.,l.;',
 
-  'sudoku.walkthrough.step0.title': 'Welcome to BSL Sudoku!',
-  'sudoku.walkthrough.step0.body':  'Use BSL hand signs to fill the 9×9 grid\ninstead of written numbers.',
+  'sudoku.howtoplay.error':     'If a number is added more than once to a row, column or square it will show up red. Use your detective skills to work out how to fix it.',
+  'sudoku.howtoplay.well_done': 'Well done. You fixed it!',
 
-  'sudoku.walkthrough.step1.title':    'Rows & Columns',
-  'sudoku.walkthrough.step1.body_row': 'Each row  ↔  must contain 1–9 with no repeats.',
-  'sudoku.walkthrough.step1.body_col': 'Each column  ↕  must also contain 1–9 exactly once.',
-
-  'sudoku.walkthrough.step2.title':      'The 3×3 Boxes',
-  'sudoku.walkthrough.step2.body_intro': 'The grid is divided into nine 3×3 boxes.',
-  'sudoku.walkthrough.step2.body_rule':  'Each box must contain the numbers 1–9 — once each.',
-
-  'sudoku.walkthrough.step3.title':        'How to Play',
-  'sudoku.walkthrough.step3.body_select':  'Tap any empty cell to select it.',
-  'sudoku.walkthrough.step3.body_glow':    'The cell glows amber when selected.',
-  'sudoku.walkthrough.step3.body_fill':    'Tap a BSL number below the grid to fill it in!',
-
-  'sudoku.walkthrough.step4.title':        'Hints & Errors',
-  'sudoku.walkthrough.step4.body_glow':    'Tap a cell — its row, column and box glow blue.',
-  'sudoku.walkthrough.step4.body_blue':    'Blue cells show where the same number cannot appear.',
-  'sudoku.walkthrough.step4.body_purple':  'Cells sharing the same number glow purple.',
-  'sudoku.walkthrough.step4.body_red':     'A conflict turns cells red — fix it before moving on!',
-  'sudoku.walkthrough.step4.body_clear':   "No red cells = you're on the right track!",
-
-  'sudoku.walkthrough.step5.title':        'Ready to Play!',
-  'sudoku.walkthrough.step5.body':         'Choose a difficulty and start solving.\nGood luck — you\'ve got this!',
-  'sudoku.walkthrough.step5.normal_note':  'More starting clues',
-  'sudoku.walkthrough.step5.hard_note':    'Fewer starting clues',
-  'sudoku.walkthrough.step5.extreme_note': 'For true masters',
+  'sudoku.howtoplay.hint.tap_bsl':      'Tap on a BSL symbol below to fill this square.',
+  'sudoku.howtoplay.hint.tap_keyboard': 'Tap the keyboard to place the number in the selected square.',
 
   // -------------------------
   // Settings Screen

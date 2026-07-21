@@ -7,7 +7,6 @@ import '../game/outdoor/outdoor_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
 import '../widgets/victory_overlay.dart';
-import '../widgets/word_progress_bar.dart';
 
 /// Main screen for the Letter Quest Level 4 (outdoor adventure).
 ///
@@ -53,10 +52,6 @@ class _OutdoorQuestScreenState extends State<OutdoorQuestScreen> {
           'hud': (BuildContext context, OutdoorQuestGame game) {
             return GameHud(levelNumber: 4, locale: widget.locale);
           },
-          // Bottom word progress bar with letter tiles
-          'wordProgress': (BuildContext context, OutdoorQuestGame game) {
-            return const WordProgressBar();
-          },
           // Victory overlay when all 5 words are collected
           'victory': (BuildContext context, OutdoorQuestGame game) {
             return VictoryOverlay(
@@ -73,7 +68,7 @@ class _OutdoorQuestScreenState extends State<OutdoorQuestScreen> {
             );
           },
         },
-        initialActiveOverlays: const ['hud', 'wordProgress'],
+        initialActiveOverlays: const ['hud'],
       ),
     );
   }

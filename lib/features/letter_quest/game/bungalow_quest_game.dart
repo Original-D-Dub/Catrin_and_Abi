@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../models/bungalow_config.dart';
 import '../providers/letter_quest_provider.dart';
+import '../services/letter_quest_words_service.dart';
 import 'base_letter_quest_game.dart';
 import 'bungalow_gary_component.dart';
 import 'bungalow_room_component.dart';
@@ -36,12 +37,47 @@ class BungalowQuestGame extends BaseLetterQuestGame {
     await images.load('games/letter_quest/floor-tile-wood-pale.png');
     await images.load('games/letter_quest/wall-tile-brick.png');
     await images.load('characters/Gary/Gary-sprite.png');
+    await images.load('games/letter_quest/bungalow/garden/Grass.jpg');
+    await images.load('games/letter_quest/bungalow/garden/tree-small.png');
+    await images.load('games/letter_quest/bungalow/garden/gardenborder.jpg');
+    await images.load('games/letter_quest/bungalow/garden/shed2.png');
+    await images.load('games/letter_quest/bungalow/garden/path.jpg');
+
+    await images.load('games/letter_quest/bungalow/bedroom/bed.png');
+    await images.load('games/letter_quest/bungalow/bedroom/dogbed.png');
+    await images.load('games/letter_quest/bungalow/bedroom/pile-clothes.png');
+    await images.load('games/letter_quest/bungalow/bedroom/dressing-table.png');
+    for (final name in [
+      'md-plant', 'md-table-1', 'md-table-2', 'md-wardrobe-1',
+    ]) {
+      await images.load('games/letter_quest/mum-dad-bedroom/$name.png');
+    }
+    for (final name in [
+      'abi-chair', 'abi-desk', 'abi-night-stand-1',
+      'abi-Shoe Right', 'abi-shoe-left', 'abi-single-bed-messy-duvet',
+    ]) {
+      await images.load('games/letter_quest/abi-bedroom/$name.png');
+    }
 
     for (final name in [
-      'sink-image', 'toilet-image', 'bath-mat 1', 'shower-tray',
+      'sink-image', 'toilet', 'bath', 'bathmat',
     ]) {
       await images.load('games/letter_quest/bungalow/bathroom/$name.png');
     }
+
+    for (final name in [
+      'coats', 'crocks', 'dogfood', 'kitchen-chair',
+      'left-wall', 'oak-counter-top', 'table', 'wellies1',
+    ]) {
+      await images.load('games/letter_quest/bungalow/kitchen/$name.png');
+    }
+
+    for (final name in [
+      'TV', '4seater-pale-blue', '2seater-pale-blue', 'coffeetable', 'toybox',
+    ]) {
+      await images.load('games/letter_quest/bungalow/livingroom/$name.png');
+    }
+    await images.load('games/letter_quest/bungalow/livingroom/living-room-rug.jpg');
 
     try {
       await FlameAudio.audioCache.loadAll([
@@ -61,6 +97,12 @@ class BungalowQuestGame extends BaseLetterQuestGame {
       provider: provider,
       gameWorld: gameWorld,
     );
+
+    final supabaseWords = await LetterQuestWordsService().fetchRandomWords();
+    if (supabaseWords.isNotEmpty) {
+      provider.initializeFromWordList(supabaseWords);
+    }
+
     roomManager.placeLettersForCurrentWord();
 
     player = PlayerComponent(position: BungalowConfig.playerStart.clone());
@@ -73,8 +115,20 @@ class BungalowQuestGame extends BaseLetterQuestGame {
     );
     gameWorld.add(_gary);
 
+    final treeW = BungalowConfig.gardenW * 0.5;
+    gameWorld.add(SpriteComponent(
+      sprite: Sprite(images.fromCache(
+          'games/letter_quest/bungalow/garden/tree-small.png')),
+      position: Vector2(
+          BungalowConfig.wallThickness + 40,
+          BungalowConfig.wallThickness + 40),
+      size: Vector2(treeW, treeW),
+      priority: 100,
+    ));
+
     final camera = CameraComponent(world: gameWorld)
       ..viewfinder.anchor = Anchor.center
+      ..viewfinder.zoom = mapZoom
       ..follow(player);
     add(camera);
 
@@ -114,6 +168,16 @@ class BungalowQuestGame extends BaseLetterQuestGame {
     } catch (_) {}
     HapticFeedback.heavyImpact();
     overlays.add('victory');
+  }
+
+  /// Re-fetches words from Supabase and restarts the game. Called by the
+  /// victory overlay's "play again" button instead of [provider.resetGame()].
+  Future<void> handlePlayAgain() async {
+    final words = await LetterQuestWordsService().fetchRandomWords();
+    if (words.isNotEmpty) {
+      provider.initializeFromWordList(words);
+      roomManager.clearAndReplaceLetters();
+    }
   }
 
   void _handlePlayerCaught() {

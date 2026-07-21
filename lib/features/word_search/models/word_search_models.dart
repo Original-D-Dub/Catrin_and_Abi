@@ -17,6 +17,8 @@ class WordSearchLevel {
 
   /// All letters that appear in the pool circle.
   /// Must include every unique letter needed across all words in this category.
+  /// Letters that appear doubled in a word (e.g. the "ee" in green) must be
+  /// listed twice so the player can drag through two separate tiles.
   final List<String> letterPool;
 
   /// Optional pool/word variants. When non-empty, [randomVariant] picks one at
@@ -73,43 +75,142 @@ class WordSearchLevel {
     ],
   );
 
-  /// Level 2 — Colours: red, blue, green, brown, yellow, orange, white
-  /// Videos: assets/videos/word_search/colours/{word}.mp4
+  /// Level 2 — Colours (four pool variants, one chosen at random each
+  /// session). Each pool spells 5 colours; together the variants cover
+  /// red, gold, green, grey, brown, orange, yellow, blue and purple.
+  ///
+  /// Doubled letters (the "ee" in green, "ll" in yellow) get two tiles each.
+  ///
+  /// Option A — pool: d e g l l o p r u w y
+  ///   Words: gold · grey · purple · red · yellow
+  ///
+  /// Option C — pool: a b d e e g l n o r w
+  ///   Words: red · gold · green · brown · orange
+  ///
+  /// Option D — pool: a b d e e g n o r w y
+  ///   Words: red · grey · green · brown · orange
+  ///
+  /// Option E — pool: b d e e g l n p r u y
+  ///   Words: red · blue · grey · green · purple
+  ///
+  /// Videos: assets/colours_video2/{word}.mov
   static final WordSearchLevel coloursEn = WordSearchLevel(
     number: 2,
     category: 'word_search.level2.name',
-    letterPool: [
-      'a', 'b', 'd', 'e', 'g', 'h', 'i', 'l',
-      'n', 'o', 'r', 't', 'u', 'w', 'y',
-    ],
-    words: const [
-      WordSearchWord(
-        word: 'red',
-        videoAssetPath: 'assets/videos/word_search/colours/red.mp4',
+    letterPool: [],
+    words: const [],
+    variants: [
+      // Option A — 5 colours, includes purple
+      WordSearchLevel(
+        number: 2,
+        category: 'word_search.level2.name',
+        letterPool: ['d', 'e', 'g', 'l', 'l', 'o', 'p', 'r', 'u', 'w', 'y'],
+        words: const [
+          WordSearchWord(
+            word: 'gold',
+            videoAssetPath: 'assets/colours_video2/gold.mov',
+          ),
+          WordSearchWord(
+            word: 'grey',
+            videoAssetPath: 'assets/colours_video2/grey.mov',
+          ),
+          WordSearchWord(
+            word: 'purple',
+            videoAssetPath: 'assets/colours_video2/purple.mov',
+          ),
+          WordSearchWord(
+            word: 'red',
+            videoAssetPath: 'assets/colours_video2/red.mov',
+          ),
+          WordSearchWord(
+            word: 'yellow',
+            videoAssetPath: 'assets/colours_video2/yellow.mov',
+          ),
+        ],
       ),
-      WordSearchWord(
-        word: 'blue',
-        videoAssetPath: 'assets/videos/word_search/colours/blue.mp4',
+      // Option C — 5 colours, no grey/yellow
+      WordSearchLevel(
+        number: 2,
+        category: 'word_search.level2.name',
+        letterPool: ['a', 'b', 'd', 'e', 'e', 'g', 'l', 'n', 'o', 'r', 'w'],
+        words: const [
+          WordSearchWord(
+            word: 'red',
+            videoAssetPath: 'assets/colours_video2/red.mov',
+          ),
+          WordSearchWord(
+            word: 'gold',
+            videoAssetPath: 'assets/colours_video2/gold.mov',
+          ),
+          WordSearchWord(
+            word: 'green',
+            videoAssetPath: 'assets/colours_video2/green.mov',
+          ),
+          WordSearchWord(
+            word: 'brown',
+            videoAssetPath: 'assets/colours_video2/brown.mov',
+          ),
+          WordSearchWord(
+            word: 'orange',
+            videoAssetPath: 'assets/colours_video2/orange.mov',
+          ),
+        ],
       ),
-      WordSearchWord(
-        word: 'green',
-        videoAssetPath: 'assets/videos/word_search/colours/green.mp4',
+      // Option D — 5 colours, no gold/yellow
+      WordSearchLevel(
+        number: 2,
+        category: 'word_search.level2.name',
+        letterPool: ['a', 'b', 'd', 'e', 'e', 'g', 'n', 'o', 'r', 'w', 'y'],
+        words: const [
+          WordSearchWord(
+            word: 'red',
+            videoAssetPath: 'assets/colours_video2/red.mov',
+          ),
+          WordSearchWord(
+            word: 'grey',
+            videoAssetPath: 'assets/colours_video2/grey.mov',
+          ),
+          WordSearchWord(
+            word: 'green',
+            videoAssetPath: 'assets/colours_video2/green.mov',
+          ),
+          WordSearchWord(
+            word: 'brown',
+            videoAssetPath: 'assets/colours_video2/brown.mov',
+          ),
+          WordSearchWord(
+            word: 'orange',
+            videoAssetPath: 'assets/colours_video2/orange.mov',
+          ),
+        ],
       ),
-      WordSearchWord(
-        word: 'brown',
-        videoAssetPath: 'assets/videos/word_search/colours/brown.mp4',
-      ),
-      WordSearchWord(
-        word: 'yellow',
-        videoAssetPath: 'assets/videos/word_search/colours/yellow.mp4',
-      ),
-      WordSearchWord(
-        word: 'orange',
-        videoAssetPath: 'assets/videos/word_search/colours/orange.mp4',
-      ),
-      WordSearchWord(
-        word: 'white',
-        videoAssetPath: 'assets/videos/word_search/colours/white.mp4',
+      // Option E — 5 colours, includes blue/purple
+      WordSearchLevel(
+        number: 2,
+        category: 'word_search.level2.name',
+        letterPool: ['b', 'd', 'e', 'e', 'g', 'l', 'n', 'p', 'r', 'u', 'y'],
+        words: const [
+          WordSearchWord(
+            word: 'red',
+            videoAssetPath: 'assets/colours_video2/red.mov',
+          ),
+          WordSearchWord(
+            word: 'blue',
+            videoAssetPath: 'assets/colours_video2/blue.mov',
+          ),
+          WordSearchWord(
+            word: 'grey',
+            videoAssetPath: 'assets/colours_video2/grey.mov',
+          ),
+          WordSearchWord(
+            word: 'green',
+            videoAssetPath: 'assets/colours_video2/green.mov',
+          ),
+          WordSearchWord(
+            word: 'purple',
+            videoAssetPath: 'assets/colours_video2/purple.mov',
+          ),
+        ],
       ),
     ],
   );
@@ -240,12 +341,13 @@ class WordSearchLevel {
   );
 
   /// Level 2 — Lliwiau (Colours): coch, glas, gwyrdd, brown, melyn, oren, gwyn
+  /// ("dd" in gwyrdd gets two tiles.)
   static final WordSearchLevel coloursCy = WordSearchLevel(
     number: 2,
     category: 'word_search.level2.name',
     letterPool: [
       'c', 'o', 'h', 'g', 'l', 'a', 's', 'w',
-      'y', 'r', 'd', 'b', 'n', 'e', 'm',
+      'y', 'r', 'd', 'd', 'b', 'n', 'e', 'm',
     ],
     words: const [
       WordSearchWord(
@@ -282,11 +384,13 @@ class WordSearchLevel {
   /// Level 3 — Tywydd (Weather) — two variants chosen at random each session,
   /// mirroring the English [weatherEn] variants.
   ///
-  /// Option A — pool: r h e w l y d g a n t o
+  /// The "ll" in rhewllyd gets two tiles.
+  ///
+  /// Option A — pool: r h e w l l y d g a n t o
   ///   Words: rhewllyd (icy) · glaw (rain) · rhew (ice) · gwynt (wind) ·
   ///   gwyntog (windy) · glawog (rainy)
   ///
-  /// Option B — pool: r h e w l y d g a n t o i
+  /// Option B — pool: r h e w l l y d g a n t o i
   ///   Words: rhewllyd (icy) · glaw (rain) · gwynt (wind) · gwyntog (windy) ·
   ///   glawog (rainy) · glawio (raining)
   static final WordSearchLevel weatherCy = WordSearchLevel(
@@ -299,7 +403,9 @@ class WordSearchLevel {
       WordSearchLevel(
         number: 3,
         category: 'word_search.level3.name',
-        letterPool: ['r', 'h', 'e', 'w', 'l', 'y', 'd', 'g', 'a', 'n', 't', 'o'],
+        letterPool: [
+          'r', 'h', 'e', 'w', 'l', 'l', 'y', 'd', 'g', 'a', 'n', 't', 'o',
+        ],
         words: [
           WordSearchWord(
             word: 'rhewllyd',
@@ -332,7 +438,7 @@ class WordSearchLevel {
         number: 3,
         category: 'word_search.level3.name',
         letterPool: [
-          'r', 'h', 'e', 'w', 'l', 'y', 'd', 'g', 'a', 'n', 't', 'o', 'i',
+          'r', 'h', 'e', 'w', 'l', 'l', 'y', 'd', 'g', 'a', 'n', 't', 'o', 'i',
         ],
         words: [
           WordSearchWord(

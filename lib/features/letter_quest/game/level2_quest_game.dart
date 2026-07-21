@@ -113,6 +113,7 @@ class Level2QuestGame extends BaseLetterQuestGame {
 
     final camera = CameraComponent(world: _gameWorld)
       ..viewfinder.anchor = Anchor.center
+      ..viewfinder.zoom = mapZoom
       ..follow(player);
     add(camera);
 
@@ -151,8 +152,7 @@ class Level2QuestGame extends BaseLetterQuestGame {
     _pendingLockVowel = null;
 
     if (vowel == 'i') {
-      // Returned to hub — hide word bar
-      overlays.remove('wordProgress');
+      // Returned to hub
       return;
     }
 
@@ -179,9 +179,6 @@ class Level2QuestGame extends BaseLetterQuestGame {
 
     // Point the provider at this room's word
     provider.setActiveWordByVowel(vowel);
-
-    // Show the word progress bar
-    overlays.add('wordProgress');
 
     _lockedVowel = vowel;
   }
@@ -240,7 +237,6 @@ class Level2QuestGame extends BaseLetterQuestGame {
     _lockedDoor = null;
     _lockedVowel = null;
     _clearLetters();
-    overlays.remove('wordProgress');
     provider.resetPhaseToPlaying();
   }
 

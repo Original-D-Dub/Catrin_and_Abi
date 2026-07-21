@@ -25,11 +25,25 @@ class AssetPaths {
   static const String _backgrounds = 'assets/backgrounds';
 
   // -------------------------
+  // Shared UI icons
+  // -------------------------
+
+  /// Back-arrow used by all back buttons (see BackArrowIcon).
+  static const String backArrowIcon = 'assets/icons/back_arrow.png';
+
+  // -------------------------
   // Backgrounds
   // -------------------------
 
   /// Park with sun background
   static const String backgroundParkSun = '$_backgrounds/park-sun.jpg';
+
+  // -------------------------
+  // Logos - Animated
+  // -------------------------
+
+  /// Animated Catrin & Abi logo video, shown on the returning-user welcome screen.
+  static const String logoAnimated = '$_logos/catrin_abi_logo-animated.mp4';
 
   // -------------------------
   // Logos - English
@@ -274,5 +288,20 @@ class AssetPaths {
     required String vowel,
   }) {
     return '$_wordThumbnails/$vowel/$word.jpg';
+  }
+
+  /// BSL question video for a zoo quiz animal ([ZooAnimalZone.id]).
+  ///
+  /// Example: 'assets/games/zoo/videos/lion.mp4'
+  static String zooQuizVideo(String animalId) {
+    return 'assets/games/zoo/videos/$animalId.mp4';
+  }
+
+  /// Photo of a zoo animal ([ZooAnimalZone.id]), revealed when the player
+  /// takes a correct picture in the zoo quiz.
+  ///
+  /// Example: 'assets/games/zoo/photos/lion.png'
+  static String zooAnimalPhoto(String animalId) {
+    return 'assets/games/zoo/photos/$animalId.png';
   }
 }

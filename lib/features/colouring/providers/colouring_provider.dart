@@ -28,6 +28,7 @@ enum ColouringLevel {
 typedef BslColour = ({Color colour, String name, String videoName});
 
 const List<BslColour> bslColourList = [
+  (colour: Color(0xFF000000),      name: 'Black',  videoName: 'black'),
   (colour: AppColors.accentRed,    name: 'Red',    videoName: 'red'),
   (colour: AppColors.accentOrange, name: 'Orange', videoName: 'orange'),
   (colour: AppColors.accentYellow, name: 'Yellow', videoName: 'yellow'),
@@ -35,6 +36,8 @@ const List<BslColour> bslColourList = [
   (colour: AppColors.catrinBlue,   name: 'Blue',   videoName: 'blue'),
   (colour: AppColors.accentPurple, name: 'Purple', videoName: 'purple'),
   (colour: AppColors.abiPink,      name: 'Pink',   videoName: 'pink'),
+  (colour: Colors.brown,           name: 'Brown',  videoName: 'brown'),
+  (colour: AppColors.lightGrey,    name: 'Grey',   videoName: 'grey'),
   (colour: Colors.white,           name: 'White',  videoName: 'white'),
 ];
 
@@ -57,16 +60,6 @@ class ColouringProvider extends ChangeNotifier {
     AppColors.peroFur,
     Colors.white,
   ];
-
-  /// Row 2: Character/detail colours
-  static const List<Color> paletteRow2 = [
-    AppColors.catrinHair,
-    AppColors.skinColour,
-    AppColors.lightGrey,
-    AppColors.darkGrey,
-  ];
-
-  static const List<List<Color>> paletteColourRows = [paletteRow1, paletteRow2];
 
   static const int _colourTolerance = 32;
   static const int _outlineThreshold = 50;

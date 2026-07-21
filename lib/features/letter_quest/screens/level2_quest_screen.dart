@@ -10,7 +10,6 @@ import '../../../shared/widgets/game_success_overlay.dart';
 import '../game/level2_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
-import '../widgets/word_progress_bar.dart';
 
 /// Screen for Letter Quest Level 2 — "Find Gary".
 ///
@@ -50,10 +49,6 @@ class _Level2QuestScreenState extends State<Level2QuestScreen> {
         overlayBuilderMap: {
           'hud': (BuildContext context, Level2QuestGame game) {
             return GameHud(levelNumber: 2, locale: widget.locale);
-          },
-          // The word progress bar is added/removed by Level2QuestGame on room entry/exit.
-          'wordProgress': (BuildContext context, Level2QuestGame game) {
-            return const WordProgressBar();
           },
           'victory': (BuildContext context, Level2QuestGame game) {
             return Consumer<LetterQuestProvider>(
@@ -121,7 +116,6 @@ class _Level2QuestScreenState extends State<Level2QuestScreen> {
             );
           },
         },
-        // wordProgress is intentionally absent — the game adds it on room entry.
         initialActiveOverlays: const ['hud'],
       ),
     );

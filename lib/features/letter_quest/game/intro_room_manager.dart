@@ -66,15 +66,35 @@ class IntroRoomManager {
   /// Removes all current letter collectibles and places new ones
   /// for the next word.
   void clearAndReplaceLetters() {
-    // Remove all active letters from the world
+    if (!provider.isInitialized) return;
+    final needed = provider.currentWord.word.split('');
+    final kept = <LetterCollectible>[];
+
     for (final letter in _activeLetters) {
-      if (letter.isMounted) {
+      final idx = needed.indexOf(letter.letter);
+      if (idx >= 0 && letter.isMounted) {
+        needed.removeAt(idx);
+        kept.add(letter);
+      } else if (letter.isMounted) {
         letter.removeFromParent();
       }
     }
-    _activeLetters.clear();
+    _activeLetters
+      ..clear()
+      ..addAll(kept);
 
-    // Place letters for the new current word
-    placeLettersForCurrentWord();
+    if (needed.isEmpty) return;
+    final swapSides = provider.wordsCompleted.isOdd;
+    final positions =
+        List<Vector2>.from(IntroRoomConfig.letterPositions(swapSides: swapSides))
+          ..shuffle(_random);
+    int posIdx = 0;
+    for (final ch in needed) {
+      if (posIdx >= positions.length) break;
+      final letter = LetterCollectible(letter: ch, position: positions[posIdx]);
+      gameWorld.add(letter);
+      _activeLetters.add(letter);
+      posIdx++;
+    }
   }
 }

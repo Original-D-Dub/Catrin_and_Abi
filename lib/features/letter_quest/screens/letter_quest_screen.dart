@@ -9,7 +9,6 @@ import '../game/letter_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
 import '../widgets/victory_overlay.dart';
-import '../widgets/word_progress_bar.dart';
 
 /// Main screen for the Letter Quest RPG game.
 ///
@@ -54,10 +53,6 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
           'hud': (BuildContext context, LetterQuestGame game) {
             return GameHud(levelNumber: 3, locale: widget.locale);
           },
-          // Bottom word progress bar with letter tiles
-          'wordProgress': (BuildContext context, LetterQuestGame game) {
-            return const WordProgressBar();
-          },
           // Victory overlay when all 5 words are collected
           'victory': (BuildContext context, LetterQuestGame game) {
             return VictoryOverlay(
@@ -80,7 +75,7 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
             );
           },
         },
-        initialActiveOverlays: const ['hud', 'wordProgress'],
+        initialActiveOverlays: const ['hud'],
       ),
     );
   }

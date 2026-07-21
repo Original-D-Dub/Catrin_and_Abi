@@ -95,6 +95,62 @@ class _LinkAccountScreenState extends State<LinkAccountScreen> {
     Navigator.pop(context);
   }
 
+  /// Confirms and permanently deletes the account and all saved data.
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete your account?'),
+        content: const Text(
+          'This permanently deletes your account and all saved data — your '
+          'profile, game scores and streaks, and your bingo animal '
+          'collection.\n\nThis cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.accentRed),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final auth = context.read<AuthProvider>();
+    try {
+      await auth.deleteAccount();
+      // Start a fresh anonymous session so the app keeps working.
+      await auth.signInAnonymously();
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your account and all saved data have been deleted.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _errorMessage =
+            'Could not delete your account. Please check your connection and try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -141,8 +197,41 @@ class _LinkAccountScreenState extends State<LinkAccountScreen> {
           icon: Icons.logout,
           expanded: true,
           backgroundColor: AppColors.textSecondary,
-          onPressed: _signOut,
+          onPressed: _isLoading ? null : _signOut,
         ),
+        const SizedBox(height: AppSizes.spacingLarge),
+        const Divider(),
+        const SizedBox(height: AppSizes.spacingLarge),
+        Text(
+          'Delete account',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: AppSizes.spacingSmall),
+        const Text(
+          'Permanently delete your account and all saved data, including your '
+          'profile, game scores and streaks, and your bingo animal collection. '
+          'This cannot be undone.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        if (_errorMessage != null) ...[
+          const SizedBox(height: AppSizes.spacingSmall),
+          Text(
+            _errorMessage!,
+            style: const TextStyle(color: AppColors.accentRed),
+          ),
+        ],
+        const SizedBox(height: AppSizes.spacingMedium),
+        _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : PrimaryButton(
+                label: 'Delete Account',
+                icon: Icons.delete_forever,
+                expanded: true,
+                backgroundColor: AppColors.accentRed,
+                onPressed: _deleteAccount,
+              ),
       ],
     );
   }

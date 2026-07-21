@@ -74,7 +74,7 @@ class GaryComponent extends SpriteAnimationComponent
         super(
           position: position,
           size: Vector2(
-              diameter * 2 * sizeMultiplier, diameter * 2 * sizeMultiplier),
+              diameter * 2 * sizeMultiplier * 1.2, diameter * 2 * sizeMultiplier * 1.2),
           anchor: Anchor.center,
         );
 
@@ -88,7 +88,12 @@ class GaryComponent extends SpriteAnimationComponent
     );
     animation = sheet.createAnimation(row: 0, stepTime: 0.1);
     _previousX = position.x;
-    add(CircleHitbox());
+    final hitRadius = diameter * _sizeMultiplier * 0.8;
+    add(CircleHitbox(
+      radius: hitRadius,
+      position: Vector2(size.x / 2, size.y / 2),
+      anchor: Anchor.center,
+    ));
   }
 
   // ── Update ─────────────────────────────────────────────────────────────────
@@ -103,7 +108,7 @@ class GaryComponent extends SpriteAnimationComponent
     final playerJumping = p is PlayerComponent && p.isJumping;
     if (!playerJumping &&
         position.distanceTo(_player.position) <=
-            _catchRadius * _sizeMultiplier) {
+            _catchRadius * _sizeMultiplier * 0.8) {
       _isCaught = true;
       onPlayerCaught();
       return;
@@ -234,7 +239,7 @@ class GaryComponent extends SpriteAnimationComponent
   void _resolveRectCollision(PositionComponent obstacle) {
     final obstacleCenter = obstacle.absolutePosition + obstacle.size / 2;
     final delta = position - obstacleCenter;
-    final scaledRadius = diameter / 2 * _sizeMultiplier;
+    final scaledRadius = diameter / 2 * _sizeMultiplier * 0.8;
     final halfW = obstacle.size.x / 2 + scaledRadius;
     final halfH = obstacle.size.y / 2 + scaledRadius;
     final overlapX = halfW - delta.x.abs();

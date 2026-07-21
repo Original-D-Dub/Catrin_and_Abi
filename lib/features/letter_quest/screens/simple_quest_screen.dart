@@ -8,7 +8,6 @@ import '../game/simple_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
 import '../widgets/victory_overlay.dart';
-import '../widgets/word_progress_bar.dart';
 
 /// Screen for Letter Quest Level 2 (simple room).
 ///
@@ -50,10 +49,6 @@ class _SimpleQuestScreenState extends State<SimpleQuestScreen> {
           'hud': (BuildContext context, SimpleQuestGame game) {
             return const GameHud(levelNumber: 2);
           },
-          // Bottom word progress bar with letter tiles
-          'wordProgress': (BuildContext context, SimpleQuestGame game) {
-            return const WordProgressBar();
-          },
           // Victory overlay when all 5 words are collected
           'victory': (BuildContext context, SimpleQuestGame game) {
             return VictoryOverlay(
@@ -68,7 +63,7 @@ class _SimpleQuestScreenState extends State<SimpleQuestScreen> {
             );
           },
         },
-        initialActiveOverlays: const ['hud', 'wordProgress'],
+        initialActiveOverlays: const ['hud'],
       ),
     );
   }

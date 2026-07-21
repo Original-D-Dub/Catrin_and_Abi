@@ -12,6 +12,7 @@ class WordSearchProvider extends ChangeNotifier {
 
   WordSearchProvider({this.locale = 'en'}) {
     _level = WordSearchLevel.forLocale(locale).first;
+    AudioService.playIntro('word_search', locale: locale);
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ class WordSearchProvider extends ChangeNotifier {
 
   void showLevelSelection() {
     showLevelSelect = true;
+    AudioService.playIntro('word_search', locale: locale);
     notifyListeners();
   }
 
@@ -123,6 +125,14 @@ class WordSearchProvider extends ChangeNotifier {
     state = WordSearchState.playing;
     selectedIndices = [];
     flashWrong = false;
+    notifyListeners();
+  }
+
+  /// Clears the current attempt so the player can start spelling again.
+  void clearAttempt() {
+    if (state != WordSearchState.playing) return;
+    if (selectedIndices.isEmpty) return;
+    selectedIndices = [];
     notifyListeners();
   }
 }

@@ -8,6 +8,8 @@ class GameIds {
   static const String bubblePop = 'bubble_pop';
   static const String welshBubblePop = 'welsh_bubble_pop';
   static const String colouring = 'colouring';
+  // A/B test duplicate of colouring — delete with lib/features/colouring2/.
+  static const String colouring2 = 'colouring_2';
   static const String vowelHand = 'vowel_hand';
   static const String welshVowels = 'iac_vowels';
   static const String mySpecialDog = 'my_special_dog';
@@ -22,6 +24,7 @@ static const String bslSprint = 'bsl_sprint';
   static const String moreLessGame = 'higher_or_lower';
   static const String wordSearch = 'word_search';
   static const String numberRace = 'number_race';
+  static const String zoo = 'zoo';
 }
 
 /// The result returned by [GameStatsService.recordGameResult].
@@ -63,8 +66,10 @@ class GameStatsService {
     final user = _db.auth.currentUser;
     if (user == null) return;
 
+    // Fall back to an anonymous name rather than deriving one from the
+    // email address, so no part of the email leaks into the profile.
     final username = user.userMetadata?['username'] as String? ??
-        (user.email != null ? user.email!.split('@').first : 'player_${user.id.substring(0, 8)}');
+        'player_${user.id.substring(0, 8)}';
 
     await _db.from('profiles').upsert(
       {'id': user.id, 'user_id': user.id, 'username': username},

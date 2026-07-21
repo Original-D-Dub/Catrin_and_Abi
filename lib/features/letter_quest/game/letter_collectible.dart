@@ -59,7 +59,7 @@ class LetterCollectible extends PositionComponent
     required this.letter,
     required super.position,
   }) : super(
-          size: Vector2(displayWidth, displayHeight),
+          size: Vector2.all(circleRadius * 2),
           anchor: Anchor.center,
         );
 
@@ -67,8 +67,7 @@ class LetterCollectible extends PositionComponent
   Future<void> onLoad() async {
     _svg = game.signSvgs[letter.toLowerCase()];
 
-    // Collision hitbox
-    add(RectangleHitbox());
+    add(CircleHitbox());
 
     // White circle fill
     _circleFillPaint = Paint()..color = const Color(0xFFFFFFFF);
@@ -106,11 +105,14 @@ class LetterCollectible extends PositionComponent
     }
 
     if (!_hidden) {
-      final center = Offset(displayWidth / 2, displayHeight / 2);
+      final center = Offset(size.x / 2, size.y / 2);
       canvas.drawCircle(center, circleRadius, _circleFillPaint);
       canvas.drawCircle(center, circleRadius, _circleBorderPaint);
     }
-    _svg?.render(canvas, size);
+    canvas.save();
+    canvas.translate((size.x - displayWidth) / 2, (size.y - displayHeight) / 2);
+    _svg?.render(canvas, Vector2(displayWidth, displayHeight));
+    canvas.restore();
 
     if (useLayer) {
       canvas.restore();

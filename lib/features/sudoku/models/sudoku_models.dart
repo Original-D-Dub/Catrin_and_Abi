@@ -1,5 +1,5 @@
 /// Difficulty levels for BSL Sudoku.
-enum SudokuDifficulty { mini, sixBySix, normal, hard, extreme }
+enum SudokuDifficulty { howToPlay, mini, sixBySix, normal, hard, extreme }
 
 /// A single cell in the Sudoku grid.
 class SudokuCell {

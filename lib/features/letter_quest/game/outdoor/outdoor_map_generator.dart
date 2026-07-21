@@ -165,6 +165,7 @@ class OutdoorMapGenerator {
       rng,
       grid,
       playerStart,
+      bushPositions: bushPositions,
     );
 
     return OutdoorMapData(
@@ -885,8 +886,9 @@ class OutdoorMapGenerator {
   static List<Vector2> _generateLetterPositions(
     Random rng,
     List<List<CellType>> grid,
-    Vector2 playerStart,
-  ) {
+    Vector2 playerStart, {
+    List<Vector2> bushPositions = const [],
+  }) {
     final candidates = <Vector2>[];
     var attempts = 0;
     final maxAttempts = _letterCandidateCount * 30;
@@ -933,6 +935,16 @@ class OutdoorMapGenerator {
         }
       }
       if (tooClose) continue;
+
+      // Avoid spawning under bushes
+      bool nearBush = false;
+      for (final bush in bushPositions) {
+        if (worldPos.distanceTo(bush) < 40) {
+          nearBush = true;
+          break;
+        }
+      }
+      if (nearBush) continue;
 
       candidates.add(worldPos);
     }

@@ -6,7 +6,6 @@ import '../game/house_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
 import '../widgets/victory_overlay.dart';
-import '../widgets/word_progress_bar.dart';
 
 /// Screen for the house top-floor level of Letter Quest.
 class HouseQuestScreen extends StatefulWidget {
@@ -37,9 +36,6 @@ class _HouseQuestScreenState extends State<HouseQuestScreen> {
           'hud': (BuildContext context, HouseQuestGame game) {
             return const GameHud(levelNumber: 3);
           },
-          'wordProgress': (BuildContext context, HouseQuestGame game) {
-            return const WordProgressBar();
-          },
           'jumpButton': (BuildContext context, HouseQuestGame game) {
             return Align(
               alignment: Alignment.bottomLeft,
@@ -52,8 +48,8 @@ class _HouseQuestScreenState extends State<HouseQuestScreen> {
                     heroTag: 'jump',
                     shape: const CircleBorder(),
                     onPressed: () => game.player.jump(),
-                    backgroundColor: Colors.blue,
-                    child: const Text('Jump', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                    backgroundColor: Colors.green,
+                    child: const Text('Jump', style: TextStyle(color: Colors.white, fontFamily: 'ComicRelief', fontWeight: FontWeight.w700, fontSize: 18)),
                   ),
                 ),
               ),
@@ -70,7 +66,7 @@ class _HouseQuestScreenState extends State<HouseQuestScreen> {
             );
           },
         },
-        initialActiveOverlays: const ['hud', 'wordProgress', 'jumpButton'],
+        initialActiveOverlays: const ['hud', 'jumpButton'],
       ),
     );
   }

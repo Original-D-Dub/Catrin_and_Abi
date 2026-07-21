@@ -239,6 +239,22 @@ class _HomeScreenState extends State<HomeScreen> {
             category: GameCategory.vocabulary,
             ageGroups: const {AgeGroup.years1to3},
           ),
+          // A/B test duplicate of colouring — delete with lib/features/colouring2/.
+          homeGameEntry(
+            route: AppRoutes.colouring2,
+            titleKey: 'colouring2.title',
+            imagePath: 'assets/images/home_screen/colouring.jpg',
+            category: GameCategory.vocabulary,
+            ageGroups: const {AgeGroup.years1to3},
+          ),
+          homeGameEntry(
+            route: AppRoutes.numberRace,
+            titleKey: 'number_race.title',
+            imagePath: 'assets/images/home_screen/number-race.png',
+            category: GameCategory.numeracy,
+            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+            arguments: 'en',
+          ),
           homeGameEntry(
             route: AppRoutes.countingGame,
             titleKey: 'counting.title',
@@ -267,14 +283,6 @@ class _HomeScreenState extends State<HomeScreen> {
             imagePath: 'assets/images/home_screen/bsl-maths.jpg',
             category: GameCategory.numeracy,
             ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
-            arguments: 'en',
-          ),
-          homeGameEntry(
-            route: AppRoutes.numberRace,
-            titleKey: 'number_race.title',
-            icon: Icons.flag,
-            category: GameCategory.numeracy,
-            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
             arguments: 'en',
           ),
           homeGameEntry(
@@ -335,6 +343,14 @@ class _HomeScreenState extends State<HomeScreen> {
             imagePath: 'assets/images/home_screen/word-search.png',
             category: GameCategory.vocabulary,
             ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
+          ),
+          homeGameEntry(
+            route: AppRoutes.zoo,
+            titleKey: 'zoo.title',
+            imagePath: 'assets/images/home_screen/zoo.png',
+            category: GameCategory.vocabulary,
+            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+            arguments: 'en',
           ),
         ];
 

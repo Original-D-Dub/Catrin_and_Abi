@@ -24,25 +24,51 @@ class BungalowRoomManager {
     if (!provider.isInitialized) return;
 
     final word = provider.currentWord;
-    final allRooms = BungalowRoom.values;
-    final targetRoom = allRooms[_random.nextInt(allRooms.length)];
-    final positions = List<Vector2>.from(
-        BungalowConfig.letterPositionsFor(targetRoom))
-      ..shuffle(_random);
+    final preferred = BungalowConfig.categoryRooms(word.category);
 
-    for (int i = 0; i < word.word.length && i < positions.length; i++) {
-      final letter = LetterCollectible(
-        letter: word.word[i],
-        position: positions[i],
-      );
+    // Pre-compute shuffled position pools so multiple letters in the same room
+    // get distinct positions.
+    final pools = <BungalowRoom, List<Vector2>>{
+      for (final r in BungalowRoom.values) r: _safePositions(r),
+    };
+
+    final correctRooms = <BungalowRoom>{};
+    for (int i = 0; i < word.word.length; i++) {
+      final room = _pickRoom(preferred, pools);
+      if (room == null) continue;
+      final pos = pools[room]!.removeLast();
+
+      correctRooms.add(room);
+      final letter = LetterCollectible(letter: word.word[i], position: pos);
       gameWorld.add(letter);
       _activeLetters.add(letter);
     }
 
-    _placeDistractors(word, targetRoom);
+    _placeDistractors(word, correctRooms);
   }
 
-  void _placeDistractors(LetterQuestWord word, BungalowRoom targetRoom) {
+  /// Picks a room for a letter. 80 % chance of choosing one of [preferred]
+  /// rooms (if any have positions left), otherwise picks any available room.
+  BungalowRoom? _pickRoom(
+    List<BungalowRoom> preferred,
+    Map<BungalowRoom, List<Vector2>> pools,
+  ) {
+    final availablePreferred =
+        preferred.where((r) => pools[r]!.isNotEmpty).toList();
+
+    if (availablePreferred.isNotEmpty && _random.nextDouble() < 0.8) {
+      availablePreferred.shuffle(_random);
+      return availablePreferred.first;
+    }
+
+    final anyAvailable = BungalowRoom.values
+        .where((r) => pools[r]!.isNotEmpty)
+        .toList()
+      ..shuffle(_random);
+    return anyAvailable.isEmpty ? null : anyAvailable.first;
+  }
+
+  void _placeDistractors(LetterQuestWord word, Set<BungalowRoom> correctRooms) {
     final wordLetters = word.uniqueLetters;
     final distractors = _consonants
         .split('')
@@ -52,10 +78,8 @@ class BungalowRoomManager {
 
     int idx = 0;
     for (final room in BungalowRoom.values) {
-      if (room == targetRoom) continue;
-      final positions = List<Vector2>.from(
-          BungalowConfig.letterPositionsFor(room))
-        ..shuffle(_random);
+      if (correctRooms.contains(room)) continue;
+      final positions = _safePositions(room);
       final count = 1 + _random.nextInt(2);
       for (int i = 0; i < count && i < positions.length; i++) {
         if (idx >= distractors.length) idx = 0;
@@ -70,11 +94,51 @@ class BungalowRoomManager {
     }
   }
 
+  List<Vector2> _safePositions(BungalowRoom room) {
+    return List<Vector2>.from(BungalowConfig.letterPositionsFor(room))
+      ..shuffle(_random)
+      ..removeWhere((p) => BungalowConfig.isPositionBlocked(p));
+  }
+
   void clearAndReplaceLetters() {
+    if (!provider.isInitialized) return;
+    final needed = provider.currentWord.word.split('');
+    final kept = <LetterCollectible>[];
+
     for (final letter in _activeLetters) {
-      if (letter.isMounted) letter.removeFromParent();
+      final idx = needed.indexOf(letter.letter);
+      if (idx >= 0 && letter.isMounted) {
+        needed.removeAt(idx);
+        kept.add(letter);
+      } else if (letter.isMounted) {
+        letter.removeFromParent();
+      }
     }
-    _activeLetters.clear();
-    placeLettersForCurrentWord();
+    _activeLetters
+      ..clear()
+      ..addAll(kept);
+
+    _placeRemainingLetters(
+      needed,
+      preferred: BungalowConfig.categoryRooms(provider.currentWord.category),
+    );
+  }
+
+  void _placeRemainingLetters(
+    List<String> letters, {
+    List<BungalowRoom> preferred = const [],
+  }) {
+    if (letters.isEmpty) return;
+    final pools = <BungalowRoom, List<Vector2>>{
+      for (final r in BungalowRoom.values) r: _safePositions(r),
+    };
+    for (final letter in letters) {
+      final room = _pickRoom(preferred, pools);
+      if (room == null) continue;
+      final pos = pools[room]!.removeLast();
+      final collectible = LetterCollectible(letter: letter, position: pos);
+      gameWorld.add(collectible);
+      _activeLetters.add(collectible);
+    }
   }
 }

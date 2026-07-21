@@ -14,11 +14,13 @@ class SettingsProvider extends ChangeNotifier {
   static const _categoryKey = 'game_category';
   static const _ageGroupKey = 'age_group';
   static const _signSystemKey = 'sign_system';
+  static const _zooCharacterKey = 'zoo_last_character';
 
   String _language = 'en';
   GameCategory _gameCategory = GameCategory.all;
   AgeGroup _ageGroup = AgeGroup.all;
   SignSystem _signSystem = SignSystem.bsl;
+  String? _lastZooCharacter;
 
   /// Active language code — 'en' (English) or 'cy' (Welsh/Cymraeg).
   String get language => _language;
@@ -31,6 +33,10 @@ class SettingsProvider extends ChangeNotifier {
 
   /// Active sign system used for letter signs (BSL or IAC).
   SignSystem get signSystem => _signSystem;
+
+  /// The zoo character last chosen by a signed-in (non-anonymous) user, or
+  /// null if none is remembered yet (or the user isn't signed in).
+  String? get lastZooCharacter => _lastZooCharacter;
 
   SettingsProvider() {
     _load();
@@ -53,12 +59,16 @@ class SettingsProvider extends ChangeNotifier {
         _gameCategory = GameCategory.fromPrefsString(cat);
         _ageGroup = AgeGroup.fromPrefsString(age);
         _signSystem = SignSystem.fromPrefsString(signSystem);
+        _lastZooCharacter = meta[_zooCharacterKey] as String?;
 
         // Mirror to local prefs for offline access.
         await prefs.setString(_langKey, _language);
         await prefs.setString(_categoryKey, _gameCategory.toPrefsString());
         await prefs.setString(_ageGroupKey, _ageGroup.toPrefsString());
         await prefs.setString(_signSystemKey, _signSystem.toPrefsString());
+        if (_lastZooCharacter != null) {
+          await prefs.setString(_zooCharacterKey, _lastZooCharacter!);
+        }
 
         notifyListeners();
         return;
@@ -99,6 +109,28 @@ class SettingsProvider extends ChangeNotifier {
     _signSystem = signSystem;
     notifyListeners();
     await _persist();
+  }
+
+  /// Remembers [characterId] as the last zoo character picked, for
+  /// signed-in (non-anonymous) users only. Anonymous users get no default
+  /// next time — the pick-a-player grid is shown as normal.
+  Future<void> setLastZooCharacter(String characterId) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null || user.isAnonymous) return;
+    if (_lastZooCharacter == characterId) return;
+
+    _lastZooCharacter = characterId;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_zooCharacterKey, characterId);
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(data: {_zooCharacterKey: characterId}),
+      );
+    } catch (_) {
+      // Non-critical — local preference already saved.
+    }
   }
 
   Future<void> _persist() async {

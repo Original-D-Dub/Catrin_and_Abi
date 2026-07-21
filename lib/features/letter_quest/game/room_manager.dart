@@ -126,19 +126,41 @@ class RoomManager {
     }
   }
 
-  /// Removes all current letter collectibles and places new ones
-  /// for the next word.
   void clearAndReplaceLetters() {
-    // Remove all active letters from the world
+    if (!provider.isInitialized) return;
+    final word = provider.currentWord;
+    final needed = word.word.split('');
+    final kept = <LetterCollectible>[];
+
     for (final letter in _activeLetters) {
-      if (letter.isMounted) {
+      final idx = needed.indexOf(letter.letter);
+      if (idx >= 0 && letter.isMounted) {
+        needed.removeAt(idx);
+        kept.add(letter);
+      } else if (letter.isMounted) {
         letter.removeFromParent();
       }
     }
-    _activeLetters.clear();
+    _activeLetters
+      ..clear()
+      ..addAll(kept);
 
-    // Place letters for the new current word
-    placeLettersForCurrentWord();
+    if (needed.isEmpty) return;
+    final wordRoom = _getRoomForVowel(word.vowel);
+    if (wordRoom == null) return;
+    final positions = List<Vector2>.from(wordRoom.letterPositions)
+      ..shuffle(_random);
+    int posIdx = 0;
+    for (final ch in needed) {
+      if (posIdx >= positions.length) break;
+      final letter = LetterCollectible(
+        letter: ch,
+        position: wordRoom.worldPosition + positions[posIdx],
+      );
+      gameWorld.add(letter);
+      _activeLetters.add(letter);
+      posIdx++;
+    }
   }
 
   /// Returns the room config for the given vowel, or null if not found.

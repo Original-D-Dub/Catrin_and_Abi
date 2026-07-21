@@ -53,6 +53,7 @@ class HouseQuestGame extends BaseLetterQuestGame {
     ]) {
       await images.load('games/letter_quest/abi-bedroom/$name.png');
     }
+    await images.load('games/letter_quest/bungalow/livingroom/toybox.png');
 
     // Mum & Dad's bedroom furniture
     for (final name in [
@@ -91,15 +92,15 @@ class HouseQuestGame extends BaseLetterQuestGame {
     roomManager.generateRoom();
     roomManager.placeLettersForCurrentWord();
 
-    final scaleFactor = size.x > 600 ? 1.6 : 0.8;
     player = PlayerComponent(
       position: roomManager.playerStartPosition,
-      sizeMultiplier: scaleFactor,
+      sizeMultiplier: characterScale,
     );
     gameWorld.add(player);
 
     final cameraComponent = CameraComponent(world: gameWorld)
       ..viewfinder.anchor = Anchor.center
+      ..viewfinder.zoom = mapZoom
       ..follow(player);
     add(cameraComponent);
 

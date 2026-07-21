@@ -154,6 +154,14 @@ class WelshHomeScreen extends StatelessWidget {
                       arguments: 'cy',
                     ),
                     homeGameEntry(
+                      route: AppRoutes.numberRace,
+                      titleKey: 'number_race.title',
+                      imagePath: 'assets/images/home_screen/number-race.png',
+                      category: GameCategory.numeracy,
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+                      arguments: 'cy',
+                    ),
+                    homeGameEntry(
                       route: AppRoutes.countingGame,
                       titleKey: 'counting.title',
                       imagePath: 'assets/images/home_screen/counting-game.jpg',
@@ -167,14 +175,6 @@ class WelshHomeScreen extends StatelessWidget {
                       imagePath: settings.signSystem == SignSystem.iac
                           ? 'assets/images/home_screen/maths-iac.jpg'
                           : 'assets/images/home_screen/maths-bsl.jpg',
-                      category: GameCategory.numeracy,
-                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
-                      arguments: 'cy',
-                    ),
-                    homeGameEntry(
-                      route: AppRoutes.numberRace,
-                      titleKey: 'number_race.title',
-                      icon: Icons.flag,
                       category: GameCategory.numeracy,
                       ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
@@ -201,6 +201,14 @@ class WelshHomeScreen extends StatelessWidget {
                       imagePath: 'assets/images/home_screen/word-search.png',
                       category: GameCategory.vocabulary,
                       ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
+                      arguments: 'cy',
+                    ),
+                    homeGameEntry(
+                      route: AppRoutes.zoo,
+                      titleKey: 'zoo.title',
+                      imagePath: 'assets/images/home_screen/zoo.png',
+                      category: GameCategory.vocabulary,
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
                       arguments: 'cy',
                     ),
                   ];

@@ -109,4 +109,25 @@ class AuthProvider extends ChangeNotifier {
     await Supabase.instance.client.auth.signOut();
     notifyListeners();
   }
+
+  /// Permanently deletes the current account and all of its data
+  /// (profile, game stats, bingo collection). Cannot be undone.
+  ///
+  /// Calls the `delete_account` Postgres function, which removes the
+  /// auth.users row; every per-user table has an ON DELETE CASCADE foreign
+  /// key to auth.users, so all player data goes with it. New per-user tables
+  /// must reference auth.users with ON DELETE CASCADE to be covered.
+  ///
+  /// Required by App Store guideline 5.1.1(v) and the Play Store data-deletion
+  /// policy for apps that offer account creation.
+  Future<void> deleteAccount() async {
+    await Supabase.instance.client.rpc('delete_account');
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {
+      // The server session died with the account; signOut has already
+      // cleared the local session, which is all that matters here.
+    }
+    notifyListeners();
+  }
 }

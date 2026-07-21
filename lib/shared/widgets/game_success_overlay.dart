@@ -10,6 +10,7 @@ import '../../core/constants/app_sizes.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../shared/services/audio_service.dart';
 import '../services/auth_provider.dart';
+import 'back_arrow_icon.dart';
 import 'sign_in_banner_button.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,7 +229,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                       width: 72,
                       height: 72,
                       child: Center(
-                        child: Icon(Icons.arrow_back, color: Colors.white, size: 48),
+                        child: BackArrowIcon(size: 48),
                       ),
                     ),
                   ),

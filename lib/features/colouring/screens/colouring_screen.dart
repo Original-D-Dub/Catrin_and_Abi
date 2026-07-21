@@ -4,13 +4,14 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/circular_video_container.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/level_select_screen.dart';
 import '../models/colouring_page.dart';
 import '../providers/colouring_provider.dart';
-import '../widgets/colour_palette.dart';
+import '../widgets/circular_colour_palette.dart';
 import '../widgets/colouring_canvas.dart';
 
 class ColouringScreen extends StatefulWidget {
@@ -25,6 +26,69 @@ class _ColouringScreenState extends State<ColouringScreen> {
   static const double _kButtonSize = 36.0;
   static const double _kTabletScale = 1.5;
   static const double _kTabletBreakpoint = 600.0;
+  static const double _kRingGap = 8.0;
+  static const double _kPaletteBackgroundPadding = 8.0;
+  static const double _kPaletteStartAngle = 160.0;
+  static const double _kPaletteSweepAngle = 135.0;
+
+  // Anchor of the video circle, matching CircularVideoContainer's original
+  // Positioned(bottom: -50, right: -20) placement.
+  static const double _kVideoBottom = -50.0;
+  static const double _kVideoRight = -20.0;
+
+  // Ordered list of colours the free-colour palette must contain — each has
+  // a matching BSL video in assets/colours_video.
+  static final List<Color> _freeColourPalette = [
+    Color(0xFF000000), // black
+    AppColors.accentNavyBlue, // blue
+    Colors.brown, // brown
+    AppColors.schoolGreen, // green
+    AppColors.lightGrey, // grey
+    AppColors.accentOrange, // orange
+    AppColors.lightPink, // pink
+    AppColors.accentPurple, // purple
+    AppColors.accentRed, // red
+    Color(0xFFFFFFFF), // white
+    AppColors.accentYellow, // yellow
+  ];
+
+  /// Positions the circular ring-and-video group so the video stays
+  /// concentric with where it was originally anchored (bottom: -50, right: -20).
+  Widget _ringAndVideo({
+    required List<Color> colours,
+    required Color selectedColour,
+    required ValueChanged<Color> onColourSelected,
+    required Widget video,
+    required double scale,
+  }) {
+    final centerSize = _kCircleSize * scale;
+    final buttonSize = _kButtonSize * scale;
+    final diameter = CircularColourPalette.diameterFor(
+      centerSize: centerSize,
+      buttonSize: buttonSize,
+      ringGap: _kRingGap,
+      backgroundPadding: _kPaletteBackgroundPadding,
+    );
+    final centerOffsetRight = _kVideoRight + centerSize / 2;
+    final centerOffsetBottom = _kVideoBottom + centerSize / 2;
+
+    return Positioned(
+      right: centerOffsetRight - diameter / 2,
+      bottom: centerOffsetBottom - diameter / 2,
+      child: CircularColourPalette(
+        colours: colours,
+        selectedColour: selectedColour,
+        onColourSelected: onColourSelected,
+        centerChild: video,
+        centerSize: centerSize,
+        buttonSize: buttonSize,
+        ringGap: _kRingGap,
+        backgroundPadding: _kPaletteBackgroundPadding,
+        startAngle: _kPaletteStartAngle,
+        sweepAngle: _kPaletteSweepAngle,
+      ),
+    );
+  }
 
   // ── Colour → BSL video name (free-colour mode) ────────────────────────────
   static final Map<Color, String> _videoName = {
@@ -113,12 +177,7 @@ class _ColouringScreenState extends State<ColouringScreen> {
   Widget _buildLevel1(ColouringProvider provider, double scale) {
     final target = provider.currentBslColour;
     final videoPath = 'assets/colours_video/${target.videoName}.mov';
-
-    // Two rows of 4 from bslColourList
-    final l1Rows = [
-      bslColourList.take(4).map((c) => c.colour).toList(),
-      bslColourList.skip(4).map((c) => c.colour).toList(),
-    ];
+    final l1Colours = bslColourList.map((c) => c.colour).toList();
 
     return Scaffold(
       body: Container(
@@ -172,7 +231,6 @@ class _ColouringScreenState extends State<ColouringScreen> {
                               border: Border.all(
                                   color: AppColors.headerBorderDark, width: 2),
                             ),
-                            clipBehavior: Clip.antiAlias,
                             child: _buildCanvasArea(provider),
                           ),
                         ),
@@ -189,33 +247,18 @@ class _ColouringScreenState extends State<ColouringScreen> {
                             )
                           : const SizedBox(height: 0),
                     ),
-
-                    // Palette — Level 1 colours only
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          left: AppSizes.paddingSmall,
-                          top: 6,
-                          bottom: 8,
-                        ),
-                        child: ColourPalette(
-                          colourRows: l1Rows,
-                          selectedColour: provider.selectedColour,
-                          onColourSelected: provider.selectColour,
-                          buttonSize: _kButtonSize * scale,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
 
-              // Video circle — target colour, auto-plays on advance
-              Positioned(
-                bottom: -50,
-                right: -20,
-                child: CircularVideoContainer(
+              // Circular palette (Level 1 colours) concentric with the
+              // video circle — target colour, auto-plays on advance.
+              _ringAndVideo(
+                colours: l1Colours,
+                selectedColour: provider.selectedColour,
+                onColourSelected: provider.selectColour,
+                scale: scale,
+                video: CircularVideoContainer(
                   key: ValueKey(provider.colourChangeGeneration),
                   size: _kCircleSize * scale,
                   videoAssetPath: videoPath,
@@ -247,7 +290,7 @@ class _ColouringScreenState extends State<ColouringScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: const BackArrowIcon(),
           onPressed: provider.showLevelSelection,
         ),
         title: const Text(
@@ -295,15 +338,6 @@ class _ColouringScreenState extends State<ColouringScreen> {
   Widget _buildFreeColourCanvas(ColouringProvider provider, double scale) {
     final videoPath = _videoPath(provider.selectedColour);
     final label = _label(provider.selectedColour);
-
-    final mapped = ColouringProvider.paletteColourRows
-        .expand((row) => row)
-        .where(_videoName.containsKey)
-        .toList();
-    final paletteRows = <List<Color>>[
-      mapped.take(5).toList(),
-      if (mapped.length > 5) mapped.skip(5).toList(),
-    ];
 
     return Scaffold(
       body: Container(
@@ -356,35 +390,20 @@ class _ColouringScreenState extends State<ColouringScreen> {
                               border: Border.all(
                                   color: AppColors.headerBorderDark, width: 2),
                             ),
-                            clipBehavior: Clip.antiAlias,
                             child: _buildCanvasArea(provider),
                           ),
-                        ),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          left: AppSizes.paddingSmall,
-                          top: 8,
-                          bottom: 8,
-                        ),
-                        child: ColourPalette(
-                          colourRows: paletteRows,
-                          selectedColour: provider.selectedColour,
-                          onColourSelected: provider.selectColour,
-                          buttonSize: _kButtonSize * scale,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              Positioned(
-                bottom: -50,
-                right: -20,
-                child: CircularVideoContainer(
+              _ringAndVideo(
+                colours: _freeColourPalette,
+                selectedColour: provider.selectedColour,
+                onColourSelected: provider.selectColour,
+                scale: scale,
+                video: CircularVideoContainer(
                   size: _kCircleSize * scale,
                   videoAssetPath: videoPath,
                   label: label,

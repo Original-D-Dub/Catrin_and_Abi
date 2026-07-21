@@ -78,8 +78,12 @@ class HouseRoomComponent extends PositionComponent
   /// Places a sprite at [pos] wrapped in a [TiledWallComponent] so the
   /// player and Gary collide with it.
   void _placeSolidFurniture(String imageKey, Vector2 pos, Vector2 size) {
+    final inset = size * 0.05;
     final wall = TiledWallComponent(position: pos, size: size)
-      ..add(RectangleHitbox())
+      ..add(RectangleHitbox(
+        position: inset,
+        size: size - inset * 2,
+      ))
       ..add(SpriteComponent(
         sprite: Sprite(game.images.fromCache(imageKey)),
         size: size,
@@ -127,45 +131,54 @@ class HouseRoomComponent extends PositionComponent
   void _addCatrinFurniture() {
     const p = 'games/letter_quest/catrin-bedroom';
     // Bed — center, headboard against top wall (jumpable)
-    _placeBed('$p/catrin-Bed.png', Vector2(290, 30), Vector2(517, 532));
-    // Night stand — right of bed (solid)
-    _placeSolidFurniture('$p/catrin-night-stand-1.png', Vector2(700, 55), Vector2(385, 200));
+    _placeBed('$p/catrin-Bed.png', Vector2(290, 40), Vector2(517, 532));
+    // Night stand — flush against top wall, right of bed (solid)
+    _placeSolidFurniture('$p/catrin-night-stand-1.png',
+        Vector2(807, 40), Vector2(180, 180 * (102.0 / 121.0)));
     // Lamp — on the night stand
-    _placeFurniture('$p/catrin-lamp.png', Vector2(780, 20), Vector2(151, 102));
+    _placeFurniture('$p/catrin-lamp.png', Vector2(815, 45), Vector2(151, 102));
     // Vase — on the night stand
-    _placeFurniture('$p/catrin-vase.png', Vector2(860, 130), Vector2(59, 61));
+    _placeFurniture('$p/catrin-vase.png', Vector2(940, 90), Vector2(59, 61));
     // Books stack — top-left area
-    _placeFurniture('$p/catrin-books-1.png', Vector2(30, 50), Vector2(131, 104));
-    // Books upright — near desk top
-    _placeFurniture('$p/catrin-books.png', Vector2(270, 100), Vector2(56, 109));
+    _placeFurniture('$p/catrin-books-1.png', Vector2(40, 50), Vector2(131, 104));
     // Table/desk — left side, vertical (Pero goes under, Gary blocked)
-    _placeDesk('$p/catrin-table.png', Vector2(30, 230), Vector2(234, 430));
+    _placeDesk('$p/catrin-table.png', Vector2(40, 230), Vector2(234, 430));
+    // Books upright — on desk (priority 3, above desk's 2)
+    _placeDeskItem('$p/catrin-books.png', Vector2(55, 280), Vector2(56, 109));
     // Computer, keyboard, mouse — on top of desk (priority 3, above desk's 2)
-    _placeDeskItem('$p/catrin-computer.png', Vector2(100, 270), Vector2(83, 179));
-    _placeDeskItem('$p/catrin-keyboard.png', Vector2(100, 460), Vector2(44, 93));
-    _placeDeskItem('$p/catrin-mouse.png', Vector2(160, 490), Vector2(39, 33));
+    _placeDeskItem('$p/catrin-computer.png', Vector2(110, 270), Vector2(83, 179));
+    _placeDeskItem('$p/catrin-keyboard.png', Vector2(110, 460), Vector2(44, 93));
+    _placeDeskItem('$p/catrin-mouse.png', Vector2(170, 490), Vector2(39, 33));
   }
 
   /// Abi's bedroom furniture — room origin (1090, 0), 735×752.
   void _addAbiFurniture() {
     const p = 'games/letter_quest/abi-bedroom';
     final ox = HouseRoomConfig.catrinWidth; // 1090
-    // Night stand — placed first so bed renders on top where they overlap
-    _placeSolidFurniture('$p/abi-night-stand-2.png', Vector2(ox + 208, 20), Vector2(120, 101));
-    // Items on night stand
-    _placeFurniture('$p/abi-clock.png', Vector2(ox + 258, 5), Vector2(127, 78));
-    _placeFurniture('$p/abi-vase.png', Vector2(ox + 308, 80), Vector2(115, 89));
-    _placeFurniture('$p/abi-table-lamp.png', Vector2(ox + 224, 10), Vector2(72, 69));
+    // Night stand — right of bed (solid)
+    _placeSolidFurniture('$p/abi-night-stand-2.png', Vector2(ox + 315, 40), Vector2(120, 101));
+    // Items on night stand — images have transparent padding, so origin is offset left/up
+    // to place the visible clock on the left half and the vase on the right half of the stand.
+    _placeFurniture('$p/abi-clock.png', Vector2(ox + 279, 40), Vector2(127, 78));
+    _placeFurniture('$p/abi-vase.png', Vector2(ox + 338, 28), Vector2(115, 89));
+    _placeFurniture('$p/abi-table-lamp.png', Vector2(ox + 331, 42), Vector2(72, 69));
     _placeFurniture('$p/abi-Pencil.png', Vector2(ox + 380, 60), Vector2(19, 50));
-    // Bed — against central wall, overlaps nightstand (jumpable)
-    _placeBed('$p/abi-single-bed-messy-duvet.png', Vector2(ox + 4, 50), Vector2(289, 495));
+    // Toybox — top-right corner, against right wall (decorative)
+    const toyW = 180.0;
+    const toyH = toyW * (654.0 / 803.0);
+    _placeFurniture('games/letter_quest/bungalow/livingroom/toybox.png',
+        Vector2(HouseRoomConfig.mapWidth - HouseRoomConfig.wallThickness - toyW - 5,
+            HouseRoomConfig.wallThickness + 5),
+        Vector2(toyW, toyH));
+    // Bed — against central wall (jumpable)
+    _placeBed('$p/abi-single-bed-messy-duvet.png', Vector2(ox + 20, 50), Vector2(289, 495));
     // Shoes
     _placeFurniture('$p/abi-shoe-left.png', Vector2(ox + 140, 570), Vector2(50, 40));
     _placeFurniture('$p/abi-Shoe Right.png', Vector2(ox + 360, 380), Vector2(32, 50));
     // Chair — in front of desk, tucked in (solid)
-    _placeSolidFurniture('$p/abi-chair.png', Vector2(ox + 440, 380), Vector2(207, 206));
-    // Desk — bottom-right (Pero goes under, Gary blocked, renders above player)
-    _placeDesk('$p/abi-desk.png', Vector2(ox + 370, 460), Vector2(344, 279));
+    _placeSolidFurniture('$p/abi-chair.png', Vector2(ox + 486, 370), Vector2(207, 206));
+    // Desk — bottom-right, flush against bottom wall (Pero goes under, Gary blocked)
+    _placeDesk('$p/abi-desk.png', Vector2(ox + 321, 450), Vector2(372, 302));
   }
 
   /// Bathroom furniture — room origin (0, 912), 700×851.
@@ -199,18 +212,20 @@ class HouseRoomComponent extends PositionComponent
     _placeFurniture('$p/md-rug.png', Vector2(ox + 200, oy + 380), Vector2(621, 408));
     // Bed — center, foot against lower wall (jumpable)
     _placeBed('$p/md-bed.png',
-        Vector2(ox + 240, oy + HouseRoomConfig.bottomRowHeight - HouseRoomConfig.wallThickness - 641),
-        Vector2(551, 641));
-    // Plant — top-right
-    _placeFurniture('$p/md-plant.png', Vector2(ox + 870, oy + 30), Vector2(151, 145));
-    // Wardrobe left — right side, upper
-    _placeFurniture('$p/md-wardrobe-1.png', Vector2(ox + 940, oy + 50), Vector2(158, 333));
-    // Wardrobe right — right side, lower
-    _placeFurniture('$p/md-wardrobe-2.png', Vector2(ox + 940, oy + 400), Vector2(158, 333));
-    // Side table left — bottom-left
-    _placeFurniture('$p/md-table-1.png', Vector2(ox + 50, oy + 660), Vector2(186, 149));
-    // Side table right — bottom-right
-    _placeFurniture('$p/md-table-2.png', Vector2(ox + 880, oy + 660), Vector2(203, 153));
+        Vector2(ox + 240, oy + HouseRoomConfig.bottomRowHeight - HouseRoomConfig.wallThickness - 577),
+        Vector2(496, 577));
+    // Plant — top-right, left of wardrobe
+    _placeFurniture('$p/md-plant.png', Vector2(ox + 784, oy + 30), Vector2(151, 145));
+    // Wardrobe left — right side, upper (solid)
+    _placeSolidFurniture('$p/md-wardrobe-1.png', Vector2(ox + 940, oy + 50), Vector2(158, 333));
+    // Wardrobe right — right side, lower (solid)
+    _placeSolidFurniture('$p/md-wardrobe-2.png', Vector2(ox + 940, oy + 400), Vector2(158, 333));
+    // Side table left — bottom-left (solid)
+    _placeSolidFurniture('$p/md-table-1.png', Vector2(ox + 50, oy + 660), Vector2(186, 149));
+    // Side table right — against bottom wall, next to bed (solid)
+    _placeSolidFurniture('$p/md-table-2.png',
+        Vector2(ox + 736, oy + HouseRoomConfig.bottomRowHeight - HouseRoomConfig.wallThickness - 107),
+        Vector2(128, 107));
   }
 
   // ── Outer walls ───────────────────────────────────────────────────────

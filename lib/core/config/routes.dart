@@ -11,6 +11,9 @@ import '../../features/bubble_pop/screens/bubble_pop_screen.dart';
 import '../../features/bubble_pop/providers/bubble_pop_provider.dart';
 import '../../features/colouring/screens/colouring_screen.dart';
 import '../../features/colouring/providers/colouring_provider.dart';
+// A/B test duplicate of colouring — delete with lib/features/colouring2/.
+import '../../features/colouring2/screens/colouring2_screen.dart';
+import '../../features/colouring2/providers/colouring2_provider.dart';
 import '../../features/vowel_hand/screens/vowel_hand_screen.dart';
 import '../../features/vowel_hand/providers/vowel_hand_provider.dart';
 import '../../features/my_special_dog/screens/my_special_dog_screen.dart';
@@ -50,7 +53,21 @@ import '../../features/word_search/providers/word_search_provider.dart';
 import '../../features/word_search/screens/word_search_screen.dart';
 import '../../features/number_race/providers/number_race_provider.dart';
 import '../../features/number_race/screens/number_race_screen.dart';
+import '../../features/zoo/models/enclosure_level_config.dart';
+import '../../features/zoo/providers/enclosure_walk_provider.dart';
+import '../../features/zoo/models/zoo_animal_zone.dart';
+import '../../features/zoo/providers/zoo_provider.dart';
+import '../../features/zoo/providers/zoo_quiz_provider.dart';
+import '../../features/zoo/screens/enclosure_walk_screen.dart';
+import '../../features/zoo/screens/zoo_level_select_screen.dart';
+import '../../features/zoo/screens/zoo_quiz_screen.dart';
+import '../../features/zoo/screens/zoo_screen.dart';
+import '../../features/zoo/screens/zoo_building_screen.dart';
+import '../../features/zoo/screens/zoo_pick_player_screen.dart';
+import '../../features/zoo/screens/zoo_player_screen.dart';
+import '../../features/zoo/screens/zoo_start_screen.dart';
 import '../../shared/services/settings_provider.dart';
+import '../constants/game_filters.dart';
 
 /// Named route constants for navigation throughout the app.
 ///
@@ -83,6 +100,10 @@ class AppRoutes {
 
   /// Colouring game
   static const String colouring = '/games/colouring';
+
+  /// Colouring 2 — A/B test duplicate of colouring. Delete alongside
+  /// lib/features/colouring2/ once the A/B test picks a winner.
+  static const String colouring2 = '/games/colouring2';
 
   /// BSL vowel hand game
   static const String vowelHand = '/games/vowel-hand';
@@ -149,6 +170,27 @@ class AppRoutes {
 
   /// BSL Word Search game
   static const String wordSearch = '/games/word-search';
+
+  /// Zoo game entry (start screen)
+  static const String zoo = '/games/zoo';
+
+  /// Zoo pick-a-player character selection screen
+  static const String zooPickPlayer = '/games/zoo/pick-player';
+
+  /// Zoo player detail screen for one character
+  static const String zooPlayer = '/games/zoo/player';
+
+  /// Zoo choose-a-level screen (winding level map)
+  static const String zooLevels = '/games/zoo/levels';
+
+  /// Zoo exploration map
+  static const String zooMap = '/games/zoo/map';
+
+  /// Zoo enterable-building interior (aviary, reptile house, aquarium)
+  static const String zooBuilding = '/games/zoo/building';
+
+  /// Zoo BSL video photo quiz (level 1)
+  static const String zooQuiz = '/games/zoo/quiz';
 
   /// Number Race game
   static const String numberRace = '/games/number-race';
@@ -240,6 +282,16 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (_) => ChangeNotifierProvider(
           create: (_) => ColouringProvider(),
           child: const ColouringScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.colouring2:
+      // A/B test duplicate of colouring — delete with lib/features/colouring2/.
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => Colouring2Provider(),
+          child: const Colouring2Screen(),
         ),
         settings: settings,
       );
@@ -457,6 +509,117 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (_) => ChangeNotifierProvider(
           create: (_) => WordSearchProvider(locale: wordSearchLocale),
           child: const WordSearchScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.zoo:
+      final zooLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => ZooStartScreen(locale: zooLocale),
+        settings: settings,
+      );
+
+    case AppRoutes.zooPickPlayer:
+      final zooPickLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => ZooPickPlayerScreen(locale: zooPickLocale),
+        settings: settings,
+      );
+
+    case AppRoutes.zooPlayer:
+      final zooPlayerArgs =
+          settings.arguments as Map<String, String>? ?? const {};
+      return MaterialPageRoute(
+        builder: (_) => ZooPlayerScreen(
+          locale: zooPlayerArgs['locale'] ?? 'en',
+          characterId: zooPlayerArgs['character'] ?? 'abi',
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.zooLevels:
+      final zooLevelsArgs =
+          settings.arguments as Map<String, String>? ?? const {};
+      return MaterialPageRoute(
+        builder: (context) => ZooLevelSelectScreen(
+          locale: zooLevelsArgs['locale'] ?? 'en',
+          signSystem: context.read<SettingsProvider>().signSystem,
+          characterId: zooLevelsArgs['character'] ?? 'abi',
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.zooMap:
+      final zooMapArgs =
+          settings.arguments as Map<String, String>? ?? const {};
+      final zooMapTarget = zooMapArgs['building'];
+      return MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => ZooProvider(
+            locale: zooMapArgs['locale'] ?? 'en',
+            characterId: zooMapArgs['character'] ?? 'abi',
+            signSystem: context.read<SettingsProvider>().signSystem,
+            targetBuilding:
+                (zooMapTarget != null && zooMapTarget.isNotEmpty)
+                    ? zooMapTarget
+                    : null,
+            levelNumber: int.tryParse(zooMapArgs['level'] ?? '') ?? 1,
+          ),
+          child: const ZooScreen(),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.zooBuilding:
+      final zooBuildingArgs =
+          settings.arguments as Map<String, String>? ?? const {};
+      final zooBuildingName = zooBuildingArgs['building'] ?? 'aquarium';
+      final zooBuildingLocale = zooBuildingArgs['locale'] ?? 'en';
+      final zooBuildingSigns =
+          SignSystem.fromPrefsString(zooBuildingArgs['signSystem']);
+      final zooBuildingLevel = int.tryParse(zooBuildingArgs['level'] ?? '') ?? 1;
+      // Buildings with a walk-level config open the side-scrolling
+      // enclosure walk; the rest keep the coming-soon placeholder.
+      final walkConfig = EnclosureLevelConfig.forBuilding(zooBuildingName);
+      if (walkConfig != null) {
+        return MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => EnclosureWalkProvider(
+              config: walkConfig,
+              locale: zooBuildingLocale,
+              signSystem: zooBuildingSigns,
+              levelNumber: zooBuildingLevel,
+            ),
+            child: const EnclosureWalkScreen(),
+          ),
+          settings: settings,
+        );
+      }
+      return MaterialPageRoute(
+        builder: (_) => ZooBuildingScreen(
+          building: zooBuildingName,
+          locale: zooBuildingLocale,
+          signSystem: zooBuildingSigns,
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.zooQuiz:
+      final zooQuizArgs =
+          settings.arguments as Map<String, String>? ?? const {};
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => ZooQuizProvider(
+            locale: zooQuizArgs['locale'] ?? 'en',
+            signSystem: SignSystem.fromPrefsString(zooQuizArgs['signSystem']),
+            characterId: zooQuizArgs['character'] ?? 'abi',
+            levelNumber: int.tryParse(zooQuizArgs['level'] ?? '') ?? 1,
+            zones: zooQuizArgs['zones'] == 'farm'
+                ? ZooAnimalZone.farm
+                : ZooAnimalZone.all,
+          ),
+          child: const ZooQuizScreen(),
         ),
         settings: settings,
       );

@@ -6,7 +6,6 @@ import '../game/bungalow_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
 import '../widgets/victory_overlay.dart';
-import '../widgets/word_progress_bar.dart';
 
 /// Screen for Letter Quest Level 5 — Bungalow.
 class BungalowQuestScreen extends StatefulWidget {
@@ -24,7 +23,6 @@ class _BungalowQuestScreenState extends State<BungalowQuestScreen> {
   void initState() {
     super.initState();
     final provider = context.read<LetterQuestProvider>();
-    provider.initializeGame();
     _game = BungalowQuestGame(provider: provider);
   }
 
@@ -37,24 +35,19 @@ class _BungalowQuestScreenState extends State<BungalowQuestScreen> {
           'hud': (BuildContext context, BungalowQuestGame game) {
             return GameHud(levelNumber: 5, locale: widget.locale);
           },
-          'wordProgress': (BuildContext context, BungalowQuestGame game) {
-            return const WordProgressBar();
-          },
           'victory': (BuildContext context, BungalowQuestGame game) {
             return VictoryOverlay(
               onPlayAgain: () {
                 game.overlays.remove('victory');
-                provider.resetGame();
-                game.roomManager.clearAndReplaceLetters();
+                game.handlePlayAgain();
               },
               onHome: () => Navigator.of(context).pop(),
             );
           },
         },
-        initialActiveOverlays: const ['hud', 'wordProgress'],
+        initialActiveOverlays: const ['hud'],
       ),
     );
   }
 
-  LetterQuestProvider get provider => context.read<LetterQuestProvider>();
 }

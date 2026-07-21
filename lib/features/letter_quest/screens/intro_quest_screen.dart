@@ -8,7 +8,6 @@ import '../game/intro_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
 import '../widgets/victory_overlay.dart';
-import '../widgets/word_progress_bar.dart';
 
 /// Screen for Letter Quest Level 1 (intro room).
 ///
@@ -54,10 +53,6 @@ class _IntroQuestScreenState extends State<IntroQuestScreen> {
           'hud': (BuildContext context, IntroQuestGame game) {
             return GameHud(levelNumber: 1, locale: widget.locale);
           },
-          // Bottom word progress bar with letter tiles
-          'wordProgress': (BuildContext context, IntroQuestGame game) {
-            return const WordProgressBar();
-          },
           // Victory overlay when all 3 words are collected
           'victory': (BuildContext context, IntroQuestGame game) {
             return VictoryOverlay(
@@ -73,7 +68,7 @@ class _IntroQuestScreenState extends State<IntroQuestScreen> {
             );
           },
         },
-        initialActiveOverlays: const ['hud', 'wordProgress'],
+        initialActiveOverlays: const ['hud'],
       ),
     );
   }

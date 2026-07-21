@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/back_arrow_icon.dart';
+
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
 
@@ -19,7 +21,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const BackArrowIcon(),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),

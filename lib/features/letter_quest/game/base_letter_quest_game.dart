@@ -14,6 +14,16 @@ abstract class BaseLetterQuestGame extends FlameGame
   /// The game state provider (words, collection tracking, phases).
   LetterQuestProvider get provider;
 
+  static const double _breakpoint = 600.0;
+
+  bool get isLargeScreen => size.x > _breakpoint;
+
+  /// Camera zoom — zoomed out 20% on phones, full on tablets.
+  double get mapZoom => isLargeScreen ? 1.0 : 0.8;
+
+  /// Character scale — independent of map zoom.
+  double get characterScale => isLargeScreen ? 1.0 : 1.0;
+
   /// Pre-loaded sign-language alphabet SVGs keyed by lowercase letter
   /// (or digraph for IAC, e.g. 'ch', 'dd').
   final Map<String, Svg> signSvgs = {};

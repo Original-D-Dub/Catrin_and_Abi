@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/services/audio_service.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
@@ -13,7 +14,6 @@ import '../../../shared/widgets/level_select_screen.dart';
 import '../../bsl_maths/widgets/bsl_number_display.dart';
 import '../models/sudoku_models.dart';
 import '../providers/sudoku_provider.dart';
-import '../widgets/sudoku_walkthrough.dart';
 
 class SudokuScreen extends StatelessWidget {
   final String locale;
@@ -41,36 +41,82 @@ class _SudokuBody extends StatefulWidget {
 }
 
 class _SudokuBodyState extends State<_SudokuBody> {
-  bool _showWalkthrough = false;
-
-  static const _prefsKey = 'sudoku_walkthrough_seen';
+  bool _showSuccess = false;
+  Timer? _successTimer;
+  SudokuProvider? _trackedProvider;
+  String _lastTutorialMessageKey = '';
 
   @override
   void initState() {
     super.initState();
-    _checkFirstLaunch();
   }
 
-  Future<void> _checkFirstLaunch() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool(_prefsKey) ?? false) && mounted) {
-      setState(() => _showWalkthrough = true);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = context.read<SudokuProvider>();
+    if (_trackedProvider != provider) {
+      _trackedProvider?.removeListener(_onProviderChanged);
+      _trackedProvider = provider;
+      provider.addListener(_onProviderChanged);
     }
   }
 
-  Future<void> _dismissWalkthrough() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefsKey, true);
-    if (mounted) setState(() => _showWalkthrough = false);
+  void _onProviderChanged() {
+    final provider = _trackedProvider;
+    if (provider == null) return;
+    if (provider.isComplete && _successTimer == null && !_showSuccess) {
+      _successTimer = Timer(const Duration(seconds: 6), () {
+        if (mounted) setState(() => _showSuccess = true);
+        _successTimer = null;
+      });
+    } else if (!provider.isComplete) {
+      _successTimer?.cancel();
+      _successTimer = null;
+      if (_showSuccess) setState(() => _showSuccess = false);
+    }
+
+    // Play audio when the tutorial message changes.
+    if (provider.difficulty == SudokuDifficulty.howToPlay) {
+      final key = provider.tutorialMessageKey;
+      if (key != _lastTutorialMessageKey) {
+        _lastTutorialMessageKey = key;
+        final path = _audioPathForTutorialKey(key);
+        if (path != null) AudioService.playMp3(path).ignore();
+      }
+    } else {
+      _lastTutorialMessageKey = '';
+    }
+  }
+
+  static String? _audioPathForTutorialKey(String key) => switch (key) {
+    'sudoku.howtoplay.step0'            => 'sudoku/howtoplay.step0.mp3',
+    'sudoku.howtoplay.step1'            => 'sudoku/howtoplay.step1.mp3',
+    'sudoku.howtoplay.step2'            => 'sudoku/howtoplay.step2.mp3',
+    'sudoku.howtoplay.step3'            => 'sudoku/howtoplay.step3.mp3',
+    'sudoku.howtoplay.step4'            => 'sudoku/howtoplay.step4.mp3',
+    'sudoku.howtoplay.step5'            => 'sudoku/howtoplay.step5.mp3',
+    'sudoku.howtoplay.error'            => 'sudoku/howtoplay.error.mp3',
+    'sudoku.howtoplay.hint.tap_bsl'     => 'sudoku/howtoplay.tap_bsl.mp3',
+    'sudoku.howtoplay.hint.tap_keyboard'=> 'sudoku/howtoplay.tap_keyboard.mp3',
+    _                                   => null,
+  };
+
+  @override
+  void dispose() {
+    _successTimer?.cancel();
+    _trackedProvider?.removeListener(_onProviderChanged);
+    super.dispose();
   }
 
   static String _difficultyLabel(SudokuDifficulty d, AppLocalizations localizer) =>
       switch (d) {
-        SudokuDifficulty.mini     => localizer('sudoku.difficulty.mini'),
-        SudokuDifficulty.sixBySix => localizer('sudoku.difficulty.six_by_six'),
-        SudokuDifficulty.normal   => localizer('sudoku.difficulty.easy'),
-        SudokuDifficulty.hard     => localizer('sudoku.difficulty.hard'),
-        SudokuDifficulty.extreme  => localizer('sudoku.difficulty.extreme'),
+        SudokuDifficulty.howToPlay => localizer('sudoku.difficulty.how_to_play'),
+        SudokuDifficulty.mini      => localizer('sudoku.difficulty.mini'),
+        SudokuDifficulty.sixBySix  => localizer('sudoku.difficulty.six_by_six'),
+        SudokuDifficulty.normal    => localizer('sudoku.difficulty.easy'),
+        SudokuDifficulty.hard      => localizer('sudoku.difficulty.hard'),
+        SudokuDifficulty.extreme   => localizer('sudoku.difficulty.extreme'),
       };
 
   @override
@@ -103,8 +149,8 @@ class _SudokuBodyState extends State<_SudokuBody> {
                     : _buildGame(context, provider, localizer),
               ),
 
-              // ── Success overlay ──────────────────────────────────────────
-              if (!provider.showLevelSelect && provider.isComplete)
+              // ── Success overlay (8-second delay via _showSuccess) ────────
+              if (!provider.showLevelSelect && _showSuccess)
                 Positioned.fill(
                   child: GameSuccessOverlay(
                     gameId: 'sudoku',
@@ -112,16 +158,19 @@ class _SudokuBodyState extends State<_SudokuBody> {
                     customScoreLine: localizer('sudoku.puzzle_solved'),
                     showPersonalBest: false,
                     locale: widget.locale,
-                    onPlayAgain: () => provider.nextPuzzle(),
-                    onChangeLevel: () => provider.showLevelSelection(),
+                    onPlayAgain: () {
+                      _successTimer?.cancel();
+                      _successTimer = null;
+                      provider.nextPuzzle();
+                    },
+                    onChangeLevel: () {
+                      _successTimer?.cancel();
+                      _successTimer = null;
+                      provider.showLevelSelection();
+                    },
                   ),
                 ),
 
-              // ── Walkthrough — shown once to new players ───────────────────
-              if (_showWalkthrough)
-                Positioned.fill(
-                  child: SudokuWalkthrough(onComplete: _dismissWalkthrough),
-                ),
             ],
           ),
         );
@@ -133,25 +182,35 @@ class _SudokuBodyState extends State<_SudokuBody> {
 
   Widget _buildGame(
       BuildContext context, SudokuProvider provider, AppLocalizations localizer) {
+    final isHowToPlay = provider.difficulty == SudokuDifficulty.howToPlay;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
         final h = constraints.maxHeight;
 
-        // Grid gets the square space first
+        // Fixed vertical chrome: gaps between elements.
+        // howToPlay: SizedBox(4) + [msg 8+~72] + SizedBox(8 picker) + SizedBox(8 bottom) = 20 spacers
+        // others:    SizedBox(4) + SizedBox(8 picker) + SizedBox(8 btns) + SizedBox(8 bottom) = 28 spacers
+        final spacers    = isHowToPlay ? 20.0 : 28.0;
+        const msgBoxH    = 100.0; // tutorial message container + its top gap (16px text, up to 3 lines)
+        const actionBtnH = 44.0;
+        final extraH     = isHowToPlay ? msgBoxH : actionBtnH;
+
+        // Grid shrinks slightly more when a message box is present
         const minGrid = 180.0;
         const maxGrid = 600.0;
-        final gridSize = math.min(w - 24.0, h * 0.55).clamp(minGrid, maxGrid);
+        final gridFraction = isHowToPlay ? 0.44 : 0.55;
+        final gridSize = math.min(w - 24.0, h * gridFraction).clamp(minGrid, maxGrid);
 
-        // Picker fills what remains after grid + fixed chrome
+        // Picker fills remaining space; minimum cell size relaxed for howToPlay
         final pickerCols    = math.max(provider.boxWidth, provider.boxHeight);
         final pickerRows    = provider.gridSize ~/ pickerCols;
         const pickerSpacing = 8.0;
-        const actionBtnH    = 44.0;
-        const totalSpacerH  = 4.0 + 8.0 + 8.0 + 8.0; // top + gaps + bottom
-        final pickerTotalH  = h - gridSize - totalSpacerH - actionBtnH;
+        final pickerTotalH  = h - gridSize - spacers - extraH;
+        final minCellSize   = isHowToPlay ? 36.0 : 44.0;
         final cellSize = ((pickerTotalH - pickerSpacing * (pickerRows - 1)) / pickerRows)
-            .clamp(44.0, 96.0);
+            .clamp(minCellSize, 96.0);
 
         return Column(
           children: [
@@ -179,28 +238,100 @@ class _SudokuBodyState extends State<_SudokuBody> {
               child: _SudokuGrid(provider: provider, size: gridSize),
             ),
 
+            if (isHowToPlay && provider.tutorialMessageKey.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  child: GestureDetector(
+                    key: ValueKey(provider.tutorialStep),
+                    onTap: provider.tutorialStep == 0
+                        ? () => provider.advanceTutorialStep()
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: const Color(0xFF1A237E), width: 1.5),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.lightbulb_outline,
+                                  color: Color(0xFF1A237E), size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  localizer(provider.tutorialMessageKey),
+                                  style: const TextStyle(
+                                    fontFamily: 'ComicRelief',
+                                    fontSize: 16,
+                                    color: Color(0xFF1A237E),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (provider.tutorialStep == 0) ...[
+                            const SizedBox(height: 6),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    localizer('sudoku.howtoplay.next'),
+                                    style: const TextStyle(
+                                      fontFamily: 'ComicRelief',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1A237E),
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right,
+                                      color: Color(0xFF1A237E), size: 22),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 8),
 
             _NumberPicker(provider: provider, cellSize: cellSize),
 
-            const SizedBox(height: 8),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _ActionButton(
-                  label: localizer('sudoku.clear'),
-                  icon: Icons.backspace_outlined,
-                  onTap: provider.clearSelectedCell,
-                ),
-                const SizedBox(width: 16),
-                _ActionButton(
-                  label: localizer('sudoku.new_puzzle'),
-                  icon: Icons.refresh,
-                  onTap: provider.nextPuzzle,
-                ),
-              ],
-            ),
+            if (!isHowToPlay) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _ActionButton(
+                    label: localizer('sudoku.clear'),
+                    icon: Icons.backspace_outlined,
+                    onTap: provider.clearSelectedCell,
+                  ),
+                  const SizedBox(width: 16),
+                  _ActionButton(
+                    label: localizer('sudoku.new_puzzle'),
+                    icon: Icons.refresh,
+                    onTap: provider.nextPuzzle,
+                  ),
+                ],
+              ),
+            ],
 
             const SizedBox(height: 8),
           ],
@@ -221,10 +352,19 @@ class _SudokuBodyState extends State<_SudokuBody> {
             locale: localizer.locale,
             levels: [
               LevelSelectItem(
+                number: 0,
+                displayLabel: localizer('sudoku.difficulty.how_to_play'),
+                name: 'BSL Sudoku',
+                description: localizer('sudoku.level0.description'),
+                color: levelColor(0),
+                onTap: () =>
+                    provider.selectDifficulty(SudokuDifficulty.howToPlay),
+              ),
+              LevelSelectItem(
                 number: 1,
                 description: localizer('sudoku.level1.description'),
                 displayLabel: localizer('sudoku.difficulty.mini'),
-                color: levelColor(0),
+                color: levelColor(1),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.mini),
               ),
@@ -232,7 +372,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
                 number: 2,
                 description: localizer('sudoku.level2.description'),
                 displayLabel: localizer('sudoku.difficulty.six_by_six'),
-                color: levelColor(1),
+                color: levelColor(2),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.sixBySix),
               ),
@@ -240,7 +380,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
                 number: 3,
                 description: localizer('sudoku.level3.description'),
                 displayLabel: localizer('sudoku.difficulty.easy'),
-                color: levelColor(2),
+                color: levelColor(3),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.normal),
               ),
@@ -248,7 +388,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
                 number: 4,
                 description: localizer('sudoku.level4.description'),
                 displayLabel: localizer('sudoku.difficulty.hard'),
-                color: levelColor(3),
+                color: levelColor(4),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.hard),
               ),
@@ -256,7 +396,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
                 number: 5,
                 description: localizer('sudoku.level5.description'),
                 displayLabel: localizer('sudoku.difficulty.extreme'),
-                color: levelColor(4),
+                color: levelColor(5),
                 onTap: () =>
                     provider.selectDifficulty(SudokuDifficulty.extreme),
               ),
@@ -424,17 +564,27 @@ class _SudokuGrid extends StatelessWidget {
     final selCol = provider.selectedCol;
     final expert = provider.expertMode;
 
+    final tutorialStep = provider.tutorialStep;
+    // Purple same-value highlight is suppressed for How to Play (L0) and Mini (L1).
+    final suppressPurple = provider.difficulty == SudokuDifficulty.howToPlay ||
+        provider.difficulty == SudokuDifficulty.mini;
+    // Related-cell highlight is suppressed during active tutorial steps so only
+    // the tutorial blue shows.
+    final suppressRelated = tutorialStep >= 1;
+
     Color bg;
     if (isSelected) {
       bg = Colors.amber.shade300;
     } else if (cell.hasError) {
       bg = Colors.red.shade200;
-    } else if (!expert && selRow != null && selCol != null) {
+    } else if (provider.isTutorialHighlight(row, col)) {
+      bg = Colors.lightBlue.shade200;
+    } else if (!expert && !suppressRelated && selRow != null && selCol != null) {
       final sameBox =
           (row ~/ boxHeight == selRow ~/ boxHeight) && (col ~/ boxWidth == selCol ~/ boxWidth);
       final related = row == selRow || col == selCol || sameBox;
       final selVal = provider.grid[selRow][selCol].value;
-      if (selVal != 0 && cell.value == selVal) {
+      if (!suppressPurple && selVal != 0 && cell.value == selVal) {
         bg = const Color(0xFFCE93D8);
       } else if (related) {
         bg = Colors.lightBlue.shade50.withValues(alpha: 0.5);
@@ -535,6 +685,7 @@ class _NumberPicker extends StatelessWidget {
                   number: n,
                   size: cellSize,
                   isSelected: provider.selectedNumber == n,
+                  isPulsing: provider.tutorialTargetNumber == n,
                   onTap: () => provider.selectNumber(n),
                 ),
               );
@@ -546,47 +697,113 @@ class _NumberPicker extends StatelessWidget {
   }
 }
 
-class _NumberKey extends StatelessWidget {
+class _NumberKey extends StatefulWidget {
   final int number;
   final double size;
   final bool isSelected;
+  final bool isPulsing;
   final VoidCallback onTap;
 
   const _NumberKey({
     required this.number,
     required this.size,
     required this.isSelected,
+    this.isPulsing = false,
     required this.onTap,
   });
 
   @override
+  State<_NumberKey> createState() => _NumberKeyState();
+}
+
+class _NumberKeyState extends State<_NumberKey>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+  late final Animation<Color?> _color;
+  Timer? _delayTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _color = ColorTween(
+      begin: Colors.amber.shade300,
+      end: Colors.amber.shade50,
+    ).animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
+    if (widget.isPulsing) _schedulePulse();
+  }
+
+  void _schedulePulse() {
+    _delayTimer?.cancel();
+    _delayTimer = Timer(const Duration(seconds: 6), () {
+      if (mounted) _pulse.repeat(reverse: true);
+    });
+  }
+
+  @override
+  void didUpdateWidget(_NumberKey old) {
+    super.didUpdateWidget(old);
+    if (widget.isPulsing == old.isPulsing) return;
+    if (widget.isPulsing) {
+      _schedulePulse();
+    } else {
+      _delayTimer?.cancel();
+      _pulse.stop();
+      _pulse.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _delayTimer?.cancel();
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.amber.shade300
-              : Colors.white.withValues(alpha: 0.88),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? Colors.amber.shade700 : AppColors.catrinBlue,
-            width: isSelected ? 2.5 : 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _color,
+        builder: (context, _) {
+          final Color bg;
+          if (widget.isSelected) {
+            bg = Colors.amber.shade300;
+          } else if (widget.isPulsing) {
+            bg = _color.value ?? Colors.amber.shade300;
+          } else {
+            bg = Colors.white.withValues(alpha: 0.88);
+          }
+          return Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: widget.isSelected
+                    ? Colors.amber.shade700
+                    : AppColors.catrinBlue,
+                width: widget.isSelected ? 2.5 : 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Center(
-          child: BslNumberDisplay(number: number, size: size * 0.72),
-        ),
+            child: Center(
+              child: BslNumberDisplay(
+                  number: widget.number, size: widget.size * 0.72),
+            ),
+          );
+        },
       ),
     );
   }

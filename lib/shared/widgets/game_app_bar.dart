@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../services/audio_service.dart';
+import 'back_arrow_icon.dart';
 
 /// Transparent AppBar used on game screens.
 ///
@@ -39,18 +40,7 @@ class GameAppBar extends StatelessWidget implements PreferredSizeWidget {
       leadingWidth: 64,
       leading: IconButton(
         padding: EdgeInsets.zero,
-        icon: const Icon(
-          Icons.arrow_back,
-          color: AppColors.accentWhite,
-          size: 52,
-          shadows: [
-            Shadow(
-              color: Colors.black54,
-              blurRadius: 6,
-              offset: Offset(2, 2),
-            ),
-          ],
-        ),
+        icon: const BackArrowIcon(size: 52),
         tooltip: 'Home',
         onPressed: () {
           AudioService.stopAll();

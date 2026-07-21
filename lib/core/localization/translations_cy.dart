@@ -52,6 +52,8 @@ const Map<String, String> translationsCy = {
   'iac_vowels.title': 'Llafariaid IAC',
   'iac_vowels.intro': "Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llafariad Gymraeg: a, e, i, o, u, w, y.",
   'colouring.title': 'Lliwio',
+  // A/B test duplicate of colouring — delete with lib/features/colouring2/.
+  'colouring2.title': 'Lliwio 2',
   'counting.title': 'Cyfri',
   'number_line.title': 'Llinell Rhifau',
   'more_or_less.title': 'Mwy neu Lai',
@@ -370,11 +372,71 @@ const Map<String, String> translationsCy = {
   // Word Search
   // -------------------------
   'word_search.title': 'Chwilio am Eiriau',
+  'word_search.instructions':
+      "Llusgwch eich bys o lythyren i lythyren i sillafu'r gair. Gellir defnyddio llythrennau fwy nag unwaith.",
   'word_search.level1.name': 'Cwestiynau',
   'word_search.level2.name': 'Lliwiau',
   'word_search.level3.name': 'Tywydd',
-  'word_search.drag_hint': 'Llusgwch y llythrennau i sillafu\'r arwydd',
   'word_search.video_coming_soon': 'Fideo ar y ffordd',
+  'word_search.clear': 'Clirio',
+
+  // -------------------------
+  // Zoo Adventure
+  // -------------------------
+  'zoo.title': 'Antur y Sw',
+  'zoo.start.title': 'Dewch i chwilio am anifeiliaid!',
+  'zoo.start.intro':
+      'Gwylia\'r fideo BSL, a symuda o gwmpas y sw i ddod o hyd i\'r anifail '
+      'a thynnu lluniau drwy dapio botwm y camera pan fydd yn ymddangos ar '
+      'waelod y sgrin.',
+  'zoo.pick_player.title': 'Dewis Chwaraewr',
+  'zoo.change_player': 'Newid Chwaraewr',
+  'zoo.choose': 'Mynd',
+  'zoo.character.abi': 'Abi',
+  'zoo.character.catrin': 'Catrin',
+  'zoo.character.ruby': 'Ruby',
+  'zoo.character.osian': 'Osian',
+  'zoo.character.player5': 'Chwaraewr 5',
+  'zoo.character.player6': 'Chwaraewr 6',
+  'zoo.enter': 'Mynd i mewn',
+  'zoo.find_building.aquarium': 'Chwilia am yr Acwariwm!',
+  'zoo.find_building.reptile_house': 'Chwilia am y Tŷ Ymlusgiaid!',
+  'zoo.aviary': 'Adardy',
+  'zoo.reptile_house': 'Tŷ Ymlusgiaid',
+  'zoo.aquarium': 'Acwariwm',
+  'zoo.coming_soon': 'Mwy i\'w archwilio yma cyn bo hir!',
+  'zoo.take_picture': 'Tynnu llun',
+  'zoo.photos_label': 'Lluniau',
+  'zoo.exit': 'Allanfa',
+  'zoo.quiz.watch_sign': 'Gwylia\'r arwydd',
+  'zoo.quiz.success': 'Fe ddest ti o hyd i\'r holl anifeiliaid!',
+  'zoo.animal.lion': 'Llew',
+  'zoo.animal.elephant': 'Eliffant',
+  'zoo.animal.tiger': 'Teigr',
+  'zoo.animal.rhino': 'Rhinoseros',
+  'zoo.animal.crocodile': 'Crocodeil',
+  'zoo.animal.kangaroo': 'Cangarŵ',
+  'zoo.animal.giraffe': 'Jiráff',
+  'zoo.animal.gorilla': 'Gorila',
+  'zoo.animal.monkey': 'Mwnci',
+  'zoo.animal.hippo': 'Hipo',
+  'zoo.animal.bear': 'Arth',
+  'zoo.animal.penguin': 'Pengwin',
+  'zoo.animal.dolphin': 'Dolffiniaid',
+  'zoo.animal.pig': 'Mochyn',
+  'zoo.animal.horse': 'Ceffyl',
+  'zoo.animal.cow': 'Buwch',
+  'zoo.animal.sheep': 'Dafad',
+  'zoo.aquarium.sharks': 'Siarcod',
+  'zoo.aquarium.clownfish': 'Pysgod clown',
+  'zoo.aquarium.seahorses': 'Morfeirch',
+  'zoo.aquarium.turtles': 'Crwbanod y môr',
+  'zoo.aquarium.jellyfish': 'Slefrod môr',
+  'zoo.reptile_house.snakes': 'Nadroedd',
+  'zoo.reptile_house.crocodiles': 'Crocodeilod',
+  'zoo.reptile_house.lizards': 'Madfallod',
+  'zoo.reptile_house.tortoises': 'Crwbanod',
+  'zoo.reptile_house.geckos': 'Gecoaid',
 
   // -------------------------
   // Sudoku
@@ -382,12 +444,14 @@ const Map<String, String> translationsCy = {
   'sudoku.title':    'Sudoku BSL',
   'sudoku.subtitle': 'Dewiswch eich her',
 
-  'sudoku.difficulty.mini':       'Sudoku Mini',
-  'sudoku.difficulty.six_by_six': 'Sudoku 6×6',
-  'sudoku.difficulty.easy':       'Hawdd',
-  'sudoku.difficulty.hard':       'Anodd',
-  'sudoku.difficulty.extreme':    'Eithafol',
+  'sudoku.difficulty.how_to_play': 'Sut i Chwarae',
+  'sudoku.difficulty.mini':        'Sudoku Mini',
+  'sudoku.difficulty.six_by_six':  'Sudoku 6×6',
+  'sudoku.difficulty.easy':        'Hawdd',
+  'sudoku.difficulty.hard':        'Anodd',
+  'sudoku.difficulty.extreme':     'Eithafol',
 
+  'sudoku.level0.description': 'Grid 4×4 — dysgwch y pethau sylfaenol',
   'sudoku.level1.description': "Grid 4×4 — perffaith i ddechrau arni",
   'sudoku.level2.description': 'Grid 6×6 gyda blychau 2×3',
   'sudoku.level3.description': 'Cyflwyniad gwych i Sudoku',
@@ -401,47 +465,22 @@ const Map<String, String> translationsCy = {
   'sudoku.expert_mode_subtitle': 'Dim amlygu cynghorion',
 
   // -------------------------
-  // Taith Gerdded Sudoku
+  // Tiwtorial Sut i Chwarae Sudoku
   // -------------------------
-  'sudoku.walkthrough.skip':         'Hepgor',
-  'sudoku.walkthrough.back':         '← Nôl',
-  'sudoku.walkthrough.next':         'Nesaf →',
-  'sudoku.walkthrough.lets_play':    'Chwarewn!',
-  'sudoku.walkthrough.picker_label': 'Dewiswr rhifau BSL',
+  'sudoku.howtoplay.next':  'Nesaf',
 
-  'sudoku.walkthrough.legend.selected': 'Dewisol',
-  'sudoku.walkthrough.legend.related':  'Cysylltiedig',
-  'sudoku.walkthrough.legend.same':     'Rh. tebyg',
-  'sudoku.walkthrough.legend.conflict': 'Gwrthdaro',
+  'sudoku.howtoplay.step0': 'Llenwch y grid â rhifau BSL 1, 2, 3 a 4, ond cofiwch na all pob rhif ymddangos ond unwaith ym mhob sgwâr yn y grid, colofn na rhes.',
+  'sudoku.howtoplay.step1': "Mae'r rhifau 1, 3 a 4 eisoes yn y sgwâr hwn. Ychwanegwch 2 i gwblhau'r sgwâr.",
+  'sudoku.howtoplay.step2': 'Dim ond unwaith y gall rhifau ymddangos mewn colofn. Tapiwch 4 i gwblhau\'r golofn.',
+  'sudoku.howtoplay.step3': 'Dim ond unwaith y gall rhifau ymddangos mewn rhes. Tapiwch 1 i gwblhau\'r rhes.',
+  'sudoku.howtoplay.step4': "Mae'r sgwariau, rhesi a cholofnau ar gyfer yr ardal ddewisol yn dangos glas i'ch helpu i ddewis y rhif cywir.",
+  'sudoku.howtoplay.step5': "Nawr defnyddiwch yr hyn rydych chi'n ei wybod i gwblhau'r pos.",
 
-  'sudoku.walkthrough.step0.title': 'Croeso i BSL Sudoku!',
-  'sudoku.walkthrough.step0.body':  'Defnyddiwch arwyddion BSL i lenwi\'r grid 9×9\nyn lle rhifau ysgrifenedig.',
+  'sudoku.howtoplay.error':     "Os ychwanegir rhif fwy nag unwaith mewn rhes, colofn neu sgwâr, byddant yn ymddangos yn goch. Defnyddiwch eich sgiliau ditectif i ddarganfod sut i'w gywiro.",
+  'sudoku.howtoplay.well_done': 'Da iawn. Fe wnaethoch chi ei gywiro!',
 
-  'sudoku.walkthrough.step1.title':    'Rhesi a Cholofnau',
-  'sudoku.walkthrough.step1.body_row': 'Rhaid i bob rhes ↔ gynnwys 1–9 heb ailadrodd.',
-  'sudoku.walkthrough.step1.body_col': 'Rhaid i bob colofn ↕ hefyd gynnwys 1–9 unwaith yn unig.',
-
-  'sudoku.walkthrough.step2.title':      'Blychau 3×3',
-  'sudoku.walkthrough.step2.body_intro': 'Mae\'r grid wedi\'i rannu yn naw blwch 3×3.',
-  'sudoku.walkthrough.step2.body_rule':  'Rhaid i bob blwch gynnwys y rhifau 1–9 unwaith yr un.',
-
-  'sudoku.walkthrough.step3.title':       'Sut i Chwarae',
-  'sudoku.walkthrough.step3.body_select': 'Tapiwch unrhyw gell wag i\'w dewis.',
-  'sudoku.walkthrough.step3.body_glow':   'Mae\'r gell yn pelydru melyn pan gaiff ei dewis.',
-  'sudoku.walkthrough.step3.body_fill':   'Tapiwch rif BSL o dan y grid i\'w lenwi!',
-
-  'sudoku.walkthrough.step4.title':       'Awgrymiadau a Gwallau',
-  'sudoku.walkthrough.step4.body_glow':   'Tapiwch gell — bydd rhes, colofn a blwch yn pelydru glas.',
-  'sudoku.walkthrough.step4.body_blue':   'Celloedd glas yn dangos lle na all yr un rhif ymddangos.',
-  'sudoku.walkthrough.step4.body_purple': 'Celloedd â\'r un rhif yn pelydru porffor.',
-  'sudoku.walkthrough.step4.body_red':    'Gwrthdaro yn troi celloedd yn goch — cywirwch nhw!',
-  'sudoku.walkthrough.step4.body_clear':  'Dim celloedd coch = rydych ar y trywydd iawn!',
-
-  'sudoku.walkthrough.step5.title':        'Yn Barod i Chwarae!',
-  'sudoku.walkthrough.step5.body':         'Dewiswch anhawster a dechreuwch ddatrys.\nPob lwc — gallwch chi wneud hyn!',
-  'sudoku.walkthrough.step5.normal_note':  'Mwy o giwiau dechreuol',
-  'sudoku.walkthrough.step5.hard_note':    'Llai o giwiau dechreuol',
-  'sudoku.walkthrough.step5.extreme_note': 'I\'r penigampwyr',
+  'sudoku.howtoplay.hint.tap_bsl':      'Tapiwch symbol BSL isod i lenwi\'r sgwâr hwn.',
+  'sudoku.howtoplay.hint.tap_keyboard': 'Tapiwch y bysellfwrdd i roi\'r rhif yn y sgwâr dewisol.',
 
   // -------------------------
   // Settings Screen

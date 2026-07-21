@@ -112,7 +112,7 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
           AudioService.playMp3('number_line/cake_drop.mp3').ignore();
         });
       } else {
-        AudioService.playSpeechMp3('$next', locale: widget.locale).ignore();
+        AudioService.playSpeechMp3('general_$next', locale: widget.locale).ignore();
       }
 
       if (next < total) {
@@ -491,7 +491,7 @@ class _NumberLineWidget extends StatelessWidget {
             child: Image.asset(
               isOriginal
                   ? 'assets/images/make10_number_line/cacen-melyn.png'
-                  : 'assets/images/make10_number_line/cacen-siocled.png',
+                  : 'assets/images/make10_number_line/cacen-pinc.png',
               fit: BoxFit.contain,
             ),
           );

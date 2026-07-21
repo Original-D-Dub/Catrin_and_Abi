@@ -114,6 +114,19 @@ class LetterQuestProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Initializes the game with a specific list of words (e.g., fetched from
+  /// Supabase). Call this instead of [initializeGame] when word content comes
+  /// from an external source. Category metadata on each word is preserved for
+  /// room-biased letter placement in Level 5.
+  void initializeFromWordList(List<LetterQuestWord> words) {
+    if (words.isEmpty) return;
+    _wordCount = words.length;
+    _words = words;
+    _currentWordIndex = 0;
+    _phase = LetterQuestPhase.playing;
+    notifyListeners();
+  }
+
   // -------------------------
   // Letter collection
   // -------------------------

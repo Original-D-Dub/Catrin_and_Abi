@@ -4,8 +4,7 @@ import '../../vowel_hand/models/word_puzzle.dart';
 
 /// Represents a word the player must collect letters for in Letter Quest.
 ///
-/// Tracks which of the 3 letters (CVC pattern) have been collected.
-/// Letters must be collected in order: first consonant, vowel, last consonant.
+/// Tracks which letters have been collected; letters must be collected in order.
 ///
 /// Example:
 /// ```dart
@@ -15,36 +14,52 @@ import '../../vowel_hand/models/word_puzzle.dart';
 /// print(word.nextNeededLetter); // 'a'
 /// ```
 class LetterQuestWord {
-  /// The 3-letter CVC word (e.g., 'cat', 'dog')
+  /// The word to collect (e.g., 'cat', 'clock')
   final String word;
 
-  /// The middle vowel character (e.g., 'a', 'e')
+  /// The primary vowel in the word (e.g., 'a', 'e'). Used by Level 2.
+  /// Auto-computed from [word] if not provided.
   final String vowel;
 
-  /// Tracks which positions have been collected [first, vowel, last]
+  /// Tracks which letter positions have been collected.
   final List<bool> collected;
+
+  static const _vowels = 'aeiou';
+
+  static String _firstVowel(String w) {
+    for (final c in w.split('')) {
+      if (_vowels.contains(c)) return c;
+    }
+    return w.isNotEmpty ? w[0] : 'a';
+  }
+
+  /// The room category this word belongs to (e.g. 'bedroom', 'kitchen').
+  /// Used by Level 5 to bias letter placement toward the matching room.
+  final String? category;
 
   /// Creates a word for the letter quest game.
   ///
-  /// [word] must be a 3-letter CVC word.
-  /// [vowel] is the middle vowel character.
+  /// [vowel] defaults to the first vowel found in [word].
+  /// [category] is optional — sourced from Supabase for Level 5.
   LetterQuestWord({
     required this.word,
-    required this.vowel,
-  }) : collected = [false, false, false];
+    String? vowel,
+    this.category,
+  })  : vowel = vowel ?? _firstVowel(word),
+        collected = List.filled(word.length, false);
 
   /// Returns the letter at [index] (0, 1, or 2).
   String letterAt(int index) => word[index];
 
-  /// Whether all 3 letters have been collected.
+  /// Whether all letters have been collected.
   bool get isComplete => collected.every((c) => c);
 
   /// Returns the next letter the player needs to collect,
   /// or null if the word is complete.
   ///
-  /// Letters are collected left-to-right: first consonant → vowel → last consonant.
+  /// Letters are collected left-to-right.
   String? get nextNeededLetter {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < word.length; i++) {
       if (!collected[i]) return word[i];
     }
     return null;
@@ -52,7 +67,7 @@ class LetterQuestWord {
 
   /// Returns the index of the next uncollected letter, or -1 if complete.
   int get nextNeededIndex {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < word.length; i++) {
       if (!collected[i]) return i;
     }
     return -1;
@@ -60,7 +75,7 @@ class LetterQuestWord {
 
   /// Marks the letter at [index] as collected.
   void collectLetterAt(int index) {
-    if (index >= 0 && index < 3) {
+    if (index >= 0 && index < word.length) {
       collected[index] = true;
     }
   }

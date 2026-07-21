@@ -95,45 +95,53 @@ class _ColouringCanvasState extends State<ColouringCanvas>
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculate the size to fit the image within constraints
-        // while maintaining aspect ratio
+        final frameWidth = constraints.maxWidth;
+        final frameHeight = constraints.maxHeight;
+
+        // Work out where the image sits within the frame while preserving
+        // its aspect ratio, but size the interactive surface to the whole
+        // frame — so pinch-to-zoom has the full frame to grow into rather
+        // than being clipped to the image's own (possibly letterboxed) box.
         final imageAspectRatio = widget.image.width / widget.image.height;
-        final constraintAspectRatio =
-            constraints.maxWidth / constraints.maxHeight;
+        final frameAspectRatio = frameWidth / frameHeight;
 
         double displayWidth;
         double displayHeight;
 
-        if (imageAspectRatio > constraintAspectRatio) {
+        if (imageAspectRatio > frameAspectRatio) {
           // Image is wider - fit to width
-          displayWidth = constraints.maxWidth;
-          displayHeight = constraints.maxWidth / imageAspectRatio;
+          displayWidth = frameWidth;
+          displayHeight = frameWidth / imageAspectRatio;
         } else {
           // Image is taller - fit to height
-          displayHeight = constraints.maxHeight;
-          displayWidth = constraints.maxHeight * imageAspectRatio;
+          displayHeight = frameHeight;
+          displayWidth = frameHeight * imageAspectRatio;
         }
 
-        return Center(
-          child: GestureDetector(
-            onDoubleTap: _resetZoom,
-            child: InteractiveViewer(
-              transformationController: _transformationController,
-              minScale: _minScale,
-              maxScale: _maxScale,
-              child: GestureDetector(
-                onTapDown: (details) => _handleTap(
-                  details,
-                  displayWidth,
-                  displayHeight,
-                ),
-                child: SizedBox(
-                  width: displayWidth,
-                  height: displayHeight,
-                  child: CustomPaint(
-                    painter: _ImagePainter(image: widget.image),
-                    size: Size(displayWidth, displayHeight),
+        final imageRect = Rect.fromLTWH(
+          (frameWidth - displayWidth) / 2,
+          (frameHeight - displayHeight) / 2 - 64,
+          displayWidth,
+          displayHeight,
+        );
+
+        return GestureDetector(
+          onDoubleTap: _resetZoom,
+          child: InteractiveViewer(
+            transformationController: _transformationController,
+            minScale: _minScale,
+            maxScale: _maxScale,
+            child: GestureDetector(
+              onTapDown: (details) => _handleTap(details, imageRect),
+              child: SizedBox(
+                width: frameWidth,
+                height: frameHeight,
+                child: CustomPaint(
+                  painter: _ImagePainter(
+                    image: widget.image,
+                    destRect: imageRect,
                   ),
+                  size: Size(frameWidth, frameHeight),
                 ),
               ),
             ),
@@ -148,19 +156,13 @@ class _ColouringCanvasState extends State<ColouringCanvas>
   /// Because the inner [GestureDetector] sits inside the [InteractiveViewer],
   /// Flutter's hit-testing already applies the inverse transform before the
   /// event reaches the child, so [TapDownDetails.localPosition] is in the
-  /// natural (unscaled) coordinate space of the [SizedBox] — i.e. display
-  /// image coordinates — regardless of the current zoom level.
-  void _handleTap(
-    TapDownDetails details,
-    double displayWidth,
-    double displayHeight,
-  ) {
+  /// natural (unscaled) coordinate space of the frame — i.e. display image
+  /// coordinates offset by where the image sits within the frame —
+  /// regardless of the current zoom level.
+  void _handleTap(TapDownDetails details, Rect imageRect) {
     final pos = details.localPosition;
-    if (pos.dx >= 0 &&
-        pos.dx <= displayWidth &&
-        pos.dy >= 0 &&
-        pos.dy <= displayHeight) {
-      widget.onTap(pos, Size(displayWidth, displayHeight));
+    if (imageRect.contains(pos)) {
+      widget.onTap(pos - imageRect.topLeft, imageRect.size);
     }
   }
 }
@@ -170,7 +172,10 @@ class _ImagePainter extends CustomPainter {
   /// The image to paint
   final ui.Image image;
 
-  _ImagePainter({required this.image});
+  /// Where within the canvas the image should be drawn.
+  final Rect destRect;
+
+  _ImagePainter({required this.image, required this.destRect});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -182,18 +187,15 @@ class _ImagePainter extends CustomPainter {
       image.height.toDouble(),
     );
 
-    // Destination rectangle (fit to canvas size)
-    final dstRect = Rect.fromLTWH(0, 0, size.width, size.height);
-
     // Paint with default settings (no filtering for crisp edges)
     final paint = Paint()..filterQuality = FilterQuality.medium;
 
-    canvas.drawImageRect(image, srcRect, dstRect, paint);
+    canvas.drawImageRect(image, srcRect, destRect, paint);
   }
 
   @override
   bool shouldRepaint(covariant _ImagePainter oldDelegate) {
-    // Repaint when the image changes
-    return oldDelegate.image != image;
+    // Repaint when the image or its placement changes
+    return oldDelegate.image != image || oldDelegate.destRect != destRect;
   }
 }
