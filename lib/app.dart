@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'core/config/routes.dart';
 import 'core/theme/app_theme.dart';
+import 'features/profile/providers/profile_provider.dart';
 import 'shared/services/audio_service.dart';
 import 'shared/services/auth_provider.dart';
 import 'shared/services/settings_provider.dart';
@@ -31,6 +32,7 @@ class CatrinAbiApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ],
       child: MaterialApp(
         title: 'Catrin & Abi BSL',

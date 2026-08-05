@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/circular_video_container.dart';
 import '../../../shared/widgets/game_app_bar.dart';
@@ -126,6 +127,18 @@ class _ColouringScreenState extends State<ColouringScreen> {
       MediaQuery.of(context).size.width >= _kTabletBreakpoint
           ? _kTabletScale
           : 1.0;
+
+  bool _titlePlayed = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_titlePlayed) {
+      _titlePlayed = true;
+      AudioService.playTitle('colouring',
+          locale: AppLocalizations.of(context).locale);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

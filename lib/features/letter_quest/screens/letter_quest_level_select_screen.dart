@@ -40,6 +40,7 @@ class _LetterQuestLevelSelectScreenState
   @override
   void initState() {
     super.initState();
+    AudioService.playTitle('letter_quest', locale: widget.locale);
     _loadUnlockState();
   }
 

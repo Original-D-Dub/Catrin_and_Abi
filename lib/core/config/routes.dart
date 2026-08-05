@@ -11,13 +11,8 @@ import '../../features/bubble_pop/screens/bubble_pop_screen.dart';
 import '../../features/bubble_pop/providers/bubble_pop_provider.dart';
 import '../../features/colouring/screens/colouring_screen.dart';
 import '../../features/colouring/providers/colouring_provider.dart';
-// A/B test duplicate of colouring — delete with lib/features/colouring2/.
-import '../../features/colouring2/screens/colouring2_screen.dart';
-import '../../features/colouring2/providers/colouring2_provider.dart';
 import '../../features/vowel_hand/screens/vowel_hand_screen.dart';
 import '../../features/vowel_hand/providers/vowel_hand_provider.dart';
-import '../../features/my_special_dog/screens/my_special_dog_screen.dart';
-import '../../features/my_special_dog/providers/my_special_dog_provider.dart';
 import '../../features/bsl_maths/screens/bsl_maths_screen.dart';
 import '../../features/bsl_maths/providers/bsl_maths_provider.dart';
 import '../../features/letter_quest/screens/bungalow_quest_screen.dart';
@@ -46,11 +41,13 @@ import '../../features/more_or_less/screens/more_or_less_screen.dart';
 import '../../features/more_or_less/providers/more_or_less_provider.dart';
 import '../../features/sudoku/screens/sudoku_screen.dart';
 import '../../features/privacy/screens/privacy_policy_screen.dart';
-import '../../features/profile/screens/link_account_screen.dart';
+import '../../features/profile/screens/profile_screen.dart';
+import '../../features/profile/screens/videos_screen.dart';
+import '../../features/profile/screens/scores_screen.dart';
+import '../../features/profile/screens/profile_settings_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
-import '../../features/sphere_runner/screens/sphere_runner_screen.dart';
-import '../../features/word_search/providers/word_search_provider.dart';
-import '../../features/word_search/screens/word_search_screen.dart';
+import '../../features/word_whirl/providers/word_whirl_provider.dart';
+import '../../features/word_whirl/screens/word_whirl_screen.dart';
 import '../../features/number_race/providers/number_race_provider.dart';
 import '../../features/number_race/screens/number_race_screen.dart';
 import '../../features/zoo/models/enclosure_level_config.dart';
@@ -101,15 +98,8 @@ class AppRoutes {
   /// Colouring game
   static const String colouring = '/games/colouring';
 
-  /// Colouring 2 — A/B test duplicate of colouring. Delete alongside
-  /// lib/features/colouring2/ once the A/B test picks a winner.
-  static const String colouring2 = '/games/colouring2';
-
   /// BSL vowel hand game
   static const String vowelHand = '/games/vowel-hand';
-
-  /// My Special Dog game
-  static const String mySpecialDog = '/games/my-special-dog';
 
   /// BSL maths game (addition with BSL number signs)
   static const String bslMaths = '/games/bsl-maths';
@@ -166,7 +156,6 @@ class AppRoutes {
   static const String moreLessGame = '/games/more-or-less';
 
   /// Sphere Runner endless-runner maths game
-  static const String sphereRunner = '/games/sphere-runner';
 
   /// BSL Word Search game
   static const String wordSearch = '/games/word-search';
@@ -201,8 +190,17 @@ class AppRoutes {
   /// Privacy policy
   static const String privacyPolicy = '/privacy-policy';
 
-  /// Link / manage player account
-  static const String linkAccount = '/profile/link-account';
+  /// Player profile: avatar, screen name, badges, account linking.
+  static const String profile = '/profile';
+
+  /// BSL video library (moved off the profile page).
+  static const String profileVideos = '/profile/videos';
+
+  /// Player scores (placeholder).
+  static const String profileScores = '/profile/scores';
+
+  /// Sound effects / instructions toggles.
+  static const String profileSettings = '/profile/settings';
 
   /// App settings (language, etc.)
   static const String settings = '/settings';
@@ -286,16 +284,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
-    case AppRoutes.colouring2:
-      // A/B test duplicate of colouring — delete with lib/features/colouring2/.
-      return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => Colouring2Provider(),
-          child: const Colouring2Screen(),
-        ),
-        settings: settings,
-      );
-
     case AppRoutes.vowelHand:
       final vowelHandLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
@@ -304,15 +292,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
             signSystem: context.read<SettingsProvider>().signSystem,
           ),
           child: VowelHandScreen(locale: vowelHandLocale),
-        ),
-        settings: settings,
-      );
-
-    case AppRoutes.mySpecialDog:
-      return MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => MySpecialDogProvider(),
-          child: const MySpecialDogScreen(),
         ),
         settings: settings,
       );
@@ -497,18 +476,12 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
-    case AppRoutes.sphereRunner:
-      return MaterialPageRoute(
-        builder: (_) => const SphereRunnerScreen(),
-        settings: settings,
-      );
-
     case AppRoutes.wordSearch:
       final wordSearchLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
-          create: (_) => WordSearchProvider(locale: wordSearchLocale),
-          child: const WordSearchScreen(),
+          create: (_) => WordWhirlProvider(locale: wordSearchLocale),
+          child: const WordWhirlScreen(),
         ),
         settings: settings,
       );
@@ -646,9 +619,31 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
-    case AppRoutes.linkAccount:
+    case AppRoutes.profile:
+      final profileLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => const LinkAccountScreen(),
+        builder: (_) => ProfileScreen(locale: profileLocale),
+        settings: settings,
+      );
+
+    case AppRoutes.profileVideos:
+      final videosLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => VideosScreen(locale: videosLocale),
+        settings: settings,
+      );
+
+    case AppRoutes.profileScores:
+      final scoresLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => ScoresScreen(locale: scoresLocale),
+        settings: settings,
+      );
+
+    case AppRoutes.profileSettings:
+      final profileSettingsLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => ProfileSettingsScreen(locale: profileSettingsLocale),
         settings: settings,
       );
 

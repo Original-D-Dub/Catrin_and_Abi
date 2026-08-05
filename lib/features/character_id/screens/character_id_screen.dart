@@ -36,6 +36,17 @@ class CharacterIdScreen extends StatefulWidget {
 
 class _CharacterIdScreenState extends State<CharacterIdScreen> {
   bool _showingIntro = false;
+  bool _titlePlayed = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_titlePlayed) {
+      _titlePlayed = true;
+      AudioService.playTitle('character_id',
+          locale: AppLocalizations.of(context).locale);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,6 +122,10 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
                       onComplete: () {
                         setState(() => _showingIntro = false);
                         provider.startSpeedRound();
+                      },
+                      onBack: () {
+                        setState(() => _showingIntro = false);
+                        provider.showLevelSelection();
                       },
                     ),
                   if (!provider.showLevelSelect &&
@@ -436,15 +451,10 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
       borderColor = AppColors.catrinBlue.withValues(alpha: 0.5);
     }
 
-    // Build the BSL image path from the color name
-    final imagePath =
-        'assets/images/colours_BSL/${colorName.toLowerCase()}.png';
-
     // Level 1 has padding, Level 2 and 3 have no padding with cover fit
     final buttonPadding = showColourHint
         ? const EdgeInsets.all(AppSizes.paddingSmall)
         : EdgeInsets.zero;
-    final imageFit = showColourHint ? BoxFit.contain : BoxFit.cover;
 
     // Scale up when correct or wrong to provide visual feedback without layout shift
     final scale = (isCorrect || isWrong) ? 1.1 : 1.0;
@@ -478,26 +488,7 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
           ),
           child: Opacity(
             opacity: isDisabled && !isSelected ? 0.5 : 1.0,
-            child: const {'green', 'blue', 'pink', 'purple'}.contains(colorName.toLowerCase())
-                ? _BslColourRiveWidget(key: ValueKey(colorName.toLowerCase()), colourName: colorName.toLowerCase())
-                : Image.asset(
-                    imagePath,
-                    fit: imageFit,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
-                        child: Text(
-                          _capitalise(colorName),
-                          style: TextStyle(
-                            fontSize: AppSizes.fontSizeBody,
-                            fontWeight: FontWeight.bold,
-                            color: showColourHint
-                                ? _getColorFromName(colorName)
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+            child: _BslColourRiveWidget(key: ValueKey(colorName.toLowerCase()), colourName: colorName.toLowerCase()),
           ),
         ),
       ),
@@ -535,12 +526,6 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
       default:
         return AppColors.catrinBlue;
     }
-  }
-
-  /// Capitalises the first letter of a string.
-  String _capitalise(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1).toLowerCase();
   }
 
   /// Builds Level 4 content (compare two characters).

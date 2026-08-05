@@ -8,11 +8,8 @@ class GameIds {
   static const String bubblePop = 'bubble_pop';
   static const String welshBubblePop = 'welsh_bubble_pop';
   static const String colouring = 'colouring';
-  // A/B test duplicate of colouring — delete with lib/features/colouring2/.
-  static const String colouring2 = 'colouring_2';
   static const String vowelHand = 'vowel_hand';
   static const String welshVowels = 'iac_vowels';
-  static const String mySpecialDog = 'my_special_dog';
   static const String bslMaths = 'bsl_maths';
   static const String letterQuest = 'letter_quest';
   static const String letterBingo = 'letter_bingo';
@@ -22,7 +19,7 @@ class GameIds {
   static const String countingBackGame = 'counting_back_game';
 static const String bslSprint = 'bsl_sprint';
   static const String moreLessGame = 'higher_or_lower';
-  static const String wordSearch = 'word_search';
+  static const String wordSearch = 'word_whirl';
   static const String numberRace = 'number_race';
   static const String zoo = 'zoo';
 }
@@ -72,7 +69,7 @@ class GameStatsService {
         'player_${user.id.substring(0, 8)}';
 
     await _db.from('profiles').upsert(
-      {'id': user.id, 'user_id': user.id, 'username': username},
+      {'id': user.id, 'username': username},
       onConflict: 'id',
     );
   }
@@ -106,7 +103,7 @@ class GameStatsService {
     final today = _todayString();
 
     final existing = await _db
-        .from('game_stats')
+        .from('player_stats')
         .select()
         .eq('player_id', userId)
         .eq('game_id', effectiveGameId)
@@ -114,7 +111,7 @@ class GameStatsService {
 
     if (existing == null) {
       // First time playing this game — no previous score to beat so don't notify.
-      await _db.from('game_stats').insert({
+      await _db.from('player_stats').insert({
         'player_id': userId,
         'game_id': effectiveGameId,
         'high_score': score,
@@ -140,7 +137,7 @@ class GameStatsService {
         currentStreak: currentStreak,
       );
 
-      await _db.from('game_stats').update({
+      await _db.from('player_stats').update({
         'high_score': newHigh,
         'total_plays': prevPlays + 1,
         'last_played_at': today,
@@ -160,7 +157,7 @@ class GameStatsService {
     if (userId == null) return null;
 
     final row = await _db
-        .from('game_stats')
+        .from('player_stats')
         .select('high_score')
         .eq('player_id', userId)
         .eq('game_id', gameId)
@@ -172,7 +169,7 @@ class GameStatsService {
   /// Returns all game stats rows for the given player.
   Future<List<Map<String, dynamic>>> getPlayerStats(String userId) async {
     final rows = await _db
-        .from('game_stats')
+        .from('player_stats')
         .select()
         .eq('player_id', userId)
         .order('game_id');
@@ -183,7 +180,7 @@ class GameStatsService {
   Future<Map<String, dynamic>?> getGameStat(
       String userId, String gameId) async {
     return await _db
-        .from('game_stats')
+        .from('player_stats')
         .select()
         .eq('player_id', userId)
         .eq('game_id', gameId)

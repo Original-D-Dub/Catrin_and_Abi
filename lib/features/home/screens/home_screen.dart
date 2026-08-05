@@ -96,14 +96,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Consumer<AuthProvider>(
             builder: (context, auth, _) => IconButton(
-              tooltip: auth.isAnonymous ? 'Save your scores' : 'My account',
+              tooltip: auth.isAnonymous ? 'Save your scores' : 'Profile',
               icon: Icon(
                 auth.isAnonymous ? Icons.person_outline : Icons.person,
                 color: Colors.white,
                 size: 28,
               ),
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.linkAccount),
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.profile),
             ),
           ),
         ],
@@ -211,13 +210,6 @@ class _HomeScreenState extends State<HomeScreen> {
             arguments: 'en',
           ),
           homeGameEntry(
-            route: AppRoutes.mySpecialDog,
-            titleKey: 'my_special_dog.title',
-            imagePath: 'assets/images/home_screen/my-special-dog.jpg',
-            category: GameCategory.vocabulary,
-            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
-          ),
-          homeGameEntry(
             route: AppRoutes.cardMatching,
             titleKey: 'card_matching.title',
             imagePath: 'assets/images/home_screen/card-match.jpg',
@@ -235,14 +227,6 @@ class _HomeScreenState extends State<HomeScreen> {
           homeGameEntry(
             route: AppRoutes.colouring,
             titleKey: 'colouring.title',
-            imagePath: 'assets/images/home_screen/colouring.jpg',
-            category: GameCategory.vocabulary,
-            ageGroups: const {AgeGroup.years1to3},
-          ),
-          // A/B test duplicate of colouring — delete with lib/features/colouring2/.
-          homeGameEntry(
-            route: AppRoutes.colouring2,
-            titleKey: 'colouring2.title',
             imagePath: 'assets/images/home_screen/colouring.jpg',
             category: GameCategory.vocabulary,
             ageGroups: const {AgeGroup.years1to3},
@@ -331,15 +315,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ageGroups: const {AgeGroup.years5plus},
           ),
           homeGameEntry(
-            route: AppRoutes.sphereRunner,
-            titleKey: 'sphere_runner.title',
-            imagePath: 'assets/images/home_screen/sphere-runner.jpg',
-            category: GameCategory.numeracy,
-            ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
-          ),
-          homeGameEntry(
             route: AppRoutes.wordSearch,
-            titleKey: 'word_search.title',
+            titleKey: 'word_whirl.title',
             imagePath: 'assets/images/home_screen/word-search.png',
             category: GameCategory.vocabulary,
             ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},

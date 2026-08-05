@@ -148,7 +148,7 @@ class LetterCollectible extends PositionComponent
   void _handleCorrectCollection() {
     _collected = true;
 
-    AudioService.playLetterMp3(letter.toLowerCase());
+    AudioService.playLetterMp3(letter.toLowerCase(), signSystem: game.provider.signSystem);
 
     // Haptic feedback
     HapticFeedback.lightImpact();

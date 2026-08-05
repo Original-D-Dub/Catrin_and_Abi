@@ -301,7 +301,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.linkAccount),
+                    Navigator.pushNamed(context, AppRoutes.profile),
                 child: Text(
                   localizer('general.sign_in_to_save'),
                   textAlign: TextAlign.center,

@@ -34,6 +34,12 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
   Timer? _hintTimer;
 
   @override
+  void initState() {
+    super.initState();
+    AudioService.playTitle('more_or_less', locale: widget.locale);
+  }
+
+  @override
   void dispose() {
     _hintTimer?.cancel();
     _hintCounter.dispose();

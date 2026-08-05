@@ -30,6 +30,31 @@ const Map<String, String> translationsCy = {
   'card_matching.description': "Parwch arwyddion BSL gyda'r llythrennau",
   'bubble_pop.title': 'Popio Swigod',
   'home.bubble_pop_desc': "Popiwch y swigod llythyren cywir",
+  'home.ear_game': 'Gêm y Glust',
+  'home.ear_game_desc': "Dysgwch rannau'r glust",
+  'letter_quest.title': 'Chwilio Llythrennau', 
+  'bsl_vowels.title': 'llafariaid BSL',
+  'iac_vowels.title': 'Llafariaid IAC',
+  'iac_vowels.intro': "Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llafariad Gymraeg: a, e, i, o, u, w, y.",
+  'iac_vowels.level2.intro': "Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd y llythyren goll yn y gair.",
+  'iac_vowels.level3.intro': "Nawr rhowch gynnig ar fwy o eiriau. Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd y llythyren goll yn y gair.",
+  'iac_vowels.level5.intro': "Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llythyren goll yn y gair.",
+  'iac_vowels.level6.intro': "Pwyntiau Mawr! Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llythyren. Sgoriwch bwyntiau am y geiriau rydych chi'n eu dyfalu'n gywir — po hiraf y gair, y mwyaf o bwyntiau rydych chi'n eu sgorio.",
+  'clothes_line.title': 'Lein Ddillad',
+  'colouring.title': 'Lliwio',
+  'counting.title': 'Cyfri',
+  'number_line.title': 'Llinell Rhifau',
+  'more_or_less.title': 'Mwy neu Lai',
+  'bsl_maths.title': 'Maths BSL',
+  'bsl_sprint.title': 'Ras BSL',
+  'letter_bingo.title': 'Bingo Llythrennau',
+  'character_id.title': 'Pwy Ydw I?',
+  'number_race.title': 'Ras Rifau',
+
+  // -------------------------
+  // Bubble Pop Game
+  // -------------------------
+
   'bubble_pop.intro': 'Edrychwch ar arwydd y llythyren BSL. Popiwch y swigen sy\'n dangos y llythyren gywir!',
   'bubble_pop.find_label': 'Dewch o hyd i\'r llythyren',
   'bubble_pop.bsl.level1.name': 'Llafariaid',
@@ -44,21 +69,16 @@ const Map<String, String> translationsCy = {
   'bubble_pop.iac.level4.name': 'a i o',
   'bubble_pop.iac.level5.name': 'a i u',
   'bubble_pop.iac.level6.name': 'Yr Wyddor Gymraeg Lawn',
-  'home.ear_game': 'Gêm y Glust',
-  'home.ear_game_desc': "Dysgwch rannau'r glust",
-  'letter_quest.title': 'Chwilio Llythrennau',
-  'home.letter_quest_desc': 'Casglwch lythrennau BSL!',
-  'bsl_vowels.title': 'llafariaid-bsl',
-  'iac_vowels.title': 'Llafariaid IAC',
-  'iac_vowels.intro': "Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llafariad Gymraeg: a, e, i, o, u, w, y.",
-  'colouring.title': 'Lliwio',
-  // A/B test duplicate of colouring — delete with lib/features/colouring2/.
-  'colouring2.title': 'Lliwio 2',
-  'counting.title': 'Cyfri',
-  'number_line.title': 'Llinell Rhifau',
-  'more_or_less.title': 'Mwy neu Lai',
-  'bsl_maths.title': 'Maths BSL',
-  'clothes_line.title': 'Lein Ddillad',
+
+  // -------------------------
+  // Welsh (IAC) Bubble Pop intro
+  // -------------------------
+  'welsh_bubble_pop.intro': 'Edrychwch ar arwydd y lythyren IAC. Popiwch y swigen sy\'n dangos y llythyren cywir!',
+
+  // -------------------------    
+  // Clothes Line
+  // -------------------------
+  
   'clothes_line.intro': 'Edrychwch ar y dillad ar y lein ac atebwch y cwestiwn!',
   'clothes_line.level1.name': 'Dechreuwr',
   'clothes_line.level1.description': 'Coch, glas a gwyrdd yn unig',
@@ -75,13 +95,18 @@ const Map<String, String> translationsCy = {
   'clothes_line.item.skirt': 'sgert',
   'clothes_line.item.t-shirt': 'crys-t',
   'clothes_line.item.shorts': 'siorts',
-  'clothes_line.item.coat': 'got',
+  'clothes_line.item.coat': 'cot',
   'clothes_line.speed': 'Cyflymder',
-  'bsl_sprint.title': 'Ras BSL',
-  'letter_bingo.title': 'Bingo Llythrennau',
+
+  // -------------------------
+  // Letter Bingo
+  // -------------------------
+
   'letter_bingo.bsl.intro': 'Paru\'r arwyddion BSL gyda\'r llythrennau a alwyd ar waelod y sgrin. Cwblhewch res am BINGO!',
   'letter_bingo.iac.intro': 'Paru\'r arwyddion IAC gyda\'r llythrennau a alwyd ar waelod y sgrin. Cwblhewch res am BINGO!',
   'letter_bingo.bingo': 'Bingo!',
+  'letter_bingo.friend': 'Mae gen ti ffrind',
+    'letter_bingo.new_friend': 'Mae gen ti ffrind newydd',
   'letter_bingo.bsl.level1.name': 'a i e',
   'letter_bingo.bsl.level2.name': 'a i i',
   'letter_bingo.bsl.level3.name': 'a i o',
@@ -92,8 +117,7 @@ const Map<String, String> translationsCy = {
   'letter_bingo.iac.level3.name': 'a i o',
   'letter_bingo.iac.level4.name': 'a i u',
   'letter_bingo.iac.level5.name': 'yr wyddor gymraeg lawn',
-  'character_id.title': 'Pwy Ydw I?',
-  'number_race.title': 'Ras Rifau',
+  
 
   // -------------------------
   // Level Select (shared widget)
@@ -118,6 +142,7 @@ const Map<String, String> translationsCy = {
   'general.got_10_correct': 'Cest ti 10 yn gywir',
   'general.personal_best': 'Record Personol! {score}{suffix}',
   'general.sign_in_to_save': 'Mewngofnodwch i gadw eich newidiadau',
+  'general.sign_in_to_save_scores': 'Mewngofnodwch i gadw eich sgoriau',
   'general.level': 'Lefel',
   'general.score': 'Sgôr',
   'general.time': 'Amser',
@@ -126,6 +151,10 @@ const Map<String, String> translationsCy = {
   'general.completed': 'Wedi\'u cwblhau',
   'general.home': 'Cartref',
   'general.go': 'Ewch',
+  'general.correct': 'Cywir!',
+  'general.try_again': 'Ceisiwch eto',
+  'general.welldone': 'Da iawn!',
+
   'general.1': '1',
   'general.2': '2',
   'general.3': '3',
@@ -146,6 +175,7 @@ const Map<String, String> translationsCy = {
   'general.18': '18',
   'general.19': '19',
   'general.20': '20',
+
   'general.emph1': '1',
   'general.emph2': '2',
   'general.emph3': '3',
@@ -166,42 +196,37 @@ const Map<String, String> translationsCy = {
   'general.emph18': '18',
   'general.emph19': '19',
   'general.emph20': '20',
-  'general.correct': 'Cywir!',
-  'general.try_again': 'Ceisiwch eto!',
-  'general.welldone': 'Da iawn!',
+
+  
 
   // -------------------------
   // BSL Vowels (Vowel Hand) game ///cywiro rhain
   // -------------------------
-  'vowel_hand.title': 'llafariaid-bsl',
+  'vowel_hand.title': 'llafariaid BSL',
+  'vowel_hand.title_iac': 'Llafariaid IAC',
+  'vowel_hand.intro_heading': 'Tapiwch y blaen bys cywir',
   'vowel_hand.level1.name': 'Paru Llafariaid',
-  'vowel_hand.level1.description': 'Tapiwch y blaenau bysedd',
-  'vowel_hand.level1.intro': "Tapiwch y blaen bys cywir i wneud llafariad BSL sy'n cyfateb i'r llythyren.",
-  'vowel_hand.level2.name': 'Geiriau Llafariaid',
-  'vowel_hand.level2.description': 'Llafariad goll',
-  'vowel_hand.level2.intro': "Tapiwch y blaen bys cywir i wneud llafariad BSL sy'n cyfateb i'r llythyren goll.",
-  'vowel_hand.level3.name': 'Geiriau CCVC',
-  'vowel_hand.level3.description': 'Clwstwr cytsain + llafariad',
-  'vowel_hand.level3.intro': 'Nawr rhowch gynnig ar eiriau pedair llythyren. Tapiwch y blaen bys cywir am y llafariad goll.',
-  'vowel_hand.level4.name': 'Geiriau CVCC',
-  'vowel_hand.level4.description': 'Llafariad + clwstwr cytsain',
-  'vowel_hand.level4.intro': 'Nawr rhowch gynnig ar eiriau gyda dwy gytsain ar y diwedd! Tapiwch y blaen bys cywir am y llafariad goll.',
-
-  // -------------------------
-  // My Special Dog game
-  // -------------------------
-  'my_special_dog.title': 'Fy Nghi Arbennig',
-  'my_special_dog.level1.intro': "Tapiwch y blaen bys cywir i wneud llafariad BSL sy'n cyfateb i'r llythyren.",
-  'my_special_dog.level1.name': 'Paru Llafariaid',
-  'my_special_dog.level1.description': 'Tapiwch y blaenau bysedd',
-  'my_special_dog.level2.intro': "Tapiwch y blaen bys cywir i wneud llafariad BSL sy'n cyfateb i'r llythyren goll.",
-  'my_special_dog.level2.name': 'Geiriau Llafariaid',
-  'my_special_dog.level2.description': 'Llafariad goll',
-  'my_special_dog.level3.intro': 'Tapiwch y blaen bys cywir i wneud llafariad BSL sy\'n cyfateb i\'r llythyren goll. Dyfalu perffaith yn unig!',
-  'my_special_dog.level3.name': 'Dim Camgymeriadau',
-  'my_special_dog.level3.description': 'Dyfalu perffaith yn unig',
-  'my_special_dog.words_label': 'gair',
-  'my_special_dog.words_completed': 'Geiriau wedi\'u cwblhau:',
+  'vowel_hand.level1.description': 'Tapiwch blaen y bysedd',
+  'vowel_hand.level1.intro': "Gwnewch lafariad BSL sy'n cyfateb i'r llythyren.",
+  'vowel_hand.level2.name': 'Llafariad coll',
+  'vowel_hand.level2.description': 'Llafariad coll',
+  'vowel_hand.level2.intro': "Tapiwch blaen bys cywir i wneud llafariad BSL sy'n cyfateb i'r llythyren goll.",
+  'vowel_hand.level3.name': 'Geiriau 4 llythyren',
+  'vowel_hand.level3.description': "Dewch o hyd i'r llafariaid coll mewn geiriau pedair llythyren",
+  'vowel_hand.level3.intro': 'Nawr rhowch gynnig ar eiriau pedair llythyren.',
+  'vowel_hand.iac.level3.name': 'Geiriau byr',
+  'vowel_hand.iac.level3.description': 'Dewch o hyd i\'r llafariaid coll mewn mwy o eiriau Cymraeg',
+  'vowel_hand.level4.name': 'Mwy o eiriau 4 llythyren',
+  'vowel_hand.level4.description': "Dewch o hyd i'r llafariaid coll mewn mwy o eiriau pedair llythyren",
+  'vowel_hand.level4.intro': 'Nawr rhowch gynnig ar eiriau gyda dwy gytsain ar y diwedd! Tapiwch y blaen bys cywir am y llafariad coll.',
+  'vowel_hand.level5.name': 'Fy nghi arbennig',
+  'vowel_hand.level5.description': 'Dewch o hyd i bob llafariad yn y gair',
+  'vowel_hand.level5.intro': "Tapiwch blaen bys cywir i wneud llafariad BSL ar gyfer pob llythyren goll yn y gair.",
+  'vowel_hand.level6.name': 'Dim Camgymeriadau',
+  'vowel_hand.level6.description': 'Dyfalu perffaith yn unig',
+  'vowel_hand.level6.intro': "Tapiwch y blaen bys cywir i wneud llafariad BSL sy'n cyfateb i'r llythyren goll. Dyfalu perffaith yn unig!",
+  'vowel_hand.words_label': 'gair',
+  'vowel_hand.words_completed': "Geiriau wedi'u cwblhau:",
 
   // -------------------------
   // Letter Quest
@@ -209,11 +234,11 @@ const Map<String, String> translationsCy = {
   'letter_quest.subtitle': "Symudwch Pero i ddod o hyd i'r llythrennau i sillafu'r gair!",
   'letter_quest.level1.name': 'Ystafell Gyflwyno',
   'letter_quest.level2.name': 'Ystafell Syml',
-  'letter_quest.level3_house.name': 'Lan Lofft',
-  'letter_quest.level3.name': 'Ystafelloedd Dan Do',
+  'letter_quest.level3_house.name': 'Yn y Llofft',
+  'letter_quest.level3.name': 'Ystafelloedd i fyny\'r grisiau',
   'letter_quest.level5_bungalow.name': 'Byngalo',
   'letter_quest.level4.name': 'Antur Awyr Agored',
-  'letter_quest.victory_subtitle': "Rwyt wedi casglu'r holl eiriau!",
+  'letter_quest.victory_subtitle': "Rwy ti wedi casglu'r holl eiriau!",
   'letter_quest.level4_unlocked': 'Llongyfarchiadau, mae Lefel 4 wedi datgloi',
   'letter_quest.play_level4': 'Chwarae Lefel 4',
   'letter_quest.found_gary': 'Rwyt wedi dod o hyd i Gary! Llongyfarchiadau',
@@ -224,13 +249,14 @@ const Map<String, String> translationsCy = {
   // Card Matching Game
   // -------------------------
   'card_matching.tap_first': "Tapiwch gerdyn i'w droi!",
-  'card_matching.tap_second': 'Tapiwch gerdyn arall i ddod o hyd i bar',
+  'card_matching.tap_second': 'Tapiwch gerdyn arall i ddod o hyd yw bar',
   'card_matching.play_again': 'Chwarae Eto',
   'card_matching.home': 'Cartref',
   'card_matching.moves_label': 'Symudiadau',
   'card_matching.pairs_label': 'parau',
   'card_matching.success_moves': 'Wnaethoch chi hi mewn {n} symudiad!',
   'card_matching.moves_suffix': ' symudiad',
+
   'card_matching.bsl.intro': "Parwch arwyddion BSL gyda'u llythrennau!",
   'card_matching.bsl.level1.name': 'Llafariaid',
   'card_matching.bsl.level2.name': 'a i e',
@@ -238,7 +264,8 @@ const Map<String, String> translationsCy = {
   'card_matching.bsl.level4.name': 'i i r',
   'card_matching.bsl.level5.name': 'q i z',
   'card_matching.bsl.level6.name': 'Yr Wyddor Lawn',
-  'card_matching.iac.intro': "Parwch arwyddion yr wyddor gyda'u llythrennau!",
+
+  'card_matching.iac.intro': "Parwch arwyddion IAC gyda'u llythrennau!",
   'card_matching.iac.level1.name': 'Llafariaid Cymraeg',
   'card_matching.iac.level2.name': 'a i e',
   'card_matching.iac.level3.name': 'e i i',
@@ -247,43 +274,43 @@ const Map<String, String> translationsCy = {
   'card_matching.iac.level6.name': 'Yr Wyddor Lawn',
 
   // -------------------------
-  // Welsh (IAC) Bubble Pop intro
-  // -------------------------
-  'welsh_bubble_pop.intro': 'Edrychwch ar arwydd y llythyren IAC. Popiwch y swigen sy\'n dangos y llythyren gywir!',
-
-  // -------------------------
   // Counting Game
   // -------------------------
   'counting_game.intro': 'Cyfrifwch y cylchoedd a thapio\'r arwydd rhif BSL sy\'n cyfateb!',
   'counting_game.subtitle': 'Cyfrifwch y cylchoedd!',
-  'counting_game.level1.name': 'Oren',
-  'counting_game.level2.name': 'Melyn',
-  'counting_game.level3.name': 'Gwyrdd',
-  'counting_game.level4.name': 'Pinc a Melyn',
-  'counting_game.level5.name': 'Glas a Choch',
-  'counting_game.level6.name': 'Gwyrdd a Phorfor',
+  'counting_game.level1.name': 'Coch',
+  'counting_game.level2.name': 'Piws',
+  'counting_game.level3.name': 'Glas',
+  'counting_game.level4.name': 'Oren',
+  'counting_game.level5.name': 'Melyn',
+  'counting_game.level6.name': 'Gwyrdd',
+  'counting_game.level7.name': 'Pinc a Melyn',
+  'counting_game.level8.name': 'Glas a Choch',
+  'counting_game.level9.name': 'Gwyrdd a Piws',
   'counting_game.round_label': 'Rownd',
   'counting_game.of_label': 'o',
   'counting_game.question_colour': 'Sawl cylch {colour}?',
   'counting_game.question_total_single': 'Sawl cylch {colour} sydd?',
+
   'counting_game.question_total_multi': 'Sawl cylch i gyd?',
-  'counting_game.colour.orange': 'oren',
-  'counting_game.colour.yellow': 'melyn',
-  'counting_game.colour.green': 'gwyrdd',
-  'counting_game.colour.pink': 'pinc',
-  'counting_game.colour.blue': 'glas',
-  'counting_game.colour.red': 'coch',
-  'counting_game.colour.purple': 'porffor',
+  'counting_game.colour.orange': 'oren', //sawl cylch oren ? sawl cylch oren sydd?
+  'counting_game.colour.yellow': 'melyn',//sawl cylch melyn ? sawl cylch melyn sydd?
+  'counting_game.colour.green': 'gwyrdd',//sawl cylch gwyrdd ? sawl cylch gwyrdd sydd?
+  'counting_game.colour.pink': 'pinc',//sawl cylch pinc ? sawl cylch pinc sydd?
+  'counting_game.colour.blue': 'glas',//sawl cylch glas ? sawl cylch glas sydd?
+  'counting_game.colour.red': 'coch',//sawl cylch coch ? sawl cylch coch sydd?
+  'counting_game.colour.purple': 'piws',
 
   // -------------------------
   // Number Line
   // -------------------------
-  'number_line_game.intro': 'Edrychwch ar y llinell rhifau. Sawl counter arall sydd ei angen i gyrraedd deg!',
+  'number_line_game.intro': 'Edrychwch ar y linell rhifau. Sawl cacen arall sydd ei angen i gyrraedd deg!',
   'number_line.subtitle': 'Faint arall sydd ei angen?',
-  'number_line.level1.name': 'Gwneud 5',
+
+  'number_line.level1.name': 'Sawl cacen arall sydd angen i wneud pump!',
   'number_line.level2.name': 'Hyd at 10',
   'number_line.level3.name': 'Arwyddion yn Unig',
-  'number_line.question': 'Sawl cacen sydd angen i ni wneud {n}?',
+  'number_line.question': 'Sawl cacen sydd angen i wneud {n}?',
   'number_line.round_label': 'Rownd',
   'number_line.of_label': 'o',
 
@@ -310,11 +337,13 @@ const Map<String, String> translationsCy = {
   // -------------------------
   'number_race.intro': "Cyfrwch y dotiau a tapiwch yr arwydd rhif BSL cywir i symud ymlaen yn y ras. Ennillwch gyda 5 ateb cywir!",
   'number_race.choose_character': 'Dewiswch eich rasiwr!',
+
   'number_race.character.gary': 'Gary',
   'number_race.character.pero': 'Pero',
   'number_race.character.jamjam': 'JamJam',
+
   'number_race.question': 'Sawl dot?',
-  'number_race.success_summary': 'Enillodd {character} y ras!',
+  'number_race.success_summary': 'Enillodd {character} y ras!', //Enillodd Gary y ras! // Enillodd Pero y ras! // Enillodd JamJam y ras!
   'number_race.change_character': 'Newid Rasiwr',
   'number_race.attempts_suffix': ' cynnig',
   'number_race.podium_title': 'Safleoedd Terfynol',
@@ -343,7 +372,7 @@ const Map<String, String> translationsCy = {
   // -------------------------
   'bsl_sprint.level0.name': 'Hyfforddiant',
   'bsl_sprint.level0.description': 'Casglwch y llythrennau cywir',
-  'bsl_sprint.level0.intro': 'Rhedwch a chasglwch y llythrennau BSL i sillafu\'r gair. Swipe i symud i\'r chwith a\'r dde. Swipe i fyny i neidio.',
+  'bsl_sprint.level0.intro': 'Rhedwch a chasglwch y llythrennau BSL i sillafu\'r gair. Sweipiwch i symud i\'r chwith a\'r dde. Sweipiwch i fyny i neidio.',
   'bsl_sprint.level1.name': 'Dechreuwyr',
   'bsl_sprint.level1.description': 'Gwyliwch am y llythrennau anghywir!',
   'bsl_sprint.level1.intro': 'Rhedwch a chasglwch y llythrennau BSL i sillafu\'r gair. Gwyliwch am y llythrennau anghywir!',
@@ -357,28 +386,16 @@ const Map<String, String> translationsCy = {
 
 
   // -------------------------
-  // Sphere Runner
-  // -------------------------
-  'sphere_runner.title': 'Rhedeg Sfferau',
-  'sphere_runner.intro': 'Swipiwch chwith neu dde i lywio drwy\'r gatiau a chasglu union 20 sffêr!',
-  'sphere_runner.spheres_label': 'Sfferau',
-  'sphere_runner.target_label': 'Targed: 20',
-  'sphere_runner.almost_there': 'Bron â bod!',
-  'sphere_runner.win_title': 'Fe wnaethoch chi!',
-  'sphere_runner.win_body': 'Fe gasgloch chi union 20 sffêr!',
-  'sphere_runner.exit': 'Ymadael',
-
-  // -------------------------
   // Word Search
   // -------------------------
-  'word_search.title': 'Chwilio am Eiriau',
-  'word_search.instructions':
+  'word_whirl.title': 'Chwilio am Eiriau',
+  'word_whirl.instructions':
       "Llusgwch eich bys o lythyren i lythyren i sillafu'r gair. Gellir defnyddio llythrennau fwy nag unwaith.",
-  'word_search.level1.name': 'Cwestiynau',
-  'word_search.level2.name': 'Lliwiau',
-  'word_search.level3.name': 'Tywydd',
-  'word_search.video_coming_soon': 'Fideo ar y ffordd',
-  'word_search.clear': 'Clirio',
+  'word_whirl.level1.name': 'Cwestiynau',
+  'word_whirl.level2.name': 'Lliwiau',
+  'word_whirl.level3.name': 'Tywydd',
+  'word_whirl.video_coming_soon': 'Fideo ar y ffordd',
+  'word_whirl.clear': 'Clirio',
 
   // -------------------------
   // Zoo Adventure
@@ -396,11 +413,11 @@ const Map<String, String> translationsCy = {
   'zoo.character.catrin': 'Catrin',
   'zoo.character.ruby': 'Ruby',
   'zoo.character.osian': 'Osian',
-  'zoo.character.player5': 'Chwaraewr 5',
+  'zoo.character.player5': 'Esme',
   'zoo.character.player6': 'Chwaraewr 6',
   'zoo.enter': 'Mynd i mewn',
-  'zoo.find_building.aquarium': 'Chwilia am yr Acwariwm!',
-  'zoo.find_building.reptile_house': 'Chwilia am y Tŷ Ymlusgiaid!',
+  'zoo.find_building.aquarium': 'Chwiliwch am yr Acwariwm!',  //
+  'zoo.find_building.reptile_house': 'Chwiliwch am y Tŷ Ymlusgiaid!',
   'zoo.aviary': 'Adardy',
   'zoo.reptile_house': 'Tŷ Ymlusgiaid',
   'zoo.aquarium': 'Acwariwm',
@@ -410,6 +427,8 @@ const Map<String, String> translationsCy = {
   'zoo.exit': 'Allanfa',
   'zoo.quiz.watch_sign': 'Gwylia\'r arwydd',
   'zoo.quiz.success': 'Fe ddest ti o hyd i\'r holl anifeiliaid!',
+
+
   'zoo.animal.lion': 'Llew',
   'zoo.animal.elephant': 'Eliffant',
   'zoo.animal.tiger': 'Teigr',
@@ -427,16 +446,17 @@ const Map<String, String> translationsCy = {
   'zoo.animal.horse': 'Ceffyl',
   'zoo.animal.cow': 'Buwch',
   'zoo.animal.sheep': 'Dafad',
-  'zoo.aquarium.sharks': 'Siarcod',
-  'zoo.aquarium.clownfish': 'Pysgod clown',
+
+  'zoo.aquarium.sharks': 'Siarc',
+  'zoo.aquarium.clownfish': 'Pysgodyn clown',
   'zoo.aquarium.seahorses': 'Morfeirch',
   'zoo.aquarium.turtles': 'Crwbanod y môr',
   'zoo.aquarium.jellyfish': 'Slefrod môr',
-  'zoo.reptile_house.snakes': 'Nadroedd',
-  'zoo.reptile_house.crocodiles': 'Crocodeilod',
-  'zoo.reptile_house.lizards': 'Madfallod',
-  'zoo.reptile_house.tortoises': 'Crwbanod',
-  'zoo.reptile_house.geckos': 'Gecoaid',
+  'zoo.reptile_house.snakes': 'Neidr',
+  'zoo.reptile_house.crocodiles': 'Crocodeil',
+  'zoo.reptile_house.lizards': 'Madfall',
+  'zoo.reptile_house.tortoises': 'Crwban',
+  'zoo.reptile_house.geckos': 'Geco',
 
   // -------------------------
   // Sudoku
@@ -446,14 +466,14 @@ const Map<String, String> translationsCy = {
 
   'sudoku.difficulty.how_to_play': 'Sut i Chwarae',
   'sudoku.difficulty.mini':        'Sudoku Mini',
-  'sudoku.difficulty.six_by_six':  'Sudoku 6×6',
+  'sudoku.difficulty.six_by_six':  'Sudoku 6×6',//chwech wrth chwech
   'sudoku.difficulty.easy':        'Hawdd',
   'sudoku.difficulty.hard':        'Anodd',
   'sudoku.difficulty.extreme':     'Eithafol',
 
   'sudoku.level0.description': 'Grid 4×4 — dysgwch y pethau sylfaenol',
   'sudoku.level1.description': "Grid 4×4 — perffaith i ddechrau arni",
-  'sudoku.level2.description': 'Grid 6×6 gyda blychau 2×3',
+  'sudoku.level2.description': 'Grid 6×6 gyda blychau 2×3', //grid chwech wrth chwech gyda blychau dau wrth dri
   'sudoku.level3.description': 'Cyflwyniad gwych i Sudoku',
   'sudoku.level4.description': 'Llai o giwiau dechreuol',
   'sudoku.level5.description': "I'r penigampwyr",
@@ -469,7 +489,7 @@ const Map<String, String> translationsCy = {
   // -------------------------
   'sudoku.howtoplay.next':  'Nesaf',
 
-  'sudoku.howtoplay.step0': 'Llenwch y grid â rhifau BSL 1, 2, 3 a 4, ond cofiwch na all pob rhif ymddangos ond unwaith ym mhob sgwâr yn y grid, colofn na rhes.',
+  'sudoku.howtoplay.step0': 'Llenwch y grid â rhifau BSL 1, 2, 3 a 4, ond cofiwch na all y rhifau ymddangos mwy nac unwaith ym mhob sgwâr yn y grid, colofn neu res.',
   'sudoku.howtoplay.step1': "Mae'r rhifau 1, 3 a 4 eisoes yn y sgwâr hwn. Ychwanegwch 2 i gwblhau'r sgwâr.",
   'sudoku.howtoplay.step2': 'Dim ond unwaith y gall rhifau ymddangos mewn colofn. Tapiwch 4 i gwblhau\'r golofn.',
   'sudoku.howtoplay.step3': 'Dim ond unwaith y gall rhifau ymddangos mewn rhes. Tapiwch 1 i gwblhau\'r rhes.',
@@ -509,5 +529,54 @@ const Map<String, String> translationsCy = {
   'settings.years3to5_sub': 'Oedran 7 i 10',
   'settings.years5plus': 'Blwyddyn 5 +',
   'settings.years5plus_sub': 'Oedran 10 ac uwch',
+
+  // -------------------------
+  // Profile Screen
+  // -------------------------
+  'profile.title': 'Proffil',
+  'profile.screen_name_placeholder': 'Chwaraewr',
+  'profile.edit': 'Golygu',
+  'profile.edit_title': 'Golygu Proffil',
+  'profile.screen_name_label': 'Enw sgrin',
+  'profile.choose_avatar': 'Dewiswch avatar',
+  'profile.save': 'Cadw',
+  'profile.cancel': 'Canslo',
+  'profile.name_taken': "Mae'r enw hwnnw wedi'i gymryd — triwch un arall!",
+  'profile.badges_title': 'Bathodynnau',
+  'profile.badge.bsl_cup': 'Pencampwr BSL',
+  'profile.badge.iac_cup': 'Pencampwr IAC',
+  'profile.badge.running_fast': 'Rhediad Buan',
+  'profile.badge.monkey_face': 'Mwnci Drwg',
+  'profile.badge.locked': 'Heb ei ennill eto',
+  'profile.videos_title': 'Fy Fideo BSL',
+  'profile.video.deaf_awareness': 'Ymwybyddiaeth Byddar',
+  'profile.video.iac_alphabet': 'Wyddor IAC',
+  'profile.video.bsl_alphabet': 'Wyddor BSL',
+  'profile.video.bsl_numbers': 'Rhifau BSL',
+  'profile.video.colours': 'Lliwiau',
+  'profile.video.weather': 'Tywydd',
+  'profile.video.time': 'Amser',
+  'profile.video.questions': 'Cwestiynau',
+  'profile.video.watched': 'Wedi gwylio',
+  'profile.video.not_watched': 'Heb wylio',
+  'profile.menu.score': 'Sgôr',
+  'profile.menu.videos': 'Fideos',
+  'profile.menu.settings': 'Gosodiadau',
+  'profile.scores_title': 'Sgoriau',
+  'profile.account_section': 'Cyfrif',
+  'profile.yes': 'Ie',
+  'profile.delete_account_message':
+      "Dileu eich cyfrif a'ch holl ddata sydd wedi'i gadw yn barhaol, gan gynnwys proffil, sgoriau gemau a chyflawniadau. Ni ellir dadwneud hyn.",
+  'profile.delete_account_button': 'Dileu Cyfrif',
+  'profile.delete_account_confirm': "Ni ellir dadwneud hyn. Ydych chi'n siŵr?",
+
+  // -------------------------
+  // Profile Settings Screen (sound / instructions toggles)
+  // -------------------------
+  'profile_settings.title': 'Gosodiadau',
+  'profile_settings.sound_effects': 'Effeithiau Sain',
+  'profile_settings.sound_effects_sub': 'Synau ateb cywir ac anghywir',
+  'profile_settings.instructions': 'Cyfarwyddiadau',
+  'profile_settings.instructions_sub': 'Cyfarwyddiadau llafar y gemau',
 
 };

@@ -53,6 +53,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+    AudioService.playTitle('bsl_maths', locale: widget.locale);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BslMathsProvider>().onAnswerResult = (isCorrect) {
         if (isCorrect) {
@@ -106,6 +107,10 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                     onComplete: () {
                       setState(() => _showingIntro = false);
                       provider.startGame();
+                    },
+                    onBack: () {
+                      setState(() => _showingIntro = false);
+                      provider.showLevelSelection();
                     },
                   ),
                 if (!provider.showLevelSelect &&

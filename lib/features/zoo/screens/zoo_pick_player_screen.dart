@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/routes.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../models/zoo_character.dart';
 import '../widgets/zoo_framed_box.dart';
@@ -10,14 +11,26 @@ import '../widgets/zoo_screen_chrome.dart';
 /// Character selection screen for the zoo game: a responsive 2 x 3 grid of
 /// framed character portraits with names underneath. Tapping a character
 /// opens the player screen ([AppRoutes.zooPlayer]) for that character.
-class ZooPickPlayerScreen extends StatelessWidget {
+class ZooPickPlayerScreen extends StatefulWidget {
   /// UI language ('en' or 'cy').
   final String locale;
 
   const ZooPickPlayerScreen({super.key, this.locale = 'en'});
 
   @override
+  State<ZooPickPlayerScreen> createState() => _ZooPickPlayerScreenState();
+}
+
+class _ZooPickPlayerScreenState extends State<ZooPickPlayerScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AudioService.playTitle('zoo_pick_player', locale: widget.locale);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final locale = widget.locale;
     final localizer = AppLocalizations(locale: locale);
 
     return ZooBackgroundScaffold(

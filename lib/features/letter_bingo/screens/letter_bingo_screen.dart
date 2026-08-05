@@ -9,6 +9,7 @@ import '../../../shared/services/auth_provider.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/level_select_screen.dart';
+import '../../../shared/widgets/level_transition_overlay.dart';
 import '../providers/letter_bingo_provider.dart';
 import '../widgets/bingo_celebration.dart';
 import '../widgets/bingo_tile.dart';
@@ -37,7 +38,8 @@ class LetterBingoScreen extends StatefulWidget {
   State<LetterBingoScreen> createState() => _LetterBingoScreenState();
 }
 
-class _LetterBingoScreenState extends State<LetterBingoScreen> {
+class _LetterBingoScreenState extends State<LetterBingoScreen>
+    with LevelTransitionMixin<LetterBingoScreen> {
   LetterBingoPhase? _lastPhase;
   Future<void>? _introFuture;
   bool _showTryAgain = false;
@@ -45,6 +47,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
   @override
   void initState() {
     super.initState();
+    AudioService.playTitle('letter_bingo', locale: widget.locale);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<LetterBingoProvider>();
       provider.onCorrect = () => AudioService.playCorrect('letter_bingo');
@@ -55,7 +58,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
   void _handleWrongTap() {
     if (!mounted) return;
     setState(() => _showTryAgain = true);
-    AudioService.speak('Try again');
+    AudioService.playTryAgain(locale: widget.locale);
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) setState(() => _showTryAgain = false);
     });
@@ -75,7 +78,10 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
         // Detect transition to playing phase and play intro
         if (provider.phase == LetterBingoPhase.playing &&
             _lastPhase != LetterBingoPhase.playing) {
-          _introFuture = AudioService.playIntroAndWait('letter_bingo');
+          final introGameId = provider.signSystem == SignSystem.iac
+              ? 'letter_bingo.iac'
+              : 'letter_bingo.bsl';
+          _introFuture = AudioService.playIntroAndWait(introGameId);
         }
         _lastPhase = provider.phase;
 
@@ -105,6 +111,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
                 if (provider.phase == LetterBingoPhase.bingo)
                   Positioned.fill(
                     child: BingoCelebration(
+                      locale: widget.locale,
                       animal: auth.isAnonymous ? null : provider.rewardAnimal,
                       playerId: auth.userId,
                       levelNumber: provider.currentLevel?.number ?? 1,
@@ -121,6 +128,10 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
                       onChangeLevel: () => provider.showLevelSelection(),
                     ),
                   ),
+
+                Positioned.fill(
+                  child: LevelTransitionOverlay(opacity: levelTransitionOpacity),
+                ),
               ],
             ),
           ),
@@ -160,17 +171,23 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
           number: level.number,
           name: localizer(level.name),
           color: levelColor(level.number - 1),
-          onTap: () {
-            if (level.number == 1) {
-              final isNarrow = MediaQuery.of(context).size.width < 441;
-              provider.startLevel(
-                levelNumber: 1,
-                tileCountOverride: isNarrow ? 3 : null,
-              );
-            } else {
-              provider.startLevel(levelNumber: level.number);
-            }
-          },
+          onTap: () => startLevelWithTransition(
+            gameId: 'letter_bingo',
+            levelNumber: level.number,
+            locale: widget.locale,
+            signSystem: provider.signSystem,
+            startLevel: () {
+              if (level.number == 1) {
+                final isNarrow = MediaQuery.of(context).size.width < 441;
+                provider.startLevel(
+                  levelNumber: 1,
+                  tileCountOverride: isNarrow ? 3 : null,
+                );
+              } else {
+                provider.startLevel(levelNumber: level.number);
+              }
+            },
+          ),
         );
       }).toList(),
     );
@@ -252,6 +269,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen> {
             if (provider.calledLetter != null)
               CalledLetterDisplay(
                 letter: provider.calledLetter!,
+                signSystem: provider.signSystem,
                 introFuture: _introFuture,
               ),
           ],

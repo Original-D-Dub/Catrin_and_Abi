@@ -25,6 +25,7 @@ class _ZooStartScreenState extends State<ZooStartScreen> {
   @override
   void initState() {
     super.initState();
+    AudioService.playTitle('zoo_start', locale: widget.locale);
     AudioService.playIntro('zoo', locale: widget.locale);
   }
 

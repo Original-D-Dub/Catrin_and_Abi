@@ -15,9 +15,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
         title: const Text(
           'Privacy Policy',
           style: TextStyle(
-            fontFamily: 'ComicRelief',
-            fontSize: 18,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
         leading: IconButton(

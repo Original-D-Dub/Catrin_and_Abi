@@ -81,7 +81,7 @@ enum SignSystem { bsl, iac }
 
 When a game currently has English-only UI text and needs to become bilingual (the
 `locale` axis only — no sign-system change), follow this exact wiring, established
-for `word_search` and `clothes_line`:
+for `word_whirl` and `clothes_line`:
 
 1. **Provider** takes `locale` as a constructor field:
    ```dart

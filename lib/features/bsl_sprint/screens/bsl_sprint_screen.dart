@@ -101,7 +101,7 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     _provider = context.read<BslSprintProvider>();
     _focusNode = FocusNode();
     _ticker = createTicker(_onTick)..start();
-
+    AudioService.playTitle('bsl_sprint', locale: widget.locale);
   }
 
   void _onTick(Duration elapsed) {
@@ -238,6 +238,10 @@ class _BslSprintScreenState extends State<BslSprintScreen>
                   onComplete: () {
                     setState(() => _showingIntro = false);
                     _provider.startGame();
+                  },
+                  onBack: () {
+                    setState(() => _showingIntro = false);
+                    _provider.showLevelSelection();
                   },
                 ),
             ],
@@ -921,7 +925,7 @@ class _SprintCenterHud extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(
-            BslSprintProvider.maxLives,
+            provider.currentMaxLives,
             (i) => Icon(
               i < provider.lives ? Icons.favorite : Icons.favorite_border,
               color: Colors.redAccent,

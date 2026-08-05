@@ -8,6 +8,7 @@ import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_intro_countdown.dart';
 import '../../../shared/widgets/level_select_screen.dart';
+import '../../../shared/widgets/level_transition_overlay.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/bsl_alphabet_svg.dart';
@@ -36,12 +37,14 @@ class BubblePopScreen extends StatefulWidget {
   State<BubblePopScreen> createState() => _BubblePopScreenState();
 }
 
-class _BubblePopScreenState extends State<BubblePopScreen> {
+class _BubblePopScreenState extends State<BubblePopScreen>
+    with LevelTransitionMixin<BubblePopScreen> {
   bool _showingIntro = false;
 
   @override
   void initState() {
     super.initState();
+    AudioService.playTitle('bubble_pop', locale: widget.locale);
     // Show level selection when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BubblePopProvider>().showLevelSelection();
@@ -110,6 +113,10 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
                       setState(() => _showingIntro = false);
                       provider.startGame();
                     },
+                    onBack: () {
+                      setState(() => _showingIntro = false);
+                      provider.showLevelSelection();
+                    },
                   ),
 
                 // Game over overlay — outside SafeArea, covers full screen
@@ -137,6 +144,10 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
                       onChangeLevel: () => provider.showLevelSelection(),
                     ),
                   ),
+
+                Positioned.fill(
+                  child: LevelTransitionOverlay(opacity: levelTransitionOpacity),
+                ),
               ],
             ),
           ),
@@ -158,11 +169,17 @@ class _BubblePopScreenState extends State<BubblePopScreen> {
           number: level.number,
           name: localizer(level.name),
           color: levelColor(level.number - 1),
-          onTap: () {
-            provider.setLevel(level.number);
-            provider.prepareForIntro();
-            setState(() => _showingIntro = true);
-          },
+          onTap: () => startLevelWithTransition(
+            gameId: 'bubble_pop',
+            levelNumber: level.number,
+            locale: widget.locale,
+            signSystem: provider.signSystem,
+            startLevel: () {
+              provider.setLevel(level.number);
+              provider.prepareForIntro();
+              setState(() => _showingIntro = true);
+            },
+          ),
         );
       }).toList(),
     );

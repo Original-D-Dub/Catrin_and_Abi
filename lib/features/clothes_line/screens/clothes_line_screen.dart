@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/level_select_screen.dart';
@@ -41,6 +42,10 @@ class _ClothesLineViewState extends State<_ClothesLineView>
   late final AnimationController _slideController;
   late final Animation<double> _slide;
 
+  // Answer buttons stay hidden until the current question's video has
+  // played through once, so players watch the sign before answering.
+  bool _videoPlayedOnce = false;
+
   // ── Level 2 conveyor-belt scroll ──────────────────────────────────────────
   late final Ticker _l2Ticker;
   Duration _l2PrevElapsed = Duration.zero;
@@ -53,15 +58,16 @@ class _ClothesLineViewState extends State<_ClothesLineView>
 
   static const double _l2ScrollSpeedMin = 0.06; // slowest — screen widths / second
   static const double _l2ScrollSpeedMax = 0.18; // fastest — twice the slowest speed
-  double _l2ScrollSpeed = _l2ScrollSpeedMin;
-  static const double _l2SlotFraction = 0.28;  // spacing between item centres
-  static const double _l2ExitThreshold = -0.18; // remove item when centre x < this
+  double _l2ScrollSpeed = (_l2ScrollSpeedMin + _l2ScrollSpeedMax) / 2;
+  static const double _l2SlotFraction = 0.42;  // spacing between item centres (1.5x items)
+  static const double _l2ExitThreshold = -0.27; // remove item when centre x < this
   static const double _l2SpawnLimit   = 1.38;  // keep items queued up to this x
 
   @override
   void initState() {
     super.initState();
     _provider = context.read<ClothesLineProvider>();
+    AudioService.playTitle('clothes_line', locale: _provider.locale);
     _slideController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 380),
@@ -90,6 +96,7 @@ class _ClothesLineViewState extends State<_ClothesLineView>
     if (!mounted) return;
     _provider.nextItem();
     _slideController.value = 0.0;
+    setState(() => _videoPlayedOnce = false);
   }
 
   Future<void> _handleWrong() async {
@@ -143,14 +150,11 @@ class _ClothesLineViewState extends State<_ClothesLineView>
         }
       }
       final targetItem = _l2NextTargetItem ?? _provider.currentItem;
+      // Block the current and next two questions' clothing types from
+      // appearing as a distractor, so a type already on the belt can never
+      // linger until it becomes the target with a mismatched colour.
       final visibleDefs = _l2Items.map((it) => it.clothingItem.definition).toSet()
-          ..add(targetItem.definition);
-      // Also block the next question's clothing type from appearing as a
-      // distractor so it can never be on screen when it becomes the target.
-      final nextIdx = _provider.currentIndex + 1;
-      if (nextIdx < _provider.questions.length) {
-        visibleDefs.add(_provider.questions[nextIdx].item.definition);
-      }
+          ..addAll(_upcomingTargetDefs());
       _l2Items.add(_L2Item(
         clothingItem:
             spawnTarget ? targetItem : _randomClothingItem(exclude: visibleDefs),
@@ -165,6 +169,20 @@ class _ClothesLineViewState extends State<_ClothesLineView>
 
   // ── Level 2 — helpers ────────────────────────────────────────────────────────
 
+  /// The current target's clothing type plus the next two upcoming
+  /// questions' types — none of these may be used for a distractor, so a
+  /// type already scrolling on the belt never lingers into becoming the
+  /// target with a colour that doesn't match the correct answer.
+  Set<ClothingDefinition> _upcomingTargetDefs() {
+    final defs = <ClothingDefinition>{_provider.currentItem.definition};
+    for (final idx in [_provider.currentIndex + 1, _provider.currentIndex + 2]) {
+      if (idx < _provider.questions.length) {
+        defs.add(_provider.questions[idx].item.definition);
+      }
+    }
+    return defs;
+  }
+
   void _initL2Items() {
     _l2Items.clear();
     _l2SpawnNextAsTarget = false;
@@ -174,14 +192,10 @@ class _ClothesLineViewState extends State<_ClothesLineView>
 
     // Place items centred around 0.7 (right of centre, scrolling left into view).
     // Build the exclude set incrementally so no two initial slots share a definition,
-    // and pre-exclude the next question's type so it can't appear as a distractor.
-    final usedDefs = <ClothingDefinition>{_provider.currentItem.definition};
-    final nextIdx = _provider.currentIndex + 1;
-    if (nextIdx < _provider.questions.length) {
-      usedDefs.add(_provider.questions[nextIdx].item.definition);
-    }
+    // and pre-exclude the next two questions' types so they can't appear as distractors.
+    final usedDefs = _upcomingTargetDefs();
     for (int i = 0; i < 5; i++) {
-      final x = 0.14 + i * _l2SlotFraction;
+      final x = _l2SlotFraction / 2 + i * _l2SlotFraction;
       final isTarget = i == 2; // third item is the target
       ClothingItem clothingItem;
       if (isTarget) {
@@ -215,6 +229,7 @@ class _ClothesLineViewState extends State<_ClothesLineView>
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
     _provider.nextItem();
+    setState(() => _videoPlayedOnce = false);
     // Queue the new target for the next spawn (unless game just finished).
     if (_provider.state != ClothesLineState.finished) {
       // Snapshot the item from the pre-generated questions array so the spawn
@@ -342,6 +357,11 @@ class _ClothesLineViewState extends State<_ClothesLineView>
                                             key: ValueKey(provider.currentIndex),
                                             videoAssetPath:
                                                 provider.currentItem.videoAssetPath,
+                                            onPlayedOnce: () {
+                                              if (mounted) {
+                                                setState(() => _videoPlayedOnce = true);
+                                              }
+                                            },
                                           ),
                                         ),
                                       ),
@@ -401,52 +421,62 @@ class _ClothesLineViewState extends State<_ClothesLineView>
                         const SizedBox(height: 8),
                       ],
 
-                      // Answer buttons
+                      // Answer buttons — hidden until the video has played once
                       if (provider.state != ClothesLineState.finished)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              const gaps = 3 * 8.0;
-                              final buttonSize =
-                                  (constraints.maxWidth - gaps) / 4;
-                              return SizedBox(
-                                height: buttonSize,
-                                child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: provider.answerChoices
-                                      .asMap()
-                                      .entries
-                                      .map((e) {
-                                    final colour = e.value;
-                                    final isDisabled = provider.state !=
-                                        ClothesLineState.playing;
-                                    final isCorrect =
-                                        provider.state ==
-                                                ClothesLineState.correct &&
-                                            provider.selectedAnswer == colour;
-                                    final isWrong =
-                                        provider.state ==
-                                                ClothesLineState.wrong &&
-                                            provider.selectedAnswer == colour;
-                                    return Expanded(
-                                      child: Padding(
-                                        padding: EdgeInsets.only(
-                                            left: e.key == 0 ? 0 : 8),
-                                        child: _ColourButton(
-                                          colourName: colour,
-                                          isCorrect: isCorrect,
-                                          isWrong: isWrong,
-                                          isDisabled: isDisabled,
-                                          onPressed: () => _onAnswer(colour),
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              );
-                            },
+                          child: AnimatedOpacity(
+                            opacity: _videoPlayedOnce ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 250),
+                            child: IgnorePointer(
+                              ignoring: !_videoPlayedOnce,
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  const gaps = 3 * 8.0;
+                                  final buttonSize =
+                                      (constraints.maxWidth - gaps) / 4;
+                                  return SizedBox(
+                                    height: buttonSize,
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: provider.answerChoices
+                                          .asMap()
+                                          .entries
+                                          .map((e) {
+                                        final colour = e.value;
+                                        final isDisabled = provider.state !=
+                                            ClothesLineState.playing;
+                                        final isCorrect =
+                                            provider.state ==
+                                                    ClothesLineState.correct &&
+                                                provider.selectedAnswer ==
+                                                    colour;
+                                        final isWrong =
+                                            provider.state ==
+                                                    ClothesLineState.wrong &&
+                                                provider.selectedAnswer ==
+                                                    colour;
+                                        return Expanded(
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                                left: e.key == 0 ? 0 : 8),
+                                            child: _ColourButton(
+                                              colourName: colour,
+                                              isCorrect: isCorrect,
+                                              isWrong: isWrong,
+                                              isDisabled: isDisabled,
+                                              onPressed: () =>
+                                                  _onAnswer(colour),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                         ),
                     ],
@@ -464,6 +494,7 @@ class _ClothesLineViewState extends State<_ClothesLineView>
                       showPersonalBest: false,
                       onPlayAgain: () {
                         provider.resetGame();
+                        setState(() => _videoPlayedOnce = false);
                         if (provider.level == 3) {
                           _initL2Items();
                           if (!_l2Ticker.isActive) _l2Ticker.start();
@@ -511,6 +542,7 @@ class _ClothesLineViewState extends State<_ClothesLineView>
           color: levelColor(0),
           onTap: () {
             if (_l2Ticker.isActive) _l2Ticker.stop();
+            setState(() => _videoPlayedOnce = false);
             provider.selectLevel(1);
           },
         ),
@@ -521,6 +553,7 @@ class _ClothesLineViewState extends State<_ClothesLineView>
           color: levelColor(1),
           onTap: () {
             if (_l2Ticker.isActive) _l2Ticker.stop();
+            setState(() => _videoPlayedOnce = false);
             provider.selectLevel(2);
           },
         ),
@@ -530,6 +563,7 @@ class _ClothesLineViewState extends State<_ClothesLineView>
           description: l.translate('clothes_line.level3.description'),
           color: levelColor(2),
           onTap: () {
+            setState(() => _videoPlayedOnce = false);
             provider.selectLevel(3);
             _initL2Items();
             _l2Ticker.start();
@@ -592,7 +626,7 @@ class _ClothesLine extends StatelessWidget {
           ),
           Positioned(
             left: cx - itemW / 2,
-            top: ropeY + pegH,
+            top: ropeY + pegH - 20,
             child: _ClothingItemWidget(
               item: items[currentIndex],
               width: itemW,
@@ -615,12 +649,14 @@ class _RopePainter extends CustomPainter {
   final double ropeY;
   final List<double> pegXs;
   final double pegH;
+  final double pegW;
   final double itemW;
 
   const _RopePainter({
     required this.ropeY,
     required this.pegXs,
     required this.pegH,
+    this.pegW = 10.0,
     required this.itemW,
   });
 
@@ -652,13 +688,12 @@ class _RopePainter extends CustomPainter {
   }
 
   void _drawPeg(Canvas canvas, double cx, double ropeY, double pegH) {
-    const pegW = 10.0;
     // Pegs at 30% in from each edge (20% of itemW from centre)
     final offset = itemW * 0.17;
     for (final pegCx in [cx - offset, cx + offset]) {
       final pegRect = RRect.fromRectAndRadius(
         Rect.fromCenter(
-            center: Offset(pegCx, ropeY + pegH / 2), width: pegW, height: pegH),
+            center: Offset(pegCx, ropeY + pegH / 2 - 10), width: pegW, height: pegH),
         const Radius.circular(3),
       );
       canvas.drawRRect(pegRect, Paint()..color = const Color(0xFF6D4C41));
@@ -719,8 +754,13 @@ class _ClothingItemWidget extends StatelessWidget {
 
 class _ClothesLineVideo extends StatefulWidget {
   final String? videoAssetPath;
+  final VoidCallback? onPlayedOnce;
 
-  const _ClothesLineVideo({super.key, required this.videoAssetPath});
+  const _ClothesLineVideo({
+    super.key,
+    required this.videoAssetPath,
+    this.onPlayedOnce,
+  });
 
   @override
   State<_ClothesLineVideo> createState() => _ClothesLineVideoState();
@@ -728,6 +768,7 @@ class _ClothesLineVideo extends StatefulWidget {
 
 class _ClothesLineVideoState extends State<_ClothesLineVideo> {
   VideoPlayerController? _controller;
+  bool _hasPlayedOnce = false;
 
   @override
   void initState() {
@@ -737,13 +778,19 @@ class _ClothesLineVideoState extends State<_ClothesLineVideo> {
 
   @override
   void dispose() {
+    _controller?.removeListener(_onVideoTick);
     _controller?.dispose();
     super.dispose();
   }
 
   Future<void> _init() async {
     final path = widget.videoAssetPath;
-    if (path == null) return;
+    if (path == null) {
+      // No video for this item — nothing to wait for, so unlock immediately.
+      _hasPlayedOnce = true;
+      widget.onPlayedOnce?.call();
+      return;
+    }
 
     final controller = VideoPlayerController.asset(path);
     try {
@@ -752,11 +799,29 @@ class _ClothesLineVideoState extends State<_ClothesLineVideo> {
         controller.dispose();
         return;
       }
-      await controller.setLooping(true);
-      controller.play();
+      // Play once, unlooped, so completion can be detected — then switch
+      // to looping once the caller has been notified of the first playthrough.
+      controller.addListener(_onVideoTick);
+      await controller.play();
       setState(() => _controller = controller);
     } catch (_) {
       controller.dispose();
+      // Playback failed — don't strand the player behind hidden buttons.
+      _hasPlayedOnce = true;
+      widget.onPlayedOnce?.call();
+    }
+  }
+
+  void _onVideoTick() {
+    if (_hasPlayedOnce) return;
+    final value = _controller?.value;
+    if (value == null || !value.isInitialized) return;
+    if (value.duration > Duration.zero && value.position >= value.duration) {
+      _hasPlayedOnce = true;
+      widget.onPlayedOnce?.call();
+      _controller?.setLooping(true);
+      _controller?.seekTo(Duration.zero);
+      _controller?.play();
     }
   }
 
@@ -902,24 +967,7 @@ class _ColourButton extends StatelessWidget {
           ),
           child: Opacity(
             opacity: isDisabled && !isCorrect && !isWrong ? 0.5 : 1.0,
-            child: const {'green', 'blue', 'pink', 'purple', 'red', 'brown', 'white'}
-                    .contains(colourName)
-                ? _BslColourRiveButton(key: ValueKey(colourName), colourName: colourName)
-                : Image.asset(
-                    'assets/images/colours_BSL/$colourName.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Center(
-                      child: Text(
-                        colourName[0].toUpperCase() +
-                            colourName.substring(1),
-                        style: const TextStyle(
-                          fontFamily: 'ComicRelief',
-                          fontSize: AppSizes.fontSizeLarge,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
+            child: _BslColourRiveButton(key: ValueKey(colourName), colourName: colourName),
           ),
         ),
       ),
@@ -940,7 +988,7 @@ class _L2ClothesLineView extends StatelessWidget {
     required this.gameState,
   });
 
-  static const double _slotFraction = 0.28;
+  static const double _slotFraction = 0.42;
 
   @override
   Widget build(BuildContext context) {
@@ -949,7 +997,8 @@ class _L2ClothesLineView extends StatelessWidget {
       final h = constraints.maxHeight;
       final itemW = w * _slotFraction * 0.84;
       const ropeY = 48.0;
-      const pegH = 22.0;
+      const pegH = 33.0;
+      const pegW = 15.0;
       const stringH = 0.0;
 
       // Only pass peg x-positions for items that are on-screen.
@@ -967,6 +1016,7 @@ class _L2ClothesLineView extends StatelessWidget {
               ropeY: ropeY,
               pegXs: visiblePegXs,
               pegH: pegH,
+              pegW: pegW,
               itemW: itemW,
             ),
           ),
@@ -975,7 +1025,7 @@ class _L2ClothesLineView extends StatelessWidget {
             Positioned(
               key: ObjectKey(item),
               left: item.xNorm * w - itemW / 2,
-              top: ropeY + pegH + stringH,
+              top: ropeY + pegH + stringH - 20,
               child: _ClothingItemWidget(
                 item: item.clothingItem,
                 width: itemW,

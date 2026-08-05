@@ -38,6 +38,12 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
   int _lastAudioLevel = -1;
 
   @override
+  void initState() {
+    super.initState();
+    AudioService.playTitle('number_line', locale: widget.locale);
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final provider = context.read<NumberLineGameProvider>();

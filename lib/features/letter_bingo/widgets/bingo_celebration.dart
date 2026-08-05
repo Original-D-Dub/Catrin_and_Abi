@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../screens/animal_collection_screen.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/auth_provider.dart';
 import '../../../shared/widgets/sign_in_banner_button.dart';
@@ -29,6 +30,9 @@ class BingoCelebration extends StatefulWidget {
   final String? playerId;
   final int levelNumber;
 
+  /// UI locale ('en' or 'cy') — selects which recorded celebration clips play.
+  final String locale;
+
   const BingoCelebration({
     super.key,
     required this.onPlayAgain,
@@ -36,6 +40,7 @@ class BingoCelebration extends StatefulWidget {
     this.animal,
     this.playerId,
     required this.levelNumber,
+    this.locale = 'en',
   });
 
   @override
@@ -154,15 +159,20 @@ class _BingoCelebrationState extends State<BingoCelebration>
   }
 
   Future<void> _startAudioSequence() async {
-    await AudioService.playMp3('speech files/bingo_bingo.mp3');
+    // Welsh recording carries the "letter_bingo_" prefix the English one
+    // doesn't (letter_bingo_bingo.wav vs. bingo_bingo.mp3).
+    final bingoFile =
+        widget.locale == 'cy' ? 'letter_bingo_bingo' : 'bingo_bingo';
+    await AudioService.speakWithMp3('Bingo!', mp3Path: bingoFile, locale: widget.locale);
     if (!mounted || widget.animal == null) return;
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
-    if (_isNew ?? false) {
-      AudioService.playMp3('speech files/bingo_you_have_a_new_friend.mp3');
-    } else {
-      AudioService.playMp3('speech files/bingo_you_have_a_friend.mp3');
-    }
+    final friendFile = (_isNew ?? false)
+        ? 'bingo_you_have_a_new_friend'
+        : 'bingo_you_have_a_friend';
+    await AudioService.speakWithMp3('', mp3Path: friendFile, locale: widget.locale);
+    if (!mounted) return;
+    await AudioService.playAnimalName(widget.animal!.letter);
   }
 
   @override
@@ -177,6 +187,7 @@ class _BingoCelebrationState extends State<BingoCelebration>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final localizer = AppLocalizations(locale: widget.locale);
     return Container(
       color: const Color(0xFF002D97).withValues(alpha: 0.88),
       child: SafeArea(
@@ -263,7 +274,7 @@ class _BingoCelebrationState extends State<BingoCelebration>
 
                         // ── Sign-in banner (anonymous users) ─────────────
                         if (context.watch<AuthProvider>().isAnonymous) ...[
-                          const SignInBannerButton(),
+                          SignInBannerButton(locale: widget.locale),
                           const SizedBox(height: AppSizes.spacingMedium),
                         ],
 
@@ -307,7 +318,7 @@ class _BingoCelebrationState extends State<BingoCelebration>
                           child: ElevatedButton.icon(
                             onPressed: widget.onPlayAgain,
                             icon: const Icon(Icons.replay),
-                            label: const Text('Play Again'),
+                            label: Text(localizer('general.play_again')),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4CAF50),
                               foregroundColor: Colors.white,
@@ -333,9 +344,9 @@ class _BingoCelebrationState extends State<BingoCelebration>
                             onPressed: widget.onChangeLevel,
                             icon: const Icon(Icons.grid_view,
                                 color: Colors.white),
-                            label: const Text(
-                              'Change Level',
-                              style: TextStyle(
+                            label: Text(
+                              localizer('general.change_level'),
+                              style: const TextStyle(
                                 fontFamily: 'ComicRelief',
                                 fontSize: AppSizes.fontSizeBody,
                                 color: Colors.white,

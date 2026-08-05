@@ -234,11 +234,8 @@ class AssetPaths {
   /// Pointy finger SVG - cursor that follows player touch position
   static const String vowelHandPointer = '$_vowelHand/pointy_finger_right.svg';
 
-  /// Base directory for My Special Dog game SVGs
-  static const String _mySpecialDog = '$_games/my_special_dog';
-
-  static const String mySpecialDogOpen = '$_mySpecialDog/open_hand_left.svg';
-  static const String mySpecialDogPointer = '$_mySpecialDog/pointy_finger_right.svg';
+  /// "E" hand pose - shown on the intro screen before starting the game
+  static const String vowelHandIntroImage = '$_vowelHand/hand_e.png';
 
   // -------------------------
   // Letter Quest Audio (RPG game sound effects)

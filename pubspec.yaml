@@ -98,7 +98,6 @@ flutter:
     - assets/games/colouring/
     - assets/games/card_matching/
     - assets/games/vowel_hand/
-    - assets/games/my_special_dog/
     - assets/games/letter_quest/
     - assets/games/letter_quest/catrin-bedroom/
     - assets/games/letter_quest/abi-bedroom/
@@ -128,8 +127,8 @@ flutter:
     # Bubble Pop game audio
     - assets/audio/bubble_pop/
 
-    # My Special Dog word audio
-    - assets/audio/my_special_dog/
+    # Word audio for vowel_hand's multi-vowel word levels
+    - assets/audio/vowel_hand/
 
     # Number Line game audio
     - assets/audio/number_line/
@@ -140,9 +139,16 @@ flutter:
     # Zoo game audio
     - assets/audio/zoo/
 
+    # Letter Bingo reward-animal name audio
+    - assets/audio/bingo/animals/
+
     # Speech audio files
     - assets/audio/speech files/
     - assets/audio/speech files/alphabet_english/
+
+    # Welsh (Molly) speech audio files
+    - assets/audio/speech_files_molly_cy/
+    - assets/audio/speech_files_molly_cy/alphabet_welsh/
 
     # Number Race map
     - assets/images/number_race/

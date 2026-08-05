@@ -2,7 +2,7 @@
 ///
 /// All user-facing strings should be defined here for easy
 /// maintenance and future localization updates.
-const Map<String, String> translationsEn = {
+ const Map<String, String> translationsEn = {
 // -------------------------
   // App Title
   // -------------------------
@@ -33,36 +33,42 @@ const Map<String, String> translationsEn = {
   'bsl_vowels.title': 'BSL Vowels',
   'iac_vowels.title': 'IAC Vowels',
   'iac_vowels.intro': 'Tap the correct fingertip or badge to make the sign for each Welsh vowel: a, e, i, o, u, w, y.',
+  'iac_vowels.level2.intro': 'Tap the correct fingertip or badge to make the sign for the missing letter in the word.',
+  'iac_vowels.level3.intro': 'Now try some more words. Tap the correct fingertip or badge to make the sign for the missing letter in the word.',
+  'iac_vowels.level5.intro': 'Tap the correct fingertip or badge to make the sign for each missing letter in the word.',
+  'iac_vowels.level6.intro': 'Big Points! Tap the correct fingertip or badge to make the sign for each letter. Score points for the words you guess correctly — the longer the word, the more points you score.',
   'colouring.title': 'Colouring',
-  // A/B test duplicate of colouring — delete with lib/features/colouring2/.
-  'colouring2.title': 'Colouring 2',
   'counting.title': 'Counting',
   'number_line.title': 'Make 10',
   'more_or_less.title': 'More or Less',
   'bsl_maths.title': 'BSL Maths',
+  'bsl_sprint.title': 'BSL Sprint',
+  'letter_bingo.title': 'Letter Bingo',
+  'character_id.title': 'Who has blue shoes?',
+  'number_race.title': 'Number Race',
+
+  // -------------------------    
+  // Clothes Line
+  // -------------------------
   'clothes_line.title': 'Clothes Line',
   'clothes_line.intro': 'Look at the clothes on the line and answer the question!',
   'clothes_line.level1.name': 'Starter',
   'clothes_line.level1.description': 'Red, blue and green only',
   'clothes_line.level2.name': 'Tap & Answer',
-  'clothes_line.level2.description': 'Answer before you press play',
+  'clothes_line.level2.description': 'Answer the question asked in BSL',
   'clothes_line.level3.name': 'Conveyor Belt',
   'clothes_line.level3.description': 'Answer before the clothes scroll away!',
   'clothes_line.question': 'What colour {verb} the {item}?',
   'clothes_line.verb_singular': 'is',
   'clothes_line.verb_plural': 'are',
-  'clothes_line.item.socks': 'socks',
-  'clothes_line.item.shirt': 'shirt',
-  'clothes_line.item.trousers': 'trousers',
-  'clothes_line.item.skirt': 'skirt',
-  'clothes_line.item.t-shirt': 't-shirt',
-  'clothes_line.item.shorts': 'shorts',
-  'clothes_line.item.coat': 'coat',
-  'clothes_line.speed': 'Speed',
-  'bsl_sprint.title': 'BSL Sprint',
-  'letter_bingo.title': 'Letter Bingo',
-  'character_id.title': 'Who has blue shoes?',
-  'number_race.title': 'Number Race',
+  'clothes_line.item.socks': 'socks', //What colour are the sock?
+  'clothes_line.item.shirt': 'shirt', //What colour is the shirt?
+  'clothes_line.item.trousers': 'trousers', //What colour are the trousers?
+  'clothes_line.item.skirt': 'skirt', //What colour is the skirt?
+  'clothes_line.item.t-shirt': 't-shirt', //What colour is the t-shirt?
+  'clothes_line.item.shorts': 'shorts', //What colour are the shorts?
+  'clothes_line.item.coat': 'coat', //What colour is the coat?
+  'clothes_line.speed': 'Speed', 
 
   // -------------------------
   // Level Select (shared widget)
@@ -87,6 +93,7 @@ const Map<String, String> translationsEn = {
   'general.got_10_correct': 'You got 10 correct',
   'general.personal_best': 'Personal Best! {score}{suffix}',
   'general.sign_in_to_save': 'Sign in to save your changes',
+  'general.sign_in_to_save_scores': 'Sign in to save your scores',
   'general.score': 'Score',
   'general.time': 'Time',
   'general.matches': 'Matches',
@@ -94,6 +101,8 @@ const Map<String, String> translationsEn = {
   'general.completed': 'Completed',
   'general.home': 'Home',
   'general.go': 'Go',
+
+
   'general.1': '1',
   'general.2': '2',
   'general.3': '3',
@@ -114,6 +123,8 @@ const Map<String, String> translationsEn = {
   'general.18': '18',
   'general.19': '19',
   'general.20': '20',
+
+
   'general.emph1': '1',
   'general.emph2': '2',
   'general.emph3': '3',
@@ -144,34 +155,30 @@ const Map<String, String> translationsEn = {
   // BSL Vowels (Vowel Hand) game
   // -------------------------
   'vowel_hand.title': 'BSL Vowels',
+  'vowel_hand.title_iac': 'IAC Vowels',
+  'vowel_hand.intro_heading': 'Tap the correct fingertip',
   'vowel_hand.level1.name': 'Vowel Match',
   'vowel_hand.level1.description': 'Tap the fingertips',
   'vowel_hand.level1.intro': 'Tap the correct fingertip to make the BSL vowel that matches the letter.',
   'vowel_hand.level2.name': 'Missing Vowels',
   'vowel_hand.level2.description': 'Find the missing vowels',
   'vowel_hand.level2.intro': 'Tap the correct fingertip to make the BSL vowel that matches the missing letter.',
-  'vowel_hand.level3.name': 'Simple Words',
+  'vowel_hand.level3.name': '4 Letter Words',
   'vowel_hand.level3.description': 'Find the missing vowels in four letter words',
   'vowel_hand.level3.intro': 'Now try four letter words. Tap the correct fingertip for the missing vowel.',
-  'vowel_hand.level4.name': 'More Simple Words',
+  'vowel_hand.iac.level3.name': '4 Letter Words',
+  'vowel_hand.iac.level3.description': 'Find the missing vowels in more Welsh words',
+  'vowel_hand.level4.name': '4 Letter Words',
   'vowel_hand.level4.description': 'Find the missing vowels in the four letter words',
   'vowel_hand.level4.intro': 'Tap the correct fingertip for the missing vowel.',
-
-  // -------------------------
-  // My Special Dog game
-  // -------------------------
-  'my_special_dog.title': 'My Special Dog',
-  'my_special_dog.level1.intro': 'Tap the correct fingertip to make the BSL vowel that matches the letter.',
-  'my_special_dog.level1.name': 'Vowel Match',
-  'my_special_dog.level1.description': 'Tap the fingertips',
-  'my_special_dog.level2.intro': 'Tap the fingertip to make the BSL vowel that matches the missing letter.',
-  'my_special_dog.level2.name': 'Vowel Words',
-  'my_special_dog.level2.description': 'Missing vowel',
-  'my_special_dog.level3.intro': 'Big Points! Score points for the words you guess correctly. The longer the word the more points you score',
-  'my_special_dog.level3.name': 'Play for points',
-  'my_special_dog.level3.description': 'More points for longer words',
-  'my_special_dog.words_label': 'words',
-  'my_special_dog.words_completed': 'Words completed:',
+  'vowel_hand.level5.name': 'My Special Dog',
+  'vowel_hand.level5.description': 'Find every vowel in the word',
+  'vowel_hand.level5.intro': 'Tap the correct fingertip to make the BSL vowel for each missing letter in the word.',
+  'vowel_hand.level6.name': 'No Mistakes',
+  'vowel_hand.level6.description': 'More points for longer words',
+  'vowel_hand.level6.intro': 'Big Points! Score points for the words you guess correctly. The longer the word the more points you score.',
+  'vowel_hand.words_label': 'words',
+  'vowel_hand.words_completed': 'Words completed:',
 
   // -------------------------
   // Card Matching Game
@@ -189,6 +196,8 @@ const Map<String, String> translationsEn = {
   'card_matching.bsl.level4.name': 'i to r',
   'card_matching.bsl.level5.name': 'q to z',
   'card_matching.bsl.level6.name': 'Full Alphabet',
+
+
   'card_matching.iac.intro': 'Match the Welsh signs with their letters!',
   'card_matching.iac.level1.name': 'Welsh Vowels',
   'card_matching.iac.level2.name': 'a to e',
@@ -230,24 +239,29 @@ const Map<String, String> translationsEn = {
   // -------------------------
   'counting_game.intro': 'Count the circles and tap the matching BSL number sign!',
   'counting_game.subtitle': 'Count the circles!',
-  'counting_game.level1.name': 'Orange',
-  'counting_game.level2.name': 'Yellow',
-  'counting_game.level3.name': 'Green',
-  'counting_game.level4.name': 'Pink & Yellow',
-  'counting_game.level5.name': 'Blue & Red',
-  'counting_game.level6.name': 'Green & Purple',
+  'counting_game.level1.name': 'Red',
+  'counting_game.level2.name': 'Purple',
+  'counting_game.level3.name': 'Blue',
+  'counting_game.level4.name': 'Orange',
+  'counting_game.level5.name': 'Yellow',
+  'counting_game.level6.name': 'Green',
+  'counting_game.level7.name': 'Pink & Yellow',
+  'counting_game.level8.name': 'Blue & Red',
+  'counting_game.level9.name': 'Green & Purple',
   'counting_game.round_label': 'Round',
   'counting_game.of_label': 'of',
+
   'counting_game.question_colour': 'How many {colour} circles?',
   'counting_game.question_total_single': 'How many {colour} circles are there?',
   'counting_game.question_total_multi': 'How many circles altogether?',
-  'counting_game.colour.orange': 'orange',
-  'counting_game.colour.yellow': 'yellow',
-  'counting_game.colour.green': 'green',
-  'counting_game.colour.pink': 'pink',
-  'counting_game.colour.blue': 'blue',
-  'counting_game.colour.red': 'red',
-  'counting_game.colour.purple': 'purple',
+
+  'counting_game.colour.orange': 'orange', //How many orange circles?  How many orange circles are there?
+  'counting_game.colour.yellow': 'yellow', //How many yellow circles? How many yellow circles are there?
+  'counting_game.colour.green': 'green', //How many green circles? How many green circles are there?
+  'counting_game.colour.pink': 'pink', //How many pink circles?   How many pink circles are there?
+  'counting_game.colour.blue': 'blue', //How many blue circles? How many blue circles are there?
+  'counting_game.colour.red': 'red', //How many red circles? How many red circles are there?
+  'counting_game.colour.purple': 'purple', //How many purple circles? How many purple circles are there?
 
   // -------------------------
   // Number Line (Make 10)
@@ -352,11 +366,14 @@ const Map<String, String> translationsEn = {
     'letter_bingo.bsl.intro': 'Match the BSL signs to the letters called at the bottom of the screen. Complete a line for BINGO!',
     'letter_bingo.iac.intro': 'Match the IAC signs to the letters called at the bottom of the screen. Complete a line for BINGO!',
     'letter_bingo.bingo': 'Bingo!',
+    'letter_bingo.friend': 'You have a friend',
+    'letter_bingo.new_friend': 'You have a new friend',
     'letter_bingo.bsl.level1.name': 'a to e',
     'letter_bingo.bsl.level2.name': 'a to i',
     'letter_bingo.bsl.level3.name': 'a to o',
     'letter_bingo.bsl.level4.name': 'a to u',
     'letter_bingo.bsl.level5.name': 'full alphabet',
+
     'letter_bingo.iac.level1.name': 'a to d',
     'letter_bingo.iac.level2.name': 'a to dd',
     'letter_bingo.iac.level3.name': 'a to o',
@@ -378,28 +395,16 @@ const Map<String, String> translationsEn = {
   'character_id.level4.name': 'Compare',
 
   // -------------------------
-  // Sphere Runner
-  // -------------------------
-  'sphere_runner.title': 'Sphere Runner',
-  'sphere_runner.intro': 'Swipe left or right to steer through the gates and collect exactly 20 spheres!',
-  'sphere_runner.spheres_label': 'Spheres',
-  'sphere_runner.target_label': 'Target: 20',
-  'sphere_runner.almost_there': 'Almost there!',
-  'sphere_runner.win_title': 'You did it!',
-  'sphere_runner.win_body': 'You collected exactly 20 spheres!',
-  'sphere_runner.exit': 'Exit',
-
-  // -------------------------
   // Word Search
   // -------------------------
-  'word_search.title': 'Word Search',
-  'word_search.instructions':
+  'word_whirl.title': 'Word Search',
+  'word_whirl.instructions':
       'Drag your finger from letter to letter to spell the word. Letters can be used more than once.',
-  'word_search.level1.name': 'Questions',
-  'word_search.level2.name': 'Colours',
-  'word_search.level3.name': 'Weather',
-  'word_search.video_coming_soon': 'Video coming soon',
-  'word_search.clear': 'Clear',
+  'word_whirl.level1.name': 'Questions',
+  'word_whirl.level2.name': 'Colours',
+  'word_whirl.level3.name': 'Weather',
+  'word_whirl.video_coming_soon': 'Video coming soon',
+  'word_whirl.clear': 'Clear',
 
   // -------------------------
   // Zoo Adventure
@@ -415,7 +420,7 @@ const Map<String, String> translationsEn = {
   'zoo.character.catrin': 'Catrin',
   'zoo.character.ruby': 'Ruby',
   'zoo.character.osian': 'Osian',
-  'zoo.character.player5': 'Player 5',
+  'zoo.character.player5': 'Esme',
   'zoo.character.player6': 'Player 6',
   'zoo.enter': 'Enter',
   'zoo.find_building.aquarium': 'Find the Aquarium!',
@@ -443,19 +448,20 @@ const Map<String, String> translationsEn = {
   'zoo.animal.penguin': 'Penguin',
   'zoo.animal.dolphin': 'Dolphins',
   'zoo.animal.pig': 'Pig',
+
   'zoo.animal.horse': 'Horse',
   'zoo.animal.cow': 'Cow',
   'zoo.animal.sheep': 'Sheep',
-  'zoo.aquarium.sharks': 'Sharks',
+  'zoo.aquarium.sharks': 'Shark',
   'zoo.aquarium.clownfish': 'Clownfish',
-  'zoo.aquarium.seahorses': 'Seahorses',
-  'zoo.aquarium.turtles': 'Sea Turtles',
+  'zoo.aquarium.seahorses': 'Seahorse',
+  'zoo.aquarium.turtles': 'Sea Turtle',
   'zoo.aquarium.jellyfish': 'Jellyfish',
-  'zoo.reptile_house.snakes': 'Snakes',
-  'zoo.reptile_house.crocodiles': 'Crocodiles',
-  'zoo.reptile_house.lizards': 'Lizards',
-  'zoo.reptile_house.tortoises': 'Tortoises',
-  'zoo.reptile_house.geckos': 'Geckos',
+  'zoo.reptile_house.snakes': 'Snake',
+  'zoo.reptile_house.crocodiles': 'Crocodile',
+  'zoo.reptile_house.lizards': 'Lizard',
+  'zoo.reptile_house.tortoises': 'Tortoise',
+  'zoo.reptile_house.geckos': 'Gecko',
 
   // -------------------------
   // Sudoku
@@ -493,7 +499,7 @@ const Map<String, String> translationsEn = {
   'sudoku.howtoplay.step2': 'Numbers can only appear once in a column. Tap 4 to complete the column.',
   'sudoku.howtoplay.step3': 'Numbers can only appear once in a row. Tap 1 to complete the row.',
   'sudoku.howtoplay.step4': 'The squares, rows and columns for the selected area show blue to help you choose the right number.',
-  'sudoku.howtoplay.step5': 'Now complete the puzzle. Tap a cell to select it, then tap a number to fill it in.,l.;',
+  'sudoku.howtoplay.step5': 'Now complete the puzzle. Tap a cell to select it, then tap a number to fill it in.',
 
   'sudoku.howtoplay.error':     'If a number is added more than once to a row, column or square it will show up red. Use your detective skills to work out how to fix it.',
   'sudoku.howtoplay.well_done': 'Well done. You fixed it!',
@@ -528,5 +534,54 @@ const Map<String, String> translationsEn = {
   'settings.years3to5_sub': 'Ages 7 to 10',
   'settings.years5plus': 'Year 5 +',
   'settings.years5plus_sub': 'Ages 10 and above',
+
+  // -------------------------
+  // Profile Screen
+  // -------------------------
+  'profile.title': 'Profile',
+  'profile.screen_name_placeholder': 'Player',
+  'profile.edit': 'Edit',
+  'profile.edit_title': 'Edit Profile',
+  'profile.screen_name_label': 'Screen name',
+  'profile.choose_avatar': 'Choose an avatar',
+  'profile.save': 'Save',
+  'profile.cancel': 'Cancel',
+  'profile.name_taken': 'That name is taken — try another!',
+  'profile.badges_title': 'Badges',
+  'profile.badge.bsl_cup': 'BSL Champion',
+  'profile.badge.iac_cup': 'IAC Champion',
+  'profile.badge.running_fast': 'Speedy Streak',
+  'profile.badge.monkey_face': 'Cheeky Monkey',
+  'profile.badge.locked': 'Not earned yet',
+  'profile.videos_title': 'My BSL Video',
+  'profile.video.deaf_awareness': 'Deaf Awareness',
+  'profile.video.iac_alphabet': 'IAC Alphabet',
+  'profile.video.bsl_alphabet': 'BSL Alphabet',
+  'profile.video.bsl_numbers': 'BSL Numbers',
+  'profile.video.colours': 'Colours',
+  'profile.video.weather': 'Weather',
+  'profile.video.time': 'Time',
+  'profile.video.questions': 'Questions',
+  'profile.video.watched': 'Watched',
+  'profile.video.not_watched': 'Not watched',
+  'profile.menu.score': 'Score',
+  'profile.menu.videos': 'Videos',
+  'profile.menu.settings': 'Settings',
+  'profile.scores_title': 'Scores',
+  'profile.account_section': 'Account',
+  'profile.yes': 'Yes',
+  'profile.delete_account_message':
+      'Permanently delete your account and all saved data including profile, game scores and achievements. This cannot be undone.',
+  'profile.delete_account_button': 'Delete Account',
+  'profile.delete_account_confirm': 'This cannot be undone. Are you sure?',
+
+  // -------------------------
+  // Profile Settings Screen (sound / instructions toggles)
+  // -------------------------
+  'profile_settings.title': 'Settings',
+  'profile_settings.sound_effects': 'Sound Effects',
+  'profile_settings.sound_effects_sub': 'Correct and wrong answer sounds',
+  'profile_settings.instructions': 'Instructions',
+  'profile_settings.instructions_sub': 'Spoken game instructions',
 
 };

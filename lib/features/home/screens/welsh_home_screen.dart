@@ -49,14 +49,17 @@ class WelshHomeScreen extends StatelessWidget {
           ),
           Consumer<AuthProvider>(
             builder: (context, auth, _) => IconButton(
-              tooltip: auth.isAnonymous ? 'Save your scores' : 'My account',
+              tooltip: auth.isAnonymous ? 'Save your scores' : 'Proffil',
               icon: Icon(
                 auth.isAnonymous ? Icons.person_outline : Icons.person,
                 color: Colors.white,
                 size: 28,
               ),
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.linkAccount),
+              onPressed: () => Navigator.pushNamed(
+                context,
+                AppRoutes.profile,
+                arguments: 'cy',
+              ),
             ),
           ),
         ],
@@ -197,7 +200,7 @@ class WelshHomeScreen extends StatelessWidget {
                     ),
                     homeGameEntry(
                       route: AppRoutes.wordSearch,
-                      titleKey: 'word_search.title',
+                      titleKey: 'word_whirl.title',
                       imagePath: 'assets/images/home_screen/word-search.png',
                       category: GameCategory.vocabulary,
                       ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},

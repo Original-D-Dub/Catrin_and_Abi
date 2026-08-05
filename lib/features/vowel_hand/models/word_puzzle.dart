@@ -2,12 +2,29 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-/// Represents a CVC (consonant-vowel-consonant) word puzzle for the
-/// Vowel Words level of the BSL Vowels game.
+import 'welsh_letters.dart';
+
+/// Represents a single-missing-vowel word puzzle for the Vowel Words level
+/// of the BSL/IAC Vowels game.
 ///
-/// The puzzle displays the word with its middle vowel replaced by an
-/// underscore. The player must identify and tap the correct vowel
-/// fingertip on the BSL hand.
+/// The puzzle displays the word with its first vowel *letter* replaced by
+/// an underscore. The player must identify and tap the correct vowel
+/// fingertip (or, for 'w'/'y', badge) on the hand.
+///
+/// [useWelshAlphabet] selects which alphabet rules parse the word:
+/// - **English (default, `false`)**: plain a/e/i/o/u vowel detection,
+///   character by character. 'w' and 'y' are consonants — e.g. English
+///   "wig"/"twig" must have their 'i' blanked, not their 'w'.
+/// - **Welsh (`true`)**: words are split into letter units via
+///   [splitWelshLetters], so consonant digraphs (ch, dd, ff, ng, ll, ph,
+///   rh, th) are never split — blanking half a digraph would remove a
+///   consonant, not a vowel — and 'w'/'y' (and circumflex vowels) are
+///   recognised as vowels too.
+///
+/// These rulesets are mutually incompatible (Welsh's 'w'/'y'-as-vowel rule
+/// would misidentify English "wig"'s vowel as 'w'), so the caller must pick
+/// the right one based on which language the word actually came from —
+/// not the UI locale.
 ///
 /// Example:
 /// ```dart
@@ -16,42 +33,69 @@ import 'package:flutter/material.dart';
 /// print(puzzle.displayWord); // 'c_t'
 /// print(puzzle.displayWithLetter(letter: 'a')); // 'cat'
 /// print(puzzle.displayWithLetter(letter: 'o')); // 'cot'
+///
+/// final welsh = WordPuzzle(word: 'bach', useWelshAlphabet: true);
+/// print(welsh.vowel);       // 'a'
+/// print(welsh.displayWord); // 'b_ch' — 'ch' stays intact as one letter
 /// ```
 class WordPuzzle {
-  /// The complete 3-letter CVC word (e.g., 'cat', 'bed', 'pig')
+  /// The complete word (e.g., 'cat', 'bed', 'pig', or a Welsh word like
+  /// 'bach', 'drwg').
   final String word;
 
-  /// Creates a word puzzle from a 3-letter CVC word.
-  const WordPuzzle({required this.word});
+  /// Whether to parse [word] with Welsh alphabet rules rather than plain
+  /// English a/e/i/o/u vowel detection. See the class doc for details.
+  final bool useWelshAlphabet;
 
-  static const _vowelSet = {'a', 'e', 'i', 'o', 'u'};
+  /// Creates a word puzzle from a word with exactly one vowel letter.
+  const WordPuzzle({required this.word, this.useWelshAlphabet = false});
 
-  /// Index of the first vowel character in the word.
-  ///
-  /// Works for any word pattern:
-  /// - CVC  'cat'  → 1
-  /// - CCVC 'frog' → 2
-  /// - CVCC 'fast' → 1
-  int get _vowelIndex {
-    for (int i = 0; i < word.length; i++) {
-      if (_vowelSet.contains(word[i])) return i;
-    }
-    return 1;
+  static const _englishVowels = {'a', 'e', 'i', 'o', 'u'};
+
+  List<WelshLetter> get _letters {
+    if (useWelshAlphabet) return splitWelshLetters(word);
+    // English: every character is its own letter; only a/e/i/o/u are vowels.
+    return [
+      for (final ch in word.split(''))
+        WelshLetter(
+            ch, _englishVowels.contains(ch.toLowerCase()) ? ch.toLowerCase() : null),
+    ];
   }
 
-  /// The vowel character in the word.
-  String get vowel => word[_vowelIndex];
+  /// Index (in letter units, not raw characters) of the first vowel letter
+  /// in the word.
+  int get _vowelUnitIndex {
+    final letters = _letters;
+    for (int i = 0; i < letters.length; i++) {
+      if (letters[i].vowel != null) return i;
+    }
+    return 0;
+  }
 
-  /// The word with the vowel replaced by an underscore.
+  /// The base vowel letter in the word ('a'/'e'/'i'/'o'/'u'/'w'/'y'), with
+  /// any circumflex stripped so it matches the vowel fingertip/badge.
+  String get vowel => _letters[_vowelUnitIndex].vowel ?? '';
+
+  /// The word with its vowel letter replaced by an underscore.
   String get displayWord {
-    final i = _vowelIndex;
-    return '${word.substring(0, i)}_${word.substring(i + 1)}';
+    final letters = _letters;
+    final i = _vowelUnitIndex;
+    final buffer = StringBuffer();
+    for (int u = 0; u < letters.length; u++) {
+      buffer.write(u == i ? '_' : letters[u].text);
+    }
+    return buffer.toString();
   }
 
   /// Returns the word with [letter] substituted for the vowel.
   String displayWithLetter({required String letter}) {
-    final i = _vowelIndex;
-    return '${word.substring(0, i)}$letter${word.substring(i + 1)}';
+    final letters = _letters;
+    final i = _vowelUnitIndex;
+    final buffer = StringBuffer();
+    for (int u = 0; u < letters.length; u++) {
+      buffer.write(u == i ? letter : letters[u].text);
+    }
+    return buffer.toString();
   }
 }
 

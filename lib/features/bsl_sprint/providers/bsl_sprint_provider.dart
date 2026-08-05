@@ -37,8 +37,12 @@ class BslSprintProvider extends ChangeNotifier {
 
   // ── Tuning constants ──────────────────────────────────────────────────────
 
-  /// Starting number of lives.
+  /// Starting number of lives (Training level only).
   static const int maxLives = 3;
+
+  /// Starting number of lives for the current level. Training gets the full
+  /// [maxLives]; every other level is single-life.
+  int get currentMaxLives => _currentLevel.number == 0 ? maxLives : 1;
 
   /// The character sits at this normalised Y position in the game area.
   /// 0.0 = top, 1.0 = bottom.
@@ -167,7 +171,7 @@ class BslSprintProvider extends ChangeNotifier {
   void startGame() {
     state = SprintState.playing;
     score = 0;
-    lives = maxLives;
+    lives = currentMaxLives;
     wordsCompleted = 0;
     items.clear();
     characterLane = 1;
@@ -416,6 +420,11 @@ class BslSprintProvider extends ChangeNotifier {
           item.collected = true;
           //AudioService.playWrong('bsl_sprint');
           AudioService.speak('Oops');
+          // All levels except Training penalise a wrong letter.
+          if (_currentLevel.number != 0) {
+            score -= 10;
+            notifyListeners();
+          }
         }
       }
     }
@@ -442,7 +451,7 @@ class BslSprintProvider extends ChangeNotifier {
     final collectedLetter = currentWord[_letterIndex];
     _letterIndex++;
     //AudioService.playCorrect('bsl_sprint');
-    final letterAudio = AudioService.playLetterMp3(collectedLetter, locale: locale);
+    final letterAudio = AudioService.playLetterMp3(collectedLetter);
     score += 10;
 
     // Re-colour any on-screen decoy that now matches the new correct letter.

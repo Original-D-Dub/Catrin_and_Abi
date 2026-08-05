@@ -9,6 +9,7 @@ import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/level_select_screen.dart';
+import '../../../shared/widgets/level_transition_overlay.dart';
 import '../providers/card_game_provider.dart';
 import '../widgets/card_grid.dart';
 
@@ -34,10 +35,12 @@ class CardGameScreen extends StatefulWidget {
   State<CardGameScreen> createState() => _CardGameScreenState();
 }
 
-class _CardGameScreenState extends State<CardGameScreen> {
+class _CardGameScreenState extends State<CardGameScreen>
+    with LevelTransitionMixin<CardGameScreen> {
   @override
   void initState() {
     super.initState();
+    AudioService.playTitle('card_matching', locale: widget.locale);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<CardGameProvider>();
       provider.showLevelSelection();
@@ -107,6 +110,9 @@ class _CardGameScreenState extends State<CardGameScreen> {
                       onChangeLevel: () => provider.showLevelSelection(),
                     ),
                   ),
+                Positioned.fill(
+                  child: LevelTransitionOverlay(opacity: levelTransitionOpacity),
+                ),
               ],
             ),
           ),
@@ -133,10 +139,13 @@ class _CardGameScreenState extends State<CardGameScreen> {
           number: level.levelNumber,
           name: localizer(level.name),
           color: levelColor(level.levelNumber - 1),
-          onTap: () {
-            provider.startLevel(level);
-            AudioService.playIntro('card_matching', locale: widget.locale);
-          },
+          onTap: () => startLevelWithTransition(
+            gameId: 'card_matching',
+            levelNumber: level.levelNumber,
+            locale: widget.locale,
+            signSystem: provider.signSystem,
+            startLevel: () => provider.startLevel(level),
+          ),
         );
       }).toList(),
     );

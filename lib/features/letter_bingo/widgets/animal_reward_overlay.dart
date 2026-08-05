@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/routes.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../shared/services/audio_service.dart';
 import '../models/animal_model.dart';
 import '../services/animal_collection_service.dart';
 
@@ -82,9 +81,6 @@ class _AnimalRewardOverlayState extends State<AnimalRewardOverlay>
             levelNumber: widget.levelNumber,
           )
           .catchError((_) {});
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (mounted) AudioService.speak(widget.animal.name);
-      });
       Future.delayed(const Duration(milliseconds: 700), () {
         if (mounted) _buttonCtrl.forward();
       });

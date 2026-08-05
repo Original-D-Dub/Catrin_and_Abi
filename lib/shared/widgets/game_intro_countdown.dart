@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/constants/asset_paths.dart';
+import '../../core/constants/app_colors.dart';
 import '../services/audio_service.dart';
 
 /// Full-screen intro shown when a timed game starts.
@@ -13,6 +14,10 @@ class GameIntroCountdown extends StatefulWidget {
   final String gameId;
   final VoidCallback onComplete;
 
+  /// Called when the back button is tapped, to return to the level select
+  /// screen instead of starting the countdown.
+  final VoidCallback onBack;
+
   /// Asset path for the character shown below the speech bubble.
   /// Defaults to Catrin when not specified.
   final String? characterImage;
@@ -20,12 +25,29 @@ class GameIntroCountdown extends StatefulWidget {
   /// UI locale ('en' or 'cy') used to look up the instruction text.
   final String locale;
 
+  /// Background image asset path. Defaults to the blue radial gradient
+  /// when not specified.
+  final String? backgroundImage;
+
+  /// Heading text shown above the speech bubble, in large LuckiestGuy type.
+  /// Omitted when not specified.
+  final String? topText;
+
+  /// When true, replaces the tailed speech bubble with a plain rounded
+  /// rectangle placed directly below the character image (no gap), instead
+  /// of above it with a pointing tail.
+  final bool roundedBubble;
+
   const GameIntroCountdown({
     super.key,
     required this.gameId,
     required this.onComplete,
+    required this.onBack,
     this.characterImage,
     this.locale = 'en',
+    this.backgroundImage,
+    this.topText,
+    this.roundedBubble = false,
   });
 
   @override
@@ -59,6 +81,12 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
     if (_cancelled) return;
     await AudioService.stopAll();
     _runCountdown();
+  }
+
+  Future<void> _onBackTapped() async {
+    if (_cancelled) return;
+    await AudioService.stopAll();
+    widget.onBack();
   }
 
   Future<void> _runCountdown() async {
@@ -98,10 +126,17 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
           // Background — 75% opaque during countdown so the game shows through
           Opacity(
             opacity: _phase == _Phase.countdown ? 0.75 : 1.0,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(gradient: _bgGradient),
-              child: SizedBox.expand(),
-            ),
+            child: widget.backgroundImage != null
+                ? SizedBox.expand(
+                    child: Image.asset(
+                      widget.backgroundImage!,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : const DecoratedBox(
+                    decoration: BoxDecoration(gradient: _bgGradient),
+                    child: SizedBox.expand(),
+                  ),
           ),
           // Content — always fully opaque
           SafeArea(
@@ -115,6 +150,9 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
   }
 
   Widget _buildInstruction(AppLocalizations localizer) {
+    if (widget.roundedBubble) {
+      return _buildInstructionRounded(localizer);
+    }
     return AnimatedOpacity(
       opacity: _instructionOpacity,
       duration: const Duration(milliseconds: 300),
@@ -177,33 +215,138 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
             ),
           ),
 
-          // ── Play button ────────────────────────────────────────────────
+          // ── Back + Play buttons ───────────────────────────────────────
           const SizedBox(height: 16),
-          Center(
-            child: SizedBox(
-              width: 200,
-              height: 64,
-              child: ElevatedButton(
-                onPressed: _onPlayTapped,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF20A754),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'ComicRelief',
-                  ),
-                ),
-                child: Text(localizer('general.play')),
-              ),
-            ),
-          ),
+          _buildActionRow(localizer),
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+
+  /// Alternate instruction layout: heading text at the top, the character
+  /// image, then a plain rounded-rectangle text box placed directly below
+  /// it with no gap (instead of a tailed speech bubble above it).
+  Widget _buildInstructionRounded(AppLocalizations localizer) {
+    return AnimatedOpacity(
+      opacity: _instructionOpacity,
+      duration: const Duration(milliseconds: 300),
+      child: Column(
+        children: [
+          if (widget.topText != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              widget.topText!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'LuckiestGuy',
+                fontSize: 56,
+                height: 1,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    color: Color(0x80013595),
+                    offset: Offset(0, 4),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // ── Character image — fills remaining space above the box ──────
+          Expanded(
+            child: Image.asset(
+              widget.characterImage ?? AssetPaths.catrinDefault,
+              fit: BoxFit.contain,
+              alignment: Alignment.bottomCenter,
+            ),
+          ),
+
+          // ── Rounded text box — sits directly below with no gap ─────────
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF0091CE), width: 1),
+                ),
+                child: Text(
+                  localizer('${widget.gameId}.intro'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'ComicRelief',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF002D97),
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Back + Play buttons ───────────────────────────────────────
+          const SizedBox(height: 16),
+          _buildActionRow(localizer),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  /// Row containing the Back (Catrin blue) and Play (green) buttons, shared
+  /// by both instruction layouts.
+  Widget _buildActionRow(AppLocalizations localizer) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 120,
+          height: 64,
+          child: ElevatedButton(
+            onPressed: _onBackTapped,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.catrinBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(32),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'ComicRelief',
+              ),
+            ),
+            child: Text(localizer('general.back')),
+          ),
+        ),
+        const SizedBox(width: 16),
+        SizedBox(
+          width: 200,
+          height: 64,
+          child: ElevatedButton(
+            onPressed: _onPlayTapped,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF20A754),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(32),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'ComicRelief',
+              ),
+            ),
+            child: Text(localizer('general.play')),
+          ),
+        ),
+      ],
     );
   }
 

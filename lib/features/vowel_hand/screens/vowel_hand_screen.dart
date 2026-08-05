@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/constants/asset_paths.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../core/localization/app_localizations.dart';
@@ -14,6 +15,7 @@ import '../../../shared/widgets/game_success_overlay.dart';
 import '../models/vowel_target.dart';
 import '../providers/vowel_hand_provider.dart';
 import '../widgets/hand_display.dart';
+import '../widgets/multi_vowel_word_display.dart';
 import '../widgets/pointy_finger_cursor.dart';
 import '../widgets/vowel_badge.dart';
 import '../widgets/word_display.dart';
@@ -60,9 +62,13 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<VowelHandProvider>();
-      if (provider.signSystem == SignSystem.iac) {
-        // IAC has only one level (Vowel Match) — skip level selection and
-        // go straight into the intro countdown.
+      AudioService.playTitle(
+        provider.signSystem == SignSystem.iac ? 'iac_vowels' : 'vowel_hand',
+        locale: widget.locale,
+      );
+      if (VowelHandLevel.forSignSystem(provider.signSystem).length <= 1) {
+        // Only one level available — skip level selection and go straight
+        // into the intro countdown.
         provider.prepareForIntro(level: VowelHandLevel.vowelMatch);
         setState(() => _showingIntro = true);
       } else {
@@ -92,7 +98,10 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
               ? GameAppBar(
-                  title: AppLocalizations(locale: widget.locale).translate('vowel_hand.title'),
+                  title: AppLocalizations(locale: widget.locale).translate(
+                      provider.signSystem == SignSystem.iac
+                          ? 'vowel_hand.title_iac'
+                          : 'vowel_hand.title'),
                   onBack: () => Navigator.of(context).pop(),
                 )
               : null,
@@ -117,14 +126,27 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
 
                                 // Header bar with score, time, level
                                 GameHeaderBar(
-                                  onBack: provider.signSystem == SignSystem.iac
-                                      ? () => Navigator.of(context).pop()
-                                      : () => provider.showLevelSelection(),
+                                  onBack: () => provider.showLevelSelection(),
                                   scoreValue: '${provider.score}',
                                   levelNumber: provider.selectedLevel.number,
-                                  centerContent: GameTimerDisplay(
-                                    formattedTime: provider.formattedTime,
-                                  ),
+                                  centerContent: (provider.selectedLevel ==
+                                              VowelHandLevel.vowelWordsMulti ||
+                                          provider.selectedLevel ==
+                                              VowelHandLevel.noMistakes)
+                                      ? Center(
+                                          child: Text(
+                                            '${provider.completedWords.length} / ${VowelHandProvider.targetWords} ${AppLocalizations(locale: widget.locale).translate('vowel_hand.words_label')}',
+                                            style: const TextStyle(
+                                              fontFamily: 'ComicRelief',
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      : GameTimerDisplay(
+                                          formattedTime: provider.formattedTime,
+                                        ),
                                 ),
 
                                 const SizedBox(height: 8),
@@ -150,12 +172,24 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                 if (_showingIntro)
                   GameIntroCountdown(
                     gameId: provider.signSystem == SignSystem.iac
-                        ? 'iac_vowels'
+                        ? (provider.selectedLevel == VowelHandLevel.vowelMatch
+                            ? 'iac_vowels'
+                            : 'iac_vowels.level${provider.selectedLevel.number}')
                         : 'vowel_hand.level${provider.selectedLevel.number}',
                     locale: widget.locale,
+                    characterImage: AssetPaths.vowelHandIntroImage,
+                    backgroundImage:
+                        'assets/backgrounds/math-background-1080x1920.jpg',
+                    topText: AppLocalizations(locale: widget.locale)
+                        .translate('vowel_hand.intro_heading'),
+                    roundedBubble: true,
                     onComplete: () {
                       setState(() => _showingIntro = false);
                       provider.startGame();
+                    },
+                    onBack: () {
+                      setState(() => _showingIntro = false);
+                      provider.showLevelSelection();
                     },
                   ),
                 if (!provider.showLevelSelect &&
@@ -173,30 +207,76 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                       isNewPersonalBest:
                           provider.lastResult?.isNewPersonalBest ?? false,
                       personalBest: provider.lastResult?.personalBest,
-                      onPlayAgain: provider.signSystem == SignSystem.iac
-                          ? () {
-                              provider.prepareForIntro(level: VowelHandLevel.vowelMatch);
-                              setState(() => _showingIntro = true);
-                            }
-                          : () => provider.startGame(),
-                      onNextLevel: provider.signSystem == SignSystem.iac
-                          ? null
-                          : switch (provider.selectedLevel) {
-                              VowelHandLevel.vowelMatch =>
-                                () => provider.startGame(level: VowelHandLevel.vowelWords),
-                              VowelHandLevel.vowelWords => () {
-                                  provider.prepareForIntro(level: VowelHandLevel.ccvc);
-                                  setState(() => _showingIntro = true);
-                                },
-                              VowelHandLevel.ccvc => () {
-                                  provider.prepareForIntro(level: VowelHandLevel.cvcc);
-                                  setState(() => _showingIntro = true);
-                                },
-                              VowelHandLevel.cvcc => null,
-                            },
-                      onChangeLevel: provider.signSystem == SignSystem.iac
-                          ? () => Navigator.of(context).pop()
-                          : () => provider.showLevelSelection(),
+                      extraContent: provider.completedWords.isNotEmpty
+                          ? Container(
+                              padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(
+                                    AppSizes.borderRadiusLarge),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 16,
+                                    offset: Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    AppLocalizations(locale: widget.locale)
+                                        .translate('vowel_hand.words_completed'),
+                                    style: const TextStyle(
+                                      fontFamily: 'ComicRelief',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF002D97),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ...provider.completedWords.map(
+                                    (w) => Text(
+                                      w,
+                                      style: const TextStyle(
+                                        fontFamily: 'ComicRelief',
+                                        fontSize: 20,
+                                        color: Color(0xFF2E7D32),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : null,
+                      onPlayAgain: () => provider.startGame(),
+                      onNextLevel: switch (provider.selectedLevel) {
+                        VowelHandLevel.vowelMatch =>
+                          () => provider.startGame(level: VowelHandLevel.vowelWords),
+                        VowelHandLevel.vowelWords => () {
+                            provider.prepareForIntro(level: VowelHandLevel.ccvc);
+                            setState(() => _showingIntro = true);
+                          },
+                        VowelHandLevel.ccvc => () {
+                            provider.prepareForIntro(
+                              level: provider.signSystem == SignSystem.iac
+                                  ? VowelHandLevel.vowelWordsMulti
+                                  : VowelHandLevel.cvcc,
+                            );
+                            setState(() => _showingIntro = true);
+                          },
+                        VowelHandLevel.cvcc => () {
+                            provider.prepareForIntro(level: VowelHandLevel.vowelWordsMulti);
+                            setState(() => _showingIntro = true);
+                          },
+                        VowelHandLevel.vowelWordsMulti => () {
+                            provider.prepareForIntro(level: VowelHandLevel.noMistakes);
+                            setState(() => _showingIntro = true);
+                          },
+                        VowelHandLevel.noMistakes => null,
+                      },
+                      onChangeLevel: () => provider.showLevelSelection(),
                     ),
                   ),
               ],
@@ -218,8 +298,8 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
       levels: VowelHandLevel.forSignSystem(provider.signSystem).map((level) {
         return LevelSelectItem(
           number: level.number,
-          name: l.translate('vowel_hand.level${level.number}.name'),
-          description: l.translate('vowel_hand.level${level.number}.description'),
+          name: _levelText(l, provider.signSystem, level.number, 'name'),
+          // description: _levelText(l, provider.signSystem, level.number, 'description'),
           color: levelColor(level.number - 1),
           onTap: () {
             provider.prepareForIntro(level: level);
@@ -230,6 +310,19 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     );
   }
 
+  /// Looks up the level-select label for [field] ('name'/'description') at
+  /// [number], preferring an IAC-specific override (`vowel_hand.iac.levelN.*`)
+  /// when one exists and falling back to the shared BSL/English text
+  /// otherwise (e.g. Levels 1 & 2, whose wording already fits both sign
+  /// systems).
+  String _levelText(AppLocalizations l, SignSystem signSystem, int number, String field) {
+    if (signSystem == SignSystem.iac) {
+      final iacKey = 'vowel_hand.iac.level$number.$field';
+      final iacText = l.translate(iacKey);
+      if (iacText != iacKey) return iacText;
+    }
+    return l.translate('vowel_hand.level$number.$field');
+  }
 
   /// Builds the letter (Level 1) or word (Level 2) display shown below the header bar.
   Widget _buildTopLetterDisplay(VowelHandProvider provider) {
@@ -237,9 +330,20 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
       return const SizedBox.shrink();
     }
 
+    if (provider.selectedLevel == VowelHandLevel.vowelWordsMulti ||
+        provider.selectedLevel == VowelHandLevel.noMistakes) {
+      if (provider.currentMultiPuzzle == null) return const SizedBox.shrink();
+      return MultiVowelWordDisplay(
+        puzzle: provider.currentMultiPuzzle!,
+        isCorrect: provider.isGuessCorrect,
+      );
+    }
+
     if (provider.selectedLevel != VowelHandLevel.vowelMatch) {
       if (provider.currentPuzzle == null) return const SizedBox.shrink();
-      final hasThumbnail = provider.selectedLevel == VowelHandLevel.vowelWords;
+      // No thumbnail artwork exists for the Welsh CVC word list (IAC).
+      final hasThumbnail = provider.selectedLevel == VowelHandLevel.vowelWords &&
+          provider.signSystem == SignSystem.bsl;
       return WordDisplay(
         puzzle: provider.currentPuzzle!,
         guessedVowel: provider.guessedVowel,

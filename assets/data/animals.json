@@ -19,6 +19,11 @@
         "name": "Deer",
         "image": "assets/images/animals/deer.png"
     },
+     {
+        "letter": "E",
+        "name": "Elephant",
+        "image": "assets/images/animals/elephant.png"
+    },
     {
         "letter": "F",
         "name": "Frog",

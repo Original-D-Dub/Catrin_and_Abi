@@ -12,6 +12,7 @@ import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/level_select_screen.dart';
+import '../../../shared/widgets/level_transition_overlay.dart';
 import '../providers/counting_game_provider.dart';
 
 /// Main screen for the Counting Game.
@@ -30,9 +31,16 @@ class CountingGameScreen extends StatefulWidget {
   State<CountingGameScreen> createState() => _CountingGameScreenState();
 }
 
-class _CountingGameScreenState extends State<CountingGameScreen> {
+class _CountingGameScreenState extends State<CountingGameScreen>
+    with LevelTransitionMixin<CountingGameScreen> {
   /// True while waiting for the 3-second pause after a correct answer.
   bool _isWaiting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    AudioService.playTitle('counting', locale: widget.locale);
+  }
 
   void _onAnswerTapped(int n, CountingGameProvider provider) {
     if (_isWaiting) return;
@@ -111,6 +119,10 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
                       onChangeLevel: () => provider.showLevelSelection(),
                     ),
                   ),
+
+                Positioned.fill(
+                  child: LevelTransitionOverlay(opacity: levelTransitionOpacity),
+                ),
               ],
             ),
           ),
@@ -132,10 +144,12 @@ class _CountingGameScreenState extends State<CountingGameScreen> {
           number: i + 1,
           name: localizer(pair.name),
           color: levelColor(i),
-          onTap: () {
-            provider.startGame(i);
-            AudioService.playIntro('counting_game');
-          },
+          onTap: () => startLevelWithTransition(
+            gameId: 'counting_game',
+            levelNumber: i + 1,
+            locale: widget.locale,
+            startLevel: () => provider.startGame(i),
+          ),
         );
       }),
     );
@@ -325,15 +339,36 @@ class _CirclePlayArea extends StatelessWidget {
                 ? 20
                 : 14;
 
-        final circles = <Widget>[];
+        // Composite dice counts (7-10) size each sub-pattern to a true pixel
+        // square using the play area's actual w/h, rather than reading
+        // pre-computed normalised positions that would stretch to fit
+        // whatever aspect ratio the container happens to have.
+        final diceCompositeCount = round.diceCompositeCount;
+        final List<Offset> pixelPositions = diceCompositeCount == 10
+            ? sideBySideDicePipPixelPositions(w, h)
+            : diceCompositeCount != null
+                ? stackedDicePipPixelPositions(diceCompositeCount, w, h)
+                : round.positions
+                    .map((p) => Offset(p.dx * w, p.dy * h))
+                    .toList();
+
+        final circles = <Widget>[
+          if (round.showDivider)
+            Positioned(
+              left: w * 0.06,
+              right: w * 0.06,
+              top: h * 0.5 - 1,
+              child: Container(height: 2, color: Colors.black26),
+            ),
+        ];
         for (int i = 0; i < round.total; i++) {
-          final pos = round.positions[i];
+          final pos = pixelPositions[i];
           final color = i < round.countA ? colours.colorA : colours.colorB;
 
           circles.add(
             Positioned(
-              left: pos.dx * w - radius,
-              top: pos.dy * h - radius,
+              left: pos.dx - radius,
+              top: pos.dy - radius,
               child: Container(
                 width: radius * 2,
                 height: radius * 2,

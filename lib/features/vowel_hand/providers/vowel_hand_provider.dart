@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/game_stats_service.dart';
+import '../models/multi_vowel_puzzle.dart';
 import '../models/vowel_target.dart';
 import '../models/word_puzzle.dart';
 import '../services/words_service.dart';
@@ -42,7 +43,10 @@ class VowelHandProvider extends ChangeNotifier {
   /// The sign system (BSL or IAC) this game instance is playing with.
   ///
   /// Determines which vowels are cycled through, whether w/y badges are
-  /// shown, and which level(s) are available.
+  /// shown, which level(s) are available, and which language's words are
+  /// used — independent of the UI [AppLocalizations] locale, since a
+  /// Welsh-speaking pupil learning BSL still needs English words, and an
+  /// English-speaking pupil learning IAC still needs Welsh words.
   final SignSystem _signSystem;
   SignSystem get signSystem => _signSystem;
 
@@ -83,6 +87,61 @@ class VowelHandProvider extends ChangeNotifier {
   /// Current word puzzle (Level 2)
   WordPuzzle? _currentPuzzle;
   WordPuzzle? get currentPuzzle => _currentPuzzle;
+
+  // -------------------------
+  // Levels 5 & 6: Multi-vowel Word State
+  // -------------------------
+
+  /// Word list shared with My Special Dog's multi-vowel word levels.
+  static const List<String> _multiVowelWords = [
+    'Pero', 'Catrin', 'dog', 'Deaf', 'hearing', 'cochlear', 'implant',
+    'Abi', 'sign', 'story', 'listen', 'understand', 'ear', 'ding dong', 'beep',
+    'alarm', 'language', 'sister', 'sounds', 'special', 'amazing', 'doorbell',
+    'fire alarm', 'learn', 'communicate', 'play', 'fun', 'learnt', 'wake up',
+    'family', 'help', 'phone', 'together', 'fire exit', 'safe', 'safety', 'hearing dog',
+  ];
+
+  /// Welsh translation of [_multiVowelWords], used for Levels 5 & 6 when
+  /// [_useWelshMultiVowelWords] is true. Same order/length as the English
+  /// list.
+  ///
+  /// Every entry must contain at least one of a/e/i/o/u — the model only
+  /// recognises those as blank-able vowels (not w/y or accented vowels like
+  /// â/ô), so a word without one can never be completed. Originally 'clyw',
+  /// 'hwyl', 'ffôn' and 'ynghyd' had none and were swapped for 'clywed',
+  /// 'difyr', 'galwad' and "gyda'i gilydd".
+  static const List<String> _multiVowelWordsCY = [
+    'Pero', 'Catrin', 'ci', 'Byddar', 'clywed', 'cochlear', 'mewnblaniad',
+    'Abi', 'arwydd', 'stori', 'gwrando', 'deall', 'clust', 'ding dong', 'bib',
+    'larwm', 'iaith', 'chwaer', 'synau', 'arbennig', 'anhygoel', 'cloch drws',
+    'larwm tân', 'dysgu', 'cyfathrebu', 'chwarae', 'difyr', 'wedi dysgu', 'deffro',
+    'teulu', 'helpu', 'galwad', "gyda'i gilydd", 'allanfa dân', 'diogel', 'diogelwch', 'ci clyw',
+  ];
+
+  /// Whether Levels 5 & 6 should draw from the Welsh word list — true for
+  /// IAC, matching Levels 2 & 3. Keyed on sign system, not UI language: a
+  /// Welsh-speaking pupil playing BSL still practises English words, and an
+  /// English-speaking pupil playing IAC still practises Welsh words.
+  bool get _useWelshMultiVowelWords => _signSystem == SignSystem.iac;
+
+  /// The multi-vowel word list to draw from.
+  List<String> get _multiVowelWordsForLocale =>
+      _useWelshMultiVowelWords ? _multiVowelWordsCY : _multiVowelWords;
+
+  /// Number of words to complete before Levels 5/6 end.
+  static const int targetWords = 5;
+
+  /// Current multi-vowel word puzzle (Levels 5 & 6).
+  MultiVowelPuzzle? _currentMultiPuzzle;
+  MultiVowelPuzzle? get currentMultiPuzzle => _currentMultiPuzzle;
+
+  /// Words completed so far in the current Level 5/6 game.
+  final List<String> _completedWords = [];
+  List<String> get completedWords => List.unmodifiable(_completedWords);
+
+  /// Set to true the first time the player makes a wrong guess on the current
+  /// word. Used by Level 6 to withhold the point for that word.
+  bool _hadMistakeOnCurrentWord = false;
 
   /// The vowel the player guessed (null = show underscore)
   String? _guessedVowel;
@@ -149,9 +208,6 @@ class VowelHandProvider extends ChangeNotifier {
   bool get showScoreAnimation => _showScoreAnimation;
 
   /// Initializes the provider.
-  ///
-  /// For BSL, the game starts on the level selection screen. IAC has only
-  /// one level (Vowel Match), so it skips level selection entirely.
   VowelHandProvider({SignSystem signSystem = SignSystem.bsl})
       : _signSystem = signSystem {
     if (_signSystem == SignSystem.iac) {
@@ -220,9 +276,18 @@ class VowelHandProvider extends ChangeNotifier {
 
     if (_selectedLevel == VowelHandLevel.vowelMatch) {
       _selectRandomVowel();
+    } else if (_selectedLevel == VowelHandLevel.vowelWordsMulti ||
+        _selectedLevel == VowelHandLevel.noMistakes) {
+      _completedWords.clear();
+      _currentMultiPuzzle = null;
+      _selectMultiVowelPuzzle();
     } else {
       _remoteWords = [];
-      if (_selectedLevel == VowelHandLevel.ccvc) {
+      if (_selectedLevel == VowelHandLevel.vowelWords && _signSystem == SignSystem.iac) {
+        _loadRemoteWelshWords();
+      } else if (_selectedLevel == VowelHandLevel.ccvc && _signSystem == SignSystem.iac) {
+        _loadRemoteWelshWordsLevel3();
+      } else if (_selectedLevel == VowelHandLevel.ccvc) {
         _loadRemoteWords('CCVC');
       } else if (_selectedLevel == VowelHandLevel.cvcc) {
         _loadRemoteWords('CVCC');
@@ -257,12 +322,21 @@ class VowelHandProvider extends ChangeNotifier {
     // Initialize based on level
     if (_selectedLevel == VowelHandLevel.vowelMatch) {
       _selectRandomVowel();
+    } else if (_selectedLevel == VowelHandLevel.vowelWordsMulti ||
+        _selectedLevel == VowelHandLevel.noMistakes) {
+      _completedWords.clear();
+      _currentMultiPuzzle = null;
+      _selectMultiVowelPuzzle();
     } else {
       _selectRandomPuzzle();
     }
 
-    _gameTimer?.cancel();
-    _gameTimer = Timer.periodic(const Duration(seconds: 1), _onTimerTick);
+    // Levels 5 & 6 are word-count-based — no countdown timer
+    if (_selectedLevel != VowelHandLevel.vowelWordsMulti &&
+        _selectedLevel != VowelHandLevel.noMistakes) {
+      _gameTimer?.cancel();
+      _gameTimer = Timer.periodic(const Duration(seconds: 1), _onTimerTick);
+    }
 
     notifyListeners();
   }
@@ -375,6 +449,9 @@ class VowelHandProvider extends ChangeNotifier {
     // Check for hit based on current level
     if (_selectedLevel == VowelHandLevel.vowelMatch) {
       _checkHitVowelMode(position: position, handSize: handSize);
+    } else if (_selectedLevel == VowelHandLevel.vowelWordsMulti ||
+        _selectedLevel == VowelHandLevel.noMistakes) {
+      _checkHitMultiVowelMode(position: position, handSize: handSize);
     } else {
       _checkHitWordMode(position: position, handSize: handSize);
     }
@@ -439,19 +516,39 @@ class VowelHandProvider extends ChangeNotifier {
     }
   }
 
-  /// Handles a tap on the 'w' or 'y' vowel badges (IAC, Vowel Match level only).
+  /// Handles a tap on the 'w' or 'y' vowel badges (IAC only).
   ///
   /// These vowels have no fingertip target on the hand SVG, so they're
-  /// matched via direct badge taps instead of [onTouchEnd].
+  /// matched via direct badge taps instead of [onTouchEnd]. Works for both
+  /// Vowel Match (Level 1) and the Vowel Words puzzle (Level 2), since
+  /// Welsh CVC words fetched from `Geiriau` can have 'w' or 'y' as their
+  /// vowel.
   void onTapAdditionalVowel(String vowel) {
     if (_gameState != VowelHandGameState.playing) return;
-    if (vowel == _currentVowel) {
-      _scoreCorrectVowel();
-      // This tap is a standalone gesture, not part of an onTouchEnd cycle,
-      // so clear the flag immediately rather than leaving it to block the
-      // next fingertip hit check.
-      _hasScored = false;
+
+    if (_selectedLevel == VowelHandLevel.vowelMatch) {
+      if (vowel == _currentVowel) {
+        _scoreCorrectVowel();
+        // This tap is a standalone gesture, not part of an onTouchEnd cycle,
+        // so clear the flag immediately rather than leaving it to block the
+        // next fingertip hit check.
+        _hasScored = false;
+      }
+      return;
     }
+
+    if (_hasScored || _currentPuzzle == null || _isInputLocked) return;
+    _guessedVowel = vowel;
+    _hasScored = true;
+    AudioService.playLetterMp3(vowel, signSystem: _signSystem);
+    if (vowel == _currentPuzzle!.vowel) {
+      _handleCorrectWordGuess();
+    } else {
+      _handleWrongWordGuess();
+    }
+    // Standalone gesture, not part of an onTouchEnd cycle — clear the flag
+    // immediately rather than leaving it to block the next fingertip hit check.
+    _hasScored = false;
   }
 
   /// Awards a point for a correct vowel match, advances to the next vowel,
@@ -522,6 +619,8 @@ class VowelHandProvider extends ChangeNotifier {
     _guessedVowel = tappedVowel;
     _hasScored = true;
 
+    AudioService.playLetterMp3(tappedVowel, signSystem: _signSystem);
+
     // Check if correct
     if (tappedVowel == _currentPuzzle!.vowel) {
       _handleCorrectWordGuess();
@@ -584,6 +683,111 @@ class VowelHandProvider extends ChangeNotifier {
   }
 
   // -------------------------
+  // Levels 5 & 6: Multi-vowel Word Hit Detection
+  // -------------------------
+
+  /// Checks which vowel fingertip was tapped and evaluates correctness
+  /// against the current multi-vowel puzzle (Levels 5 & 6).
+  void _checkHitMultiVowelMode({
+    required Offset position,
+    required Size handSize,
+  }) {
+    if (_hasScored || _currentMultiPuzzle == null || _isInputLocked) return;
+
+    String? tappedVowel;
+    double closestDistance = double.infinity;
+
+    for (final target in VowelHandConstants.targets) {
+      final targetPosition = Offset(
+        target.normalizedPosition.dx * handSize.width,
+        target.normalizedPosition.dy * handSize.height,
+      );
+      final distance = (position - targetPosition).distance;
+      if (distance <= target.hitRadius && distance < closestDistance) {
+        tappedVowel = target.vowel;
+        closestDistance = distance;
+      }
+    }
+
+    if (tappedVowel == null) return;
+    _hasScored = true;
+
+    AudioService.playLetterMp3(tappedVowel, signSystem: _signSystem);
+
+    if (_currentMultiPuzzle!.hasUnguessedVowel(tappedVowel)) {
+      _handleCorrectMultiVowelGuess(tappedVowel);
+    } else {
+      _handleWrongMultiVowelGuess();
+    }
+  }
+
+  void _handleCorrectMultiVowelGuess(String vowel) {
+    _currentMultiPuzzle = _currentMultiPuzzle!.withVowelGuessed(vowel);
+    _isGuessCorrect = true;
+
+    if (_currentMultiPuzzle!.isComplete) {
+      final word = _currentMultiPuzzle!.word;
+      // Level 6: only count if the player made no mistakes on this word
+      final counts = _selectedLevel != VowelHandLevel.noMistakes ||
+          !_hadMistakeOnCurrentWord;
+      if (counts) {
+        _completedWords.add(word);
+        if (_selectedLevel == VowelHandLevel.noMistakes) {
+          // Points = number of letters in the word (spaces don't count)
+          _score += word.replaceAll(' ', '').length;
+        } else {
+          _score = _completedWords.length;
+        }
+      }
+      _isInputLocked = true;
+      notifyListeners();
+
+      AudioService.playCorrect('vowel_hand');
+
+      _scoreAnimationTimer?.cancel();
+      _scoreAnimationTimer = Timer(const Duration(milliseconds: 900), () {
+        _isGuessCorrect = null;
+        _isInputLocked = false;
+        if (_completedWords.length >= targetWords) {
+          _endGame();
+        } else {
+          if (!_useWelshMultiVowelWords) {
+            AudioService.playMp3(
+                'vowel_hand/${word.replaceAll(' ', '_')}.mp3');
+          } else {
+            AudioService.speak(word);
+          }
+          _selectMultiVowelPuzzle();
+          notifyListeners();
+        }
+      });
+    } else {
+      // More vowels still to find — brief green flash then continue
+      notifyListeners();
+      _scoreAnimationTimer?.cancel();
+      _scoreAnimationTimer = Timer(const Duration(milliseconds: 500), () {
+        _isGuessCorrect = null;
+        notifyListeners();
+      });
+    }
+  }
+
+  void _handleWrongMultiVowelGuess() {
+    _hadMistakeOnCurrentWord = true;
+    _isGuessCorrect = false;
+    _isInputLocked = true;
+    notifyListeners();
+
+    AudioService.playTryAgain();
+
+    _wrongAnswerTimer?.cancel();
+    _wrongAnswerTimer = Timer(const Duration(milliseconds: 2500), () {
+      _revertWrongAnswer();
+      notifyListeners();
+    });
+  }
+
+  // -------------------------
   // Selection Methods
   // -------------------------
 
@@ -600,7 +804,7 @@ class VowelHandProvider extends ChangeNotifier {
     if (_gameState == VowelHandGameState.playing) {
       Future.delayed(const Duration(milliseconds: 600), () {
         if (_gameState == VowelHandGameState.playing && _currentVowel == newVowel) {
-          AudioService.playLetterMp3(newVowel);
+          AudioService.playLetterMp3(newVowel, signSystem: _signSystem);
         }
       });
     }
@@ -608,11 +812,14 @@ class VowelHandProvider extends ChangeNotifier {
 
   /// Selects a new random word puzzle, avoiding recently used words.
   ///
-  /// Levels 2 uses the local CVC word list.
-  /// Levels 3 and 4 use words fetched from Supabase.
+  /// Level 2 uses the local English CVC word list for BSL, or Welsh CVC
+  /// words fetched from Supabase (`Geiriau`) for IAC.
+  /// Levels 3 and 4 use English words fetched from Supabase (`words`).
   void _selectRandomPuzzle() {
     if (_selectedLevel == VowelHandLevel.ccvc ||
-        _selectedLevel == VowelHandLevel.cvcc) {
+        _selectedLevel == VowelHandLevel.cvcc ||
+        (_selectedLevel == VowelHandLevel.vowelWords &&
+            _signSystem == SignSystem.iac)) {
       if (_remoteWords.isEmpty) {
         _currentPuzzle = null;
         return;
@@ -621,7 +828,8 @@ class VowelHandProvider extends ChangeNotifier {
           _remoteWords.where((w) => !_recentWords.contains(w)).toList();
       final candidates = available.isNotEmpty ? available : _remoteWords;
       final word = candidates[_random.nextInt(candidates.length)];
-      _currentPuzzle = WordPuzzle(word: word);
+      _currentPuzzle =
+          WordPuzzle(word: word, useWelshAlphabet: _signSystem == SignSystem.iac);
     } else {
       _currentPuzzle = WordPuzzleConstants.getRandomPuzzle(
         random: _random,
@@ -636,6 +844,20 @@ class VowelHandProvider extends ChangeNotifier {
     }
   }
 
+  /// Selects a new multi-vowel word puzzle (Levels 5 & 6), avoiding the
+  /// words already completed this game and immediate repeats.
+  void _selectMultiVowelPuzzle() {
+    _hadMistakeOnCurrentWord = false;
+    final words = _multiVowelWordsForLocale;
+    final available = words
+        .where((w) => !_completedWords.contains(w) &&
+            w != _currentMultiPuzzle?.word)
+        .toList();
+    final candidates = available.isNotEmpty ? available : words;
+    _currentMultiPuzzle =
+        MultiVowelPuzzle.fromWord(candidates[_random.nextInt(candidates.length)]);
+  }
+
   /// Fetches words for [pattern] from Supabase.
   ///
   /// Called during intro so words are ready before the game starts.
@@ -643,6 +865,43 @@ class VowelHandProvider extends ChangeNotifier {
   /// immediately selects the first puzzle.
   Future<void> _loadRemoteWords(String pattern) async {
     _remoteWords = await _wordsService.fetchWordsByPattern(pattern);
+    if (_currentPuzzle == null &&
+        _gameState != VowelHandGameState.finished &&
+        _remoteWords.isNotEmpty) {
+      _selectRandomPuzzle();
+      notifyListeners();
+    }
+  }
+
+  /// Three-letter word patterns used for the IAC Vowel Words level (Level 2).
+  static const List<String> _iacLevel2Patterns = ['CVC', 'VCC', 'CCV'];
+
+  /// Fetches Welsh 3-letter words from the `Geiriau` table (IAC Level 2).
+  ///
+  /// Called during intro so words are ready before the game starts.
+  /// If the fetch completes after [startGame] and no puzzle is loaded yet,
+  /// immediately selects the first puzzle.
+  Future<void> _loadRemoteWelshWords() async {
+    _remoteWords =
+        await _wordsService.fetchWelshWordsByPatterns(_iacLevel2Patterns);
+    if (_currentPuzzle == null &&
+        _gameState != VowelHandGameState.finished &&
+        _remoteWords.isNotEmpty) {
+      _selectRandomPuzzle();
+      notifyListeners();
+    }
+  }
+
+  /// Fetches Welsh words from `Geiriau` whose pattern wasn't already used
+  /// by Level 2 (IAC Level 3) — i.e. everything other than
+  /// [_iacLevel2Patterns].
+  ///
+  /// Called during intro so words are ready before the game starts.
+  /// If the fetch completes after [startGame] and no puzzle is loaded yet,
+  /// immediately selects the first puzzle.
+  Future<void> _loadRemoteWelshWordsLevel3() async {
+    _remoteWords = await _wordsService
+        .fetchWelshWordsExcludingPatterns(_iacLevel2Patterns);
     if (_currentPuzzle == null &&
         _gameState != VowelHandGameState.finished &&
         _remoteWords.isNotEmpty) {

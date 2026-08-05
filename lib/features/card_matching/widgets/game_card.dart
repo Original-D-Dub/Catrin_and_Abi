@@ -148,28 +148,42 @@ class _GameCardState extends State<GameCard> {
 
   /// Builds the BSL sign image content.
   ///
-  /// Uses [Padding] to give the image breathing room, then
-  /// fills the remaining space so signs scale with card size.
+  /// Scaled via [Transform.scale] rather than a [FittedBox], which would
+  /// instead stretch the sign to fill the entire card. Only applied on wide
+  /// devices (>600px).
   Widget _buildBslSignContent() {
-    return BslAlphabetSvg(
+    final isWideDevice = MediaQuery.of(context).size.width > 600;
+    final svg = BslAlphabetSvg(
       letter: widget.card.value,
       signSystem: widget.signSystem,
     );
+
+    if (!isWideDevice) return svg;
+
+    return Transform.scale(scaleX: 1.6, scaleY: 1.6, child: svg);
   }
 
   /// Builds the letter text content.
   ///
   /// Uses [FittedBox] so the letter scales with the card size
-  /// instead of being a fixed font size.
+  /// instead of being a fixed font size. On wide devices (>600px) the
+  /// padding around the letter is removed and the base font size doubled
+  /// so it fills more of the card.
   Widget _buildLetterContent() {
+    final isWideDevice = MediaQuery.of(context).size.width > 600;
+
     return FittedBox(
       fit: BoxFit.contain,
       child: Padding(
-        padding: const EdgeInsets.all(AppSizes.paddingSmall),
+        padding: isWideDevice
+            ? EdgeInsets.zero
+            : const EdgeInsets.all(AppSizes.paddingSmall),
         child: Text(
           widget.card.value.toLowerCase(),
           style: TextStyle(
-            fontSize: AppSizes.fontSizeCardLetter,
+            fontSize: isWideDevice
+                ? AppSizes.fontSizeCardLetter * 1.4
+                : AppSizes.fontSizeCardLetter,
             fontWeight: FontWeight.bold,
             color: widget.card.pairColor,
           ),

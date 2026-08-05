@@ -38,6 +38,12 @@ class _NumberRaceScreenState extends State<NumberRaceScreen> {
   bool _showingIntro = false;
   bool _isWaiting = false;
 
+  @override
+  void initState() {
+    super.initState();
+    AudioService.playTitle('number_race', locale: widget.locale);
+  }
+
   void _chooseCharacter(NumberRaceProvider provider, RaceCharacter character) {
     provider.selectCharacter(character);
   }
@@ -159,6 +165,10 @@ class _NumberRaceScreenState extends State<NumberRaceScreen> {
                     onComplete: () {
                       setState(() => _showingIntro = false);
                       provider.startGame();
+                    },
+                    onBack: () {
+                      setState(() => _showingIntro = false);
+                      provider.showCharacterSelection();
                     },
                   ),
               ],

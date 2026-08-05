@@ -295,6 +295,18 @@ class BubblePopProvider extends ChangeNotifier {
   /// Timer for game loop (bubble movement)
   Timer? _gameLoopTimer;
 
+  /// Number of bubbles kept on screen at once.
+  static const int _targetBubbleCount = 10;
+
+  /// Min/max delay (ms) between individual bubble spawns once the game is
+  /// running, so replacements trickle in steadily instead of arriving in a
+  /// synchronized batch ("waves").
+  static const double _minSpawnIntervalMs = 300;
+  static const double _maxSpawnIntervalMs = 900;
+
+  /// Countdown (ms) until the next single bubble may spawn.
+  double _spawnCooldownMs = 0;
+
   /// Track tapped letters for easter egg detection
   String _tappedSequence = '';
 
@@ -385,22 +397,29 @@ class BubblePopProvider extends ChangeNotifier {
 
   /// Selects a new random target letter from the current level's letters.
   ///
-  /// Audio call-outs are only available for BSL (English alphabet) letters;
-  /// IAC letter call-outs are not yet wired up.
+  /// Audio call-out is chosen by [_signSystem]: BSL levels use the English
+  /// alphabet, IAC levels use the Welsh vowel set (consonants stay silent
+  /// since there's no recording for them yet).
   void _selectNewTarget() {
     final letters = _currentLevel.letters;
     _targetLetter = letters[_random.nextInt(letters.length)];
-    if (_isPlaying && _signSystem == SignSystem.bsl) {
-      AudioService.playLetterMp3(_targetLetter).ignore();
+    if (_isPlaying) {
+      AudioService.playLetterMp3(_targetLetter, signSystem: _signSystem).ignore();
     }
   }
 
-  /// Spawns initial bubbles at game start.
+  /// Spawns initial bubbles at game start, spread across the full play area
+  /// so they don't all enter together as a single visible wave.
   void _spawnInitialBubbles() {
-    for (int i = 0; i < 8; i++) {
-      _spawnBubble();
+    for (int i = 0; i < _targetBubbleCount; i++) {
+      _spawnBubble(spreadAcrossScreen: true);
     }
+    _spawnCooldownMs = 0;
   }
+
+  /// Maximum number of on-screen (unpopped) bubbles allowed to share the
+  /// same letter before that letter is excluded from spawning.
+  static const int _maxDuplicateLetters = 3;
 
   /// Spawns a new bubble with random properties.
   ///
@@ -411,9 +430,33 @@ class BubblePopProvider extends ChangeNotifier {
   /// - Level 4: +150% (3.75x)
   /// - Level 5: +225% (4.875x)
   /// - Level 6: +300% (6.0x)
-  void _spawnBubble() {
+  ///
+  /// Letters already at [_maxDuplicateLetters] copies on screen are excluded
+  /// from selection so the same letter doesn't keep piling up.
+  ///
+  /// [spreadAcrossScreen] distributes the bubble's starting height across the
+  /// whole play area (used for initial fill); otherwise it enters from just
+  /// below the bottom edge, as new bubbles do mid-game.
+  void _spawnBubble({bool spreadAcrossScreen = false}) {
     final letters = _currentLevel.letters;
     final color = bubbleColors[_random.nextInt(bubbleColors.length)];
+
+    // Count on-screen copies of each letter so we can avoid over-spawning
+    // a letter that's already saturated the screen.
+    final letterCounts = <String, int>{};
+    for (final b in _bubbles) {
+      if (!b.isPopped) {
+        letterCounts[b.letter] = (letterCounts[b.letter] ?? 0) + 1;
+      }
+    }
+    var eligibleLetters = letters
+        .where((l) => (letterCounts[l] ?? 0) < _maxDuplicateLetters)
+        .toList();
+    if (eligibleLetters.isEmpty) {
+      // Every letter is saturated (shouldn't normally happen) — fall back
+      // to the full set rather than failing to spawn.
+      eligibleLetters = letters;
+    }
 
     // Calculate level-specific target weight
     final double targetWeight;
@@ -430,21 +473,26 @@ class BubblePopProvider extends ChangeNotifier {
         targetWeight = 1.5; // Base weight for levels 1-2
     }
 
-    // Total weight = (n-1)*1 + targetWeight = n - 1 + targetWeight
-    final n = letters.length;
-    final totalWeight = n - 1 + targetWeight;
+    final targetEligible =
+        _targetLetter.isNotEmpty && eligibleLetters.contains(_targetLetter);
+
+    // Total weight = (n-1)*1 + targetWeight when the target is eligible,
+    // or n*1 (uniform) when it isn't.
+    final n = eligibleLetters.length;
+    final totalWeight = targetEligible ? n - 1 + targetWeight : n.toDouble();
     final randomValue = _random.nextDouble() * totalWeight;
 
     String letter;
-    if (randomValue < targetWeight && _targetLetter.isNotEmpty) {
+    if (targetEligible && randomValue < targetWeight) {
       // Select target letter with level-specific weight
       letter = _targetLetter;
     } else {
-      // Select from non-target letters (or all letters if no target yet)
+      // Select from non-target letters (or all eligible letters if no
+      // target yet, or the target isn't eligible)
       final otherLetters =
-          letters.where((l) => l != _targetLetter).toList();
+          eligibleLetters.where((l) => l != _targetLetter).toList();
       if (otherLetters.isEmpty) {
-        letter = letters[_random.nextInt(letters.length)];
+        letter = eligibleLetters[_random.nextInt(eligibleLetters.length)];
       } else {
         letter = otherLetters[_random.nextInt(otherLetters.length)];
       }
@@ -454,7 +502,9 @@ class BubblePopProvider extends ChangeNotifier {
       id: '${DateTime.now().millisecondsSinceEpoch}_${_random.nextInt(10000)}',
       letter: letter,
       x: _random.nextDouble() * 0.8 + 0.1, // 10% to 90% of width
-      y: 1.0 + _random.nextDouble() * 0.3, // Start below screen
+      y: spreadAcrossScreen
+          ? _random.nextDouble() * 1.3 // spread across the full play area
+          : 1.0 + _random.nextDouble() * 0.3, // Start below screen
       speedX: (_random.nextDouble() - 0.5) * 0.007, // Slight horizontal drift
       speedY: -0.003 - _random.nextDouble() * 0.004, // Float upward
       color: color,
@@ -504,9 +554,14 @@ class BubblePopProvider extends ChangeNotifier {
     // Remove bubbles that floated off screen (top) or are popped
     _bubbles.removeWhere((b) => b.y < -0.2 || b.isPopped);
 
-    // Spawn new bubbles to maintain count
-    while (_bubbles.length < 8) {
+    // Spawn replacement bubbles one at a time on a randomized cooldown so
+    // they trickle in steadily instead of arriving together in a batch
+    // whenever several bubbles happen to leave the screen at once.
+    _spawnCooldownMs -= 16;
+    if (_bubbles.length < _targetBubbleCount && _spawnCooldownMs <= 0) {
       _spawnBubble();
+      _spawnCooldownMs = _minSpawnIntervalMs +
+          _random.nextDouble() * (_maxSpawnIntervalMs - _minSpawnIntervalMs);
     }
   }
 
@@ -523,6 +578,11 @@ class BubblePopProvider extends ChangeNotifier {
     // Mark as popped for animation
     bubble.isPopped = true;
     _lastPoppedBubbleId = bubbleId;
+
+    // Immediately spawn a replacement so the screen doesn't feel emptied
+    // out while this one fades away; the passive cooldown-based spawn in
+    // _updateBubbles still handles bubbles that float off the top.
+    _spawnBubble();
 
     // Track for easter egg
     _tappedSequence += bubble.letter;

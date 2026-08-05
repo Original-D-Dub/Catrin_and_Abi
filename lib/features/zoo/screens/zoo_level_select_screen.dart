@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/config/routes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/level_path_map.dart';
 import '../widgets/zoo_screen_chrome.dart';
@@ -11,7 +12,7 @@ import '../widgets/zoo_screen_chrome.dart';
 /// map ([LevelPathMap], as used by Number Race) drawn over the zoo photo
 /// background. Tapping an unlocked level opens that level's route from
 /// [levels]; nodes past the last defined level are locked.
-class ZooLevelSelectScreen extends StatelessWidget {
+class ZooLevelSelectScreen extends StatefulWidget {
   /// UI language ('en' or 'cy').
   final String locale;
 
@@ -46,7 +47,22 @@ class ZooLevelSelectScreen extends StatelessWidget {
   ];
 
   @override
+  State<ZooLevelSelectScreen> createState() => _ZooLevelSelectScreenState();
+}
+
+class _ZooLevelSelectScreenState extends State<ZooLevelSelectScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AudioService.playTitle('zoo', locale: widget.locale);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final locale = widget.locale;
+    final signSystem = widget.signSystem;
+    final characterId = widget.characterId;
+    final levels = ZooLevelSelectScreen.levels;
     final localizer = AppLocalizations(locale: locale);
 
     return ZooBackgroundScaffold(

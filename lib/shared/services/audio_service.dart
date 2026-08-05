@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:vibration/vibration.dart';
 
+import '../../core/constants/game_filters.dart' show SignSystem;
+
 
 /// Audio configuration for a single game.
 ///
@@ -48,6 +50,17 @@ enum _HapticType { correct, wrong, success }
 class AudioService {
   AudioService._();
 
+  // ── User-configurable toggles ─────────────────────────────────────────────
+  // Mirrored from SettingsProvider (which owns persistence) so the ~25 call
+  // sites across the app don't each need to read SettingsProvider themselves.
+
+  /// Whether short sound effects (correct/wrong/success chimes, camera
+  /// shutter) play. Set by SettingsProvider.
+  static bool sfxEnabled = true;
+
+  /// Whether spoken game-intro instructions play. Set by SettingsProvider.
+  static bool instructionsEnabled = true;
+
   // ── Shared defaults (reuse existing counting_game assets) ─────────────────
 
   static const String defaultCorrectSfx = 'counting_game/correct.wav';
@@ -71,7 +84,7 @@ class AudioService {
       wrongSfx: 'letter_quest/collect_wrong.wav',
       successSfx: 'letter_quest/game_complete.wav',
     ),
-    'word_search': GameAudioConfig(
+    'word_whirl': GameAudioConfig(
       introMp3: 'speech files/word_whirl_instructions.mp3',
     ),
   };
@@ -103,28 +116,114 @@ class AudioService {
 
   // ── Locale ──────────────────────────────────────────────────────────────────
 
-  /// All recorded speech-instruction MP3s under `speech files/` (and the
-  /// per-game intro/letter clips) are English voiceovers. Speech-playing
-  /// methods below stay silent for any other [locale] until Welsh
-  /// recordings are added.
-  static bool _isEnglish(String locale) => locale == 'en';
+  /// Recorded speech instructions exist for English (`speech files/`,
+  /// MP3s) and Welsh (`speech_files_molly_cy/`, WAVs). Speech-playing
+  /// methods below stay silent for any other [locale].
+  static bool _isSupportedSpeechLocale(String locale) => locale == 'en' || locale == 'cy';
+
+  /// Directory (relative to `assets/audio/`) holding recorded speech for [locale].
+  static String _speechDir(String locale) =>
+      locale == 'cy' ? 'speech_files_molly_cy' : 'speech files';
+
+  /// File extension used by the recorded speech clips for [locale].
+  static String _speechExt(String locale) => locale == 'cy' ? 'wav' : 'mp3';
+
+  /// Subdirectory (under the locale's speech directory) holding single-letter
+  /// alphabet clips. English covers the full alphabet; Welsh only covers the
+  /// vowels used by the vowel/letter games (a, e, i, o, u, w, y).
+  static String _alphabetDir(String locale) =>
+      locale == 'cy' ? 'alphabet_welsh' : 'alphabet_english';
+
+  /// Rewrites a speech-file path or bare filename (with or without
+  /// extension) to the asset for [locale], swapping both the speech
+  /// directory and the file extension. Only the basename is kept, so
+  /// callers can pass an English-style path (e.g. `speech files/foo.mp3`)
+  /// or a bare name (e.g. `foo.mp3` / `foo`) and get the right file for
+  /// any supported locale.
+  static String _localizeSpeechPath(String path, String locale) {
+    final slash = path.lastIndexOf('/');
+    final name = slash == -1 ? path : path.substring(slash + 1);
+    final dot = name.lastIndexOf('.');
+    final base = dot == -1 ? name : name.substring(0, dot);
+    return '${_speechDir(locale)}/$base.${_speechExt(locale)}';
+  }
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
   /// Plays the intro instructions for [gameId].
   ///
   /// Tries [GameAudioConfig.introMp3] first, then the auto-derived speech file
-  /// (`speech files/<gameId_with_underscores>_intro.mp3`).
-  /// Silent if no audio file is found, or if [locale] is not English.
+  /// (`<gameId_with_underscores>_intro`), localized to [locale].
+  /// Silent if no audio file is found, or if [locale] isn't supported.
   static Future<void> playIntro(String gameId, {String locale = 'en'}) async {
-    if (!_isEnglish(locale)) return;
-    final mp3 = _configs[gameId]?.introMp3 ?? _derivedIntroPath(gameId);
+    if (!instructionsEnabled) return;
+    if (!_isSupportedSpeechLocale(locale)) return;
+    final configured = _configs[gameId]?.introMp3;
+    final mp3 = configured != null
+        ? _localizeSpeechPath(configured, locale)
+        : _derivedIntroPath(gameId, locale);
     if (await _hasAudioAsset(mp3)) {
       try {
         final player = await FlameAudio.play(mp3);
         _trackPlayer(player);
       } catch (e) {
         debugPrint('AudioService: intro MP3 playback error ($mp3): $e');
+      }
+    }
+  }
+
+  /// Plays the recorded game-title clip for [gameId] (e.g. "BSL Maths").
+  ///
+  /// Uses the auto-derived speech file (`<gameId_with_underscores>_title`),
+  /// localized to [locale]. Silent if no audio file is found, or if [locale]
+  /// isn't supported.
+  static Future<void> playTitle(String gameId, {String locale = 'en'}) async {
+    if (!instructionsEnabled) return;
+    if (!_isSupportedSpeechLocale(locale)) return;
+    final path = _derivedTitlePath(gameId, locale);
+    if (await _hasAudioAsset(path)) {
+      try {
+        final player = await FlameAudio.play(path);
+        _trackPlayer(player);
+      } catch (e) {
+        debugPrint('AudioService: title MP3 playback error ($path): $e');
+      }
+    }
+  }
+
+  /// Plays the recorded level-name clip for [gameId] level [levelNumber]
+  /// (e.g. "Vowels" for bubble_pop's level 1), used when a level tile is
+  /// tapped on the level-select screen.
+  ///
+  /// Tries the sign-system-specific file first
+  /// (`<gameId>_<bsl|iac>_level<N>_name`) when [signSystem] is given, then
+  /// falls back to the plain `<gameId>_level<N>_name` file used by games
+  /// that don't split level-name audio by sign system. Silent if neither
+  /// file is found, or if [locale] isn't supported.
+  static Future<void> playLevelName(
+    String gameId,
+    int levelNumber, {
+    String locale = 'en',
+    SignSystem? signSystem,
+  }) async {
+    if (!instructionsEnabled) return;
+    if (!_isSupportedSpeechLocale(locale)) return;
+    final dir = _speechDir(locale);
+    final ext = _speechExt(locale);
+    final candidates = [
+      if (signSystem != null)
+        '$dir/${gameId}_${signSystem.name}_level${levelNumber}_name.$ext',
+      '$dir/${gameId}_level${levelNumber}_name.$ext',
+    ];
+    for (final path in candidates) {
+      if (await _hasAudioAsset(path)) {
+        try {
+          final player = await FlameAudio.play(path);
+          _trackPlayer(player);
+        } catch (e) {
+          debugPrint('AudioService: level-name MP3 playback error ($path): $e');
+        }
+        return;
       }
     }
   }
@@ -137,6 +236,7 @@ class AudioService {
   static const Duration _shutterTimeout = Duration(milliseconds: 500);
 
   static Future<void> playCameraShutter() async {
+    if (!sfxEnabled) return;
     const path = 'zoo/camera_shutter.wav';
     if (await _hasAudioAsset(path)) {
       try {
@@ -173,9 +273,9 @@ class AudioService {
 
   /// Plays the success overlay sound for [gameId] and triggers a triple-impact haptic.
   ///
-  /// Uses [GameAudioConfig.successSfx] if configured; otherwise plays
-  /// `speech files/general_well_done.mp3`. Silent if no file is found, or if
-  /// [locale] is not English and no [GameAudioConfig.successSfx] is set.
+  /// Uses [GameAudioConfig.successSfx] if configured; otherwise plays the
+  /// recorded "well done" clip for [locale]. Silent if no file is found, or
+  /// if [locale] isn't supported and no [GameAudioConfig.successSfx] is set.
   static Future<void> playSuccess(String gameId, {String locale = 'en'}) async {
     hapticSuccess();
     final sfx = _configs[gameId]?.successSfx;
@@ -183,11 +283,11 @@ class AudioService {
       _playSfx(sfx);
       return;
     }
-    await speakWithMp3('Well Done!', mp3Path: 'general_well_done.mp3', locale: locale);
+    await speakWithMp3('Well Done!', mp3Path: 'general_well_done', locale: locale);
   }
 
-  /// Plays `speech files/general_try_again.mp3`. Silent if file not found,
-  /// or if [locale] is not English.
+  /// Plays the recorded "try again" clip for [locale]. Silent if the file
+  /// isn't found, or [locale] isn't supported.
   static Future<void> playTryAgain({String locale = 'en'}) async {
     await speakWithMp3('Try again!', mp3Path: 'general_try_again.mp3', locale: locale);
   }
@@ -201,10 +301,14 @@ class AudioService {
   ///
   /// Uses [GameAudioConfig.introMp3] if configured, awaiting the player's
   /// completion event. Falls back to the derived speech file path.
-  /// Silent if no audio file is found, or if [locale] is not English.
+  /// Silent if no audio file is found, or if [locale] isn't supported.
   static Future<void> playIntroAndWait(String gameId, {String locale = 'en'}) async {
-    if (!_isEnglish(locale)) return;
-    final mp3 = _configs[gameId]?.introMp3 ?? _derivedIntroPath(gameId);
+    if (!instructionsEnabled) return;
+    if (!_isSupportedSpeechLocale(locale)) return;
+    final configured = _configs[gameId]?.introMp3;
+    final mp3 = configured != null
+        ? _localizeSpeechPath(configured, locale)
+        : _derivedIntroPath(gameId, locale);
     if (await _hasAudioAsset(mp3)) {
       try {
         final player = await FlameAudio.play(mp3);
@@ -222,22 +326,22 @@ class AudioService {
   /// No-op — retained for call-site compatibility after TTS removal.
   static Future<void> speakWelsh(String text) async {}
 
-  /// Plays [mp3Path1] then [mp3Path2] from `assets/audio/speech files/` so
-  /// they sound like one continuous sentence.
+  /// Plays [mp3Path1] then [mp3Path2] from the recorded speech directory for
+  /// [locale] so they sound like one continuous sentence.
   ///
   /// Starts the second file [leadMs] milliseconds before the first ends to
   /// absorb the async-startup latency of FlameAudio.play, eliminating the
   /// audible gap that would otherwise appear between the two clips.
-  /// Silent if [locale] is not English.
+  /// Silent if [locale] isn't supported.
   static Future<void> speakSequentialMp3s(
     String mp3Path1,
     String mp3Path2, {
     int leadMs = 120,
     String locale = 'en',
   }) async {
-    if (!_isEnglish(locale)) return;
-    final path1 = 'speech files/$mp3Path1';
-    final path2 = 'speech files/$mp3Path2';
+    if (!_isSupportedSpeechLocale(locale)) return;
+    final path1 = _localizeSpeechPath(mp3Path1, locale);
+    final path2 = _localizeSpeechPath(mp3Path2, locale);
     if (!await _hasAudioAsset(path1) || !await _hasAudioAsset(path2)) return;
     try {
       final player1 = await FlameAudio.play(path1);
@@ -258,28 +362,67 @@ class AudioService {
     }
   }
 
-  /// Plays [mp3Path] from `assets/audio/speech files/`, waiting for completion.
+  /// Plays [mp3Path] from the recorded speech directory for [locale],
+  /// waiting for completion.
   ///
-  /// Silent if [mp3Path] is null, the file is unavailable, or [locale] is
-  /// not English.
+  /// Silent if [mp3Path] is null, the file is unavailable, or [locale]
+  /// isn't supported.
   static Future<void> speakWithMp3(String text, {String? mp3Path, String locale = 'en'}) async {
-    if (!_isEnglish(locale)) return;
-    if (mp3Path != null && await _hasAudioAsset('speech files/$mp3Path')) {
+    if (!_isSupportedSpeechLocale(locale)) return;
+    if (mp3Path == null) return;
+    final path = _localizeSpeechPath(mp3Path, locale);
+    if (await _hasAudioAsset(path)) {
       try {
-        final player = await FlameAudio.play('speech files/$mp3Path');
+        final player = await FlameAudio.play(path);
         _trackPlayer(player);
         await _awaitCompletion(player, const Duration(seconds: 30));
       } catch (e) {
-        debugPrint('AudioService: speech MP3 playback error ($mp3Path): $e');
+        debugPrint('AudioService: speech MP3 playback error ($path): $e');
       }
     }
   }
 
-  /// Plays a single English letter mp3 from
-  /// `assets/audio/speech files/alphabet_english/[letter].mp3`.
-  /// Silent if the file is unavailable, or if [locale] is not English.
-  static Future<void> playLetterMp3(String letter, {String locale = 'en'}) =>
-      speakWithMp3(letter, mp3Path: 'alphabet_english/$letter.mp3', locale: locale);
+  /// Plays a single letter's recorded sound from the alphabet folder for
+  /// [signSystem] — BSL spells in English (`alphabet_english/`), IAC spells
+  /// in Welsh (`alphabet_welsh/`, vowels a, e, i, o, u, w, y only).
+  ///
+  /// Driven by the sign system, not the UI [locale]: a Welsh-speaking child
+  /// playing with BSL hears English letters, and an English-speaking child
+  /// playing with IAC hears Welsh ones. Silent if the file is unavailable.
+  static Future<void> playLetterMp3(
+    String letter, {
+    SignSystem signSystem = SignSystem.bsl,
+  }) async {
+    final locale = signSystem == SignSystem.iac ? 'cy' : 'en';
+    final path =
+        '${_speechDir(locale)}/${_alphabetDir(locale)}/${letter.toLowerCase()}.${_speechExt(locale)}';
+    if (await _hasAudioAsset(path)) {
+      try {
+        final player = await FlameAudio.play(path);
+        _trackPlayer(player);
+        await _awaitCompletion(player, const Duration(seconds: 30));
+      } catch (e) {
+        debugPrint('AudioService: playLetterMp3 error ($path): $e');
+      }
+    }
+  }
+
+  /// Plays the recorded name of a Letter Bingo reward animal, keyed by its
+  /// bingo [letter] (e.g. `bingo/animals/x.mp3` for the X animal, "X-ray
+  /// Tetra") rather than its display name — sidesteps spaces/hyphens in
+  /// names like that one. Silent if the file is unavailable.
+  static Future<void> playAnimalName(String letter) async {
+    final path = 'bingo/animals/${letter.toLowerCase()}.mp3';
+    if (await _hasAudioAsset(path)) {
+      try {
+        final player = await FlameAudio.play(path);
+        _trackPlayer(player);
+        await _awaitCompletion(player, const Duration(seconds: 30));
+      } catch (e) {
+        debugPrint('AudioService: playAnimalName error ($path): $e');
+      }
+    }
+  }
 
   /// Plays [path] relative to `assets/audio/`. Silent if unavailable.
   static Future<void> playMp3(String path) async {
@@ -294,18 +437,19 @@ class AudioService {
     }
   }
 
-  /// Plays `assets/audio/speech files/general_[name.toLowerCase()].mp3`.
-  /// Silent if the file is unavailable, or if [locale] is not English.
+  /// Plays `general_[name.toLowerCase()]` from the recorded speech directory
+  /// for [locale]. Silent if the file is unavailable, or if [locale] isn't
+  /// supported.
   static Future<void> playSpeechMp3(String name, {String locale = 'en'}) async {
-    if (!_isEnglish(locale)) return;
-    final fileName = 'general_${name.toLowerCase()}.mp3';
-    if (await _hasAudioAsset('speech files/$fileName')) {
+    if (!_isSupportedSpeechLocale(locale)) return;
+    final path = '${_speechDir(locale)}/general_${name.toLowerCase()}.${_speechExt(locale)}';
+    if (await _hasAudioAsset(path)) {
       try {
-        final player = await FlameAudio.play('speech files/$fileName');
+        final player = await FlameAudio.play(path);
         _trackPlayer(player);
         await _awaitCompletion(player, const Duration(seconds: 30));
       } catch (e) {
-        debugPrint('AudioService: playSpeechMp3 error ($fileName): $e');
+        debugPrint('AudioService: playSpeechMp3 error ($path): $e');
       }
     }
   }
@@ -332,10 +476,17 @@ class AudioService {
 
   /// Derives the speech-file path for a game intro from its [gameId].
   ///
-  /// Replaces dots with underscores and appends `_intro.mp3`, so
+  /// Replaces dots with underscores and appends `_intro`, so for English
   /// `'vowel_hand.level1'` → `'speech files/vowel_hand_level1_intro.mp3'`.
-  static String _derivedIntroPath(String gameId) =>
-      'speech files/${gameId.replaceAll('.', '_')}_intro.mp3';
+  static String _derivedIntroPath(String gameId, String locale) =>
+      '${_speechDir(locale)}/${gameId.replaceAll('.', '_')}_intro.${_speechExt(locale)}';
+
+  /// Derives the speech-file path for a game title from its [gameId].
+  ///
+  /// Replaces dots with underscores and appends `_title`, so for English
+  /// `'bsl_maths'` → `'speech files/bsl_maths_title.mp3'`.
+  static String _derivedTitlePath(String gameId, String locale) =>
+      '${_speechDir(locale)}/${gameId.replaceAll('.', '_')}_title.${_speechExt(locale)}';
 
   /// Waits for [player] to finish, capped at [timeout].
   ///
@@ -354,6 +505,7 @@ class AudioService {
   static AudioPlayer? _sfxPlayer;
 
   static Future<void> _playSfx(String path) async {
+    if (!sfxEnabled) return;
     final myGeneration = ++_sfxGeneration;
 
     // Stop whatever SFX is currently playing or pending.

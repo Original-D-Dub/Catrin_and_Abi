@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/audio_service.dart';
 
 
@@ -11,17 +12,21 @@ import '../../../shared/services/audio_service.dart';
 /// - "Find the letter:" label
 /// - The lowercase letter underneath
 ///
-/// When the [letter] changes, plays a TTS audio prompt
-/// ("Find the letter A") and animates the entrance with
-/// a scale/fade transition.
+/// When the [letter] changes, plays its recorded sound (via
+/// [AudioService.playLetterMp3], picked by [signSystem]) and animates the
+/// entrance with a scale/fade transition.
 ///
 /// Parameters:
 /// - [letter]: The currently called letter (lowercase)
+/// - [signSystem]: BSL or IAC — selects the English or Welsh letter sound.
 /// - [introFuture]: When provided, the first "Find the letter" is held until
 ///   this future completes (e.g. after the intro instructions finish).
 class CalledLetterDisplay extends StatefulWidget {
   /// The letter currently being called (lowercase, e.g. 'a')
   final String letter;
+
+  /// BSL or IAC — selects which alphabet's recorded sound to play.
+  final SignSystem signSystem;
 
   /// Optional future to await before speaking the first letter.
   final Future<void>? introFuture;
@@ -29,6 +34,7 @@ class CalledLetterDisplay extends StatefulWidget {
   const CalledLetterDisplay({
     super.key,
     required this.letter,
+    this.signSystem = SignSystem.bsl,
     this.introFuture,
   });
 
@@ -57,17 +63,14 @@ class _CalledLetterDisplayState extends State<CalledLetterDisplay> {
   }
 
   void _speakLetter(String letter) {
-    AudioService.speak('Find the letter, ${letter.toUpperCase()}');
-  }
-
-  @override
-  void dispose() {
-    AudioService.stopTts();
-    super.dispose();
+    AudioService.playLetterMp3(letter, signSystem: widget.signSystem);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isWideDevice = MediaQuery.of(context).size.width > 600;
+    final letterScale = isWideDevice ? 1.5 : 1.0;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSizes.spacingMedium),
       child: AnimatedSwitcher(
@@ -82,8 +85,8 @@ class _CalledLetterDisplayState extends State<CalledLetterDisplay> {
           children: [
             // Letter in white bordered box (mirrors BSL sign box in Bubble Pop)
             Container(
-              width: 120,
-              height: 100,
+              width: 120 * letterScale,
+              height: 100 * letterScale,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -98,9 +101,10 @@ class _CalledLetterDisplayState extends State<CalledLetterDisplay> {
                   style: TextStyle(
                     fontFamily: 'ComicRelief',
                     fontWeight: FontWeight.w900,
-                    fontSize: widget.letter.length > 1
-                        ? AppSizes.fontSizeTitle * 0.7
-                        : AppSizes.fontSizeTitle,
+                    fontSize: (widget.letter.length > 1
+                            ? AppSizes.fontSizeTitle * 0.7
+                            : AppSizes.fontSizeTitle) *
+                        letterScale,
                     color: AppColors.accentNavyBlue,
                   ),
                 ),

@@ -125,50 +125,57 @@ class _BubbleWidgetState extends State<BubbleWidget>
       },
       child: GestureDetector(
         onTap: widget.onTap,
-        child: Opacity(
-          opacity: 0.9,
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.black,
-            ),
+        // Clips both painting and hit-testing to the circle, so taps in the
+        // transparent corners of the bounding square (outside the visible
+        // bubble) don't register — and don't steal taps from a
+        // neighbouring bubble whose square happens to overlap here.
+        child: ClipOval(
+          child: Opacity(
+            opacity: 0.9,
             child: Container(
+              width: widget.size,
+              height: widget.size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  center: const Alignment(-0.3, -0.3),
-                  colors: [
-                    _lightenColor(widget.color, 0.4),
-                    widget.color,
-                    _darkenColor(widget.color, 0.2),
-                  ],
-                  stops: const [0.0, 0.5, 1.0],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.color.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                    offset: const Offset(2, 4),
-                  ),
-                ],
+                color: Colors.black,
               ),
-              child: Center(
-                child: Text(
-                  widget.letter.toLowerCase(),
-                  style: TextStyle(
-                    fontFamily: 'ComicRelief',
-                    fontSize: widget.size * (widget.letter.length > 1 ? 0.35 : 0.5),
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        offset: const Offset(1, 1),
-                        blurRadius: 2,
-                      ),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    center: const Alignment(-0.3, -0.3),
+                    colors: [
+                      _lightenColor(widget.color, 0.4),
+                      widget.color,
+                      _darkenColor(widget.color, 0.2),
                     ],
+                    stops: const [0.0, 0.5, 1.0],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(2, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    widget.letter.toLowerCase(),
+                    style: TextStyle(
+                      fontFamily: 'ComicRelief',
+                      fontSize:
+                          widget.size * (widget.letter.length > 1 ? 0.35 : 0.5),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          offset: const Offset(1, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

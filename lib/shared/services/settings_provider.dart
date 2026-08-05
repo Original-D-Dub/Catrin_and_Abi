@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/constants/game_filters.dart';
+import 'audio_service.dart';
 
 /// Manages user-configurable app settings.
 ///
@@ -15,12 +16,16 @@ class SettingsProvider extends ChangeNotifier {
   static const _ageGroupKey = 'age_group';
   static const _signSystemKey = 'sign_system';
   static const _zooCharacterKey = 'zoo_last_character';
+  static const _soundEffectsEnabledKey = 'sound_effects_enabled';
+  static const _instructionsEnabledKey = 'instructions_enabled';
 
   String _language = 'en';
   GameCategory _gameCategory = GameCategory.all;
   AgeGroup _ageGroup = AgeGroup.all;
   SignSystem _signSystem = SignSystem.bsl;
   String? _lastZooCharacter;
+  bool _soundEffectsEnabled = true;
+  bool _instructionsEnabled = true;
 
   /// Active language code — 'en' (English) or 'cy' (Welsh/Cymraeg).
   String get language => _language;
@@ -37,6 +42,12 @@ class SettingsProvider extends ChangeNotifier {
   /// The zoo character last chosen by a signed-in (non-anonymous) user, or
   /// null if none is remembered yet (or the user isn't signed in).
   String? get lastZooCharacter => _lastZooCharacter;
+
+  /// Whether short sound effects (correct/wrong/success chimes) play.
+  bool get soundEffectsEnabled => _soundEffectsEnabled;
+
+  /// Whether spoken/audio game instructions play.
+  bool get instructionsEnabled => _instructionsEnabled;
 
   SettingsProvider() {
     _load();
@@ -60,6 +71,8 @@ class SettingsProvider extends ChangeNotifier {
         _ageGroup = AgeGroup.fromPrefsString(age);
         _signSystem = SignSystem.fromPrefsString(signSystem);
         _lastZooCharacter = meta[_zooCharacterKey] as String?;
+        _soundEffectsEnabled = meta[_soundEffectsEnabledKey] as bool? ?? true;
+        _instructionsEnabled = meta[_instructionsEnabledKey] as bool? ?? true;
 
         // Mirror to local prefs for offline access.
         await prefs.setString(_langKey, _language);
@@ -69,7 +82,10 @@ class SettingsProvider extends ChangeNotifier {
         if (_lastZooCharacter != null) {
           await prefs.setString(_zooCharacterKey, _lastZooCharacter!);
         }
+        await prefs.setBool(_soundEffectsEnabledKey, _soundEffectsEnabled);
+        await prefs.setBool(_instructionsEnabledKey, _instructionsEnabled);
 
+        _applyToAudioService();
         notifyListeners();
         return;
       }
@@ -80,7 +96,15 @@ class SettingsProvider extends ChangeNotifier {
     _gameCategory = GameCategory.fromPrefsString(prefs.getString(_categoryKey));
     _ageGroup = AgeGroup.fromPrefsString(prefs.getString(_ageGroupKey));
     _signSystem = SignSystem.fromPrefsString(prefs.getString(_signSystemKey));
+    _soundEffectsEnabled = prefs.getBool(_soundEffectsEnabledKey) ?? true;
+    _instructionsEnabled = prefs.getBool(_instructionsEnabledKey) ?? true;
+    _applyToAudioService();
     notifyListeners();
+  }
+
+  void _applyToAudioService() {
+    AudioService.sfxEnabled = _soundEffectsEnabled;
+    AudioService.instructionsEnabled = _instructionsEnabled;
   }
 
   Future<void> setLanguage(String lang) async {
@@ -107,6 +131,22 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setSignSystem(SignSystem signSystem) async {
     if (_signSystem == signSystem) return;
     _signSystem = signSystem;
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> setSoundEffectsEnabled(bool value) async {
+    if (_soundEffectsEnabled == value) return;
+    _soundEffectsEnabled = value;
+    _applyToAudioService();
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> setInstructionsEnabled(bool value) async {
+    if (_instructionsEnabled == value) return;
+    _instructionsEnabled = value;
+    _applyToAudioService();
     notifyListeners();
     await _persist();
   }
@@ -139,6 +179,8 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setString(_categoryKey, _gameCategory.toPrefsString());
     await prefs.setString(_ageGroupKey, _ageGroup.toPrefsString());
     await prefs.setString(_signSystemKey, _signSystem.toPrefsString());
+    await prefs.setBool(_soundEffectsEnabledKey, _soundEffectsEnabled);
+    await prefs.setBool(_instructionsEnabledKey, _instructionsEnabled);
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null && !user.isAnonymous) {
@@ -149,6 +191,8 @@ class SettingsProvider extends ChangeNotifier {
             _categoryKey: _gameCategory.toPrefsString(),
             _ageGroupKey: _ageGroup.toPrefsString(),
             _signSystemKey: _signSystem.toPrefsString(),
+            _soundEffectsEnabledKey: _soundEffectsEnabled,
+            _instructionsEnabledKey: _instructionsEnabled,
           }),
         );
       } catch (_) {

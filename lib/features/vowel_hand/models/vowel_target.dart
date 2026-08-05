@@ -163,9 +163,25 @@ enum VowelHandLevel {
     number: 4,
     name: 'CVCC Words',
     description: 'Vowel + consonant cluster',
+  ),
+
+  /// Level 5: Find every vowel in a word — all vowels are blanked at once
+  /// and must be revealed one vowel-character at a time.
+  vowelWordsMulti(
+    number: 5,
+    name: 'All Vowels',
+    description: 'Find every vowel in the word',
+  ),
+
+  /// Level 6: Same puzzle as Level 5, but a word only scores if guessed
+  /// with no mistakes; points scale with word length.
+  noMistakes(
+    number: 6,
+    name: 'No Mistakes',
+    description: 'More points for longer words',
   );
 
-  /// The level number (1–4)
+  /// The level number (1–6)
   final int number;
 
   /// Display name for the level
@@ -182,11 +198,19 @@ enum VowelHandLevel {
 
   /// Returns the levels available for the given sign system.
   ///
-  /// IAC only has the Vowel Match level (a/e/i/o/u plus w/y badges); the
-  /// CVC word levels are BSL/English-only.
+  /// IAC has Vowel Match, Vowel Words (Welsh CVC/VCC/CCV words), a third
+  /// level reusing the `ccvc` slot for the remaining `Geiriau` patterns not
+  /// used by Vowel Words, and the two multi-vowel word levels (using the
+  /// Welsh multi-vowel word list). Only the CVCC level is BSL/English-only.
   static List<VowelHandLevel> forSignSystem(SignSystem signSystem) {
     return signSystem == SignSystem.iac
-        ? const [VowelHandLevel.vowelMatch]
+        ? const [
+            VowelHandLevel.vowelMatch,
+            VowelHandLevel.vowelWords,
+            VowelHandLevel.ccvc,
+            VowelHandLevel.vowelWordsMulti,
+            VowelHandLevel.noMistakes,
+          ]
         : VowelHandLevel.values;
   }
 }

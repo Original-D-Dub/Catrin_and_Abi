@@ -49,6 +49,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
   @override
   void initState() {
     super.initState();
+    AudioService.playTitle('sudoku', locale: widget.locale);
   }
 
   @override
