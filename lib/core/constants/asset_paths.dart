@@ -180,10 +180,6 @@ class AssetPaths {
   // Game Assets
   // -------------------------
 
-  /// Preview image for the ear game
-  static const String earGamePreview =
-      '$_games/ear_game/catabi_ear_game_for_website.jpg';
-
   // -------------------------
   // Colouring Game Assets
   // -------------------------

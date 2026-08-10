@@ -11,6 +11,13 @@ class CardGrid extends StatelessWidget {
   final SignSystem signSystem;
   final String locale;
 
+  /// Height available for the play area on phones, where the grid sits in
+  /// a scroll view and so can't measure its own height via [LayoutBuilder].
+  /// Passed down by the caller from the unscrolled layout. Used only to
+  /// decide between a 3- and 4-column layout on levels 1-2; if omitted, that
+  /// decision falls back to 4 columns.
+  final double? availableHeight;
+
   const CardGrid({
     super.key,
     required this.cards,
@@ -18,6 +25,7 @@ class CardGrid extends StatelessWidget {
     required this.levelNumber,
     this.signSystem = SignSystem.bsl,
     this.locale = 'en',
+    this.availableHeight,
   });
 
   @override
@@ -56,7 +64,15 @@ class CardGrid extends StatelessWidget {
           shrinkWrap = false;
           physics = null;
         } else {
-          crossAxisCount = constraints.maxWidth < 600 ? 4 : 5;
+          if (levelNumber <= 2 && constraints.maxWidth < 600) {
+            crossAxisCount = _bestColumnCountForSmallLevel(
+              availableWidth: constraints.maxWidth,
+              availableHeight: availableHeight,
+              cardCount: cards.length,
+            );
+          } else {
+            crossAxisCount = constraints.maxWidth < 600 ? 4 : 5;
+          }
           childAspectRatio = 0.8;
           shrinkWrap = true;
           physics = const NeverScrollableScrollPhysics();
@@ -99,5 +115,28 @@ class CardGrid extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Levels 1-2 have few cards, so on narrow phones a 3-column layout gives
+  /// noticeably larger cards than 4 columns. Use 3 columns when the extra
+  /// rows it produces still fit within [availableHeight] (so every card
+  /// stays visible without scrolling); otherwise fall back to 4 columns.
+  int _bestColumnCountForSmallLevel({
+    required double availableWidth,
+    required double? availableHeight,
+    required int cardCount,
+  }) {
+    if (availableHeight == null) return 4;
+
+    double gridHeightFor(int columns) {
+      final cardWidth = (availableWidth -
+              (columns - 1) * AppSizes.cardGridSpacing) /
+          columns;
+      final cardHeight = cardWidth / 0.8; // matches childAspectRatio = 0.8
+      final rows = (cardCount / columns).ceil();
+      return rows * cardHeight + (rows - 1) * AppSizes.cardGridSpacing;
+    }
+
+    return gridHeightFor(3) <= availableHeight ? 3 : 4;
   }
 }

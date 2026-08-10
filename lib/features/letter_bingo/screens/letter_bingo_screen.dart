@@ -239,21 +239,31 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
 
             // Tile grid area (expanded to fill available space)
             Expanded(
-              child: SingleChildScrollView(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSizes.paddingLarge),
-                    child: _buildTileGrid(provider),
-                  ),
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSizes.paddingLarge),
+                          child: _buildTileGrid(provider),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
 
-            // Wrong-tap feedback shown below the grid
-            if (_showTryAgain)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8),
-                child: Text(
+            // Wrong-tap feedback shown below the grid. Always reserves its
+            // space (via Opacity, not a conditional) so the grid above
+            // doesn't shift when the message appears/disappears.
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Opacity(
+                opacity: _showTryAgain ? 1.0 : 0.0,
+                child: const Text(
                   'Try again!',
                   style: TextStyle(
                     fontFamily: 'ComicRelief',
@@ -264,6 +274,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
                   textAlign: TextAlign.center,
                 ),
               ),
+            ),
 
             // Called letter display at bottom
             if (provider.calledLetter != null)

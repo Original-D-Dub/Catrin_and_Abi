@@ -9,6 +9,10 @@ import '../../../shared/services/game_stats_service.dart';
 /// chosen avatar) and their `player_stats` rows (used to work out which
 /// badges have been earned).
 ///
+/// `screen_name` is the freely-editable display name shown and edited in
+/// the app. It's separate from `username`, the unique name set once at
+/// signup and never shown or edited here.
+///
 /// The `profiles` row for the signed-in user is created automatically by a
 /// database trigger on `auth.users` insert, so this provider only ever
 /// reads/updates it — it never needs to insert one itself.
@@ -24,8 +28,8 @@ class ProfileProvider extends ChangeNotifier {
   final GameStatsService _statsService = GameStatsService();
   late final StreamSubscription<AuthState> _authSubscription;
 
-  String? _username;
-  String? get username => _username;
+  String? _screenName;
+  String? get screenName => _screenName;
 
   String? _avatarId;
   String? get avatarId => _avatarId;
@@ -61,11 +65,11 @@ class ProfileProvider extends ChangeNotifier {
     try {
       final row = await _db
           .from('profiles')
-          .select('username, avatar_url')
+          .select('screen_name, avatar')
           .eq('id', userId)
           .maybeSingle();
-      _username = row?['username'] as String?;
-      _avatarId = row?['avatar_url'] as String?;
+      _screenName = row?['screen_name'] as String?;
+      _avatarId = row?['avatar'] as String?;
       _stats = await _statsService.getPlayerStats(userId);
     } catch (e) {
       debugPrint('ProfileProvider: failed to load profile: $e');
@@ -84,18 +88,16 @@ class ProfileProvider extends ChangeNotifier {
   /// Updates the screen name and/or avatar. Pass only the fields that
   /// changed; omitted fields are left untouched.
   ///
-  /// Returns true on success. Returns false if the save failed — most
-  /// commonly because `username` collides with another player's (the
-  /// column is unique).
-  Future<bool> updateProfile({String? username, String? avatarId}) async {
+  /// Returns true on success, false if the save failed (e.g. no connection).
+  Future<bool> updateProfile({String? screenName, String? avatarId}) async {
     final userId = _db.auth.currentUser?.id;
     if (userId == null) return false;
 
-    final trimmedUsername = username?.trim();
+    final trimmedScreenName = screenName?.trim();
     final updates = <String, dynamic>{
-      if (trimmedUsername != null && trimmedUsername.isNotEmpty)
-        'username': trimmedUsername,
-      'avatar_url': ?avatarId,
+      if (trimmedScreenName != null && trimmedScreenName.isNotEmpty)
+        'screen_name': trimmedScreenName,
+      'avatar': ?avatarId,
     };
     if (updates.isEmpty) return true;
 
@@ -104,11 +106,11 @@ class ProfileProvider extends ChangeNotifier {
 
     try {
       await _db.from('profiles').update(updates).eq('id', userId);
-      if (updates.containsKey('username')) {
-        _username = updates['username'] as String;
+      if (updates.containsKey('screen_name')) {
+        _screenName = updates['screen_name'] as String;
       }
-      if (updates.containsKey('avatar_url')) {
-        _avatarId = updates['avatar_url'] as String;
+      if (updates.containsKey('avatar')) {
+        _avatarId = updates['avatar'] as String;
       }
       return true;
     } catch (e) {

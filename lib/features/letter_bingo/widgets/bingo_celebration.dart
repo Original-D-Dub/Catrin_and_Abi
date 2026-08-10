@@ -61,6 +61,10 @@ class _BingoCelebrationState extends State<BingoCelebration>
   late final Animation<Offset> _slideAnim;
   late final Animation<double> _fadeAnim;
 
+  // Animal card pulse — plays twice once the audio sequence finishes
+  late final AnimationController _cardPulseCtrl;
+  late final Animation<double> _cardPulseAnim;
+
   // Button fade-in
   late final AnimationController _buttonCtrl;
   late final Animation<double> _buttonFade;
@@ -72,12 +76,15 @@ class _BingoCelebrationState extends State<BingoCelebration>
 
   static List<_StarData> _buildStars() {
     final rng = Random();
-    return List.generate(8, (_) => _StarData(
-          x: rng.nextDouble(),
-          y: rng.nextDouble() * 0.5,
-          size: 18.0 + rng.nextDouble() * 24,
-          phase: rng.nextDouble(),
-        ));
+    return List.generate(
+      8,
+      (_) => _StarData(
+        x: rng.nextDouble(),
+        y: rng.nextDouble() * 0.5,
+        size: 18.0 + rng.nextDouble() * 24,
+        phase: rng.nextDouble(),
+      ),
+    );
   }
 
   @override
@@ -88,9 +95,10 @@ class _BingoCelebrationState extends State<BingoCelebration>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.12).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween<double>(
+      begin: 1.0,
+      end: 1.12,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     _starCtrl = AnimationController(
       vsync: this,
@@ -105,9 +113,45 @@ class _BingoCelebrationState extends State<BingoCelebration>
       begin: const Offset(0, 0.35),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOutCubic));
-    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _entryCtrl, curve: Curves.easeIn),
+    _fadeAnim = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _entryCtrl, curve: Curves.easeIn));
+
+    _cardPulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
     );
+    _cardPulseAnim = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.0,
+          end: 1.1,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 1,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.1,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 1,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.0,
+          end: 1.1,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 1,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.1,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 1,
+      ),
+    ]).animate(_cardPulseCtrl);
 
     _buttonCtrl = AnimationController(
       vsync: this,
@@ -147,7 +191,8 @@ class _BingoCelebrationState extends State<BingoCelebration>
   Future<void> _checkIfNew() async {
     try {
       final collected = await _collectionService.fetchCollection(
-          playerId: widget.playerId!);
+        playerId: widget.playerId!,
+      );
       if (mounted) {
         setState(() {
           _isNew = !collected.contains(widget.animal!.letter.toLowerCase());
@@ -161,18 +206,32 @@ class _BingoCelebrationState extends State<BingoCelebration>
   Future<void> _startAudioSequence() async {
     // Welsh recording carries the "letter_bingo_" prefix the English one
     // doesn't (letter_bingo_bingo.wav vs. bingo_bingo.mp3).
-    final bingoFile =
-        widget.locale == 'cy' ? 'letter_bingo_bingo' : 'bingo_bingo';
-    await AudioService.speakWithMp3('Bingo!', mp3Path: bingoFile, locale: widget.locale);
+    final bingoFile = widget.locale == 'cy'
+        ? 'letter_bingo_bingo'
+        : 'bingo_bingo';
+    await AudioService.speakWithMp3(
+      'Bingo!',
+      mp3Path: bingoFile,
+      locale: widget.locale,
+    );
     if (!mounted || widget.animal == null) return;
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
     final friendFile = (_isNew ?? false)
         ? 'bingo_you_have_a_new_friend'
         : 'bingo_you_have_a_friend';
-    await AudioService.speakWithMp3('', mp3Path: friendFile, locale: widget.locale);
+    await AudioService.speakWithMp3(
+      '',
+      mp3Path: friendFile,
+      locale: widget.locale,
+    );
     if (!mounted) return;
     await AudioService.playAnimalName(widget.animal!.letter);
+    if (!mounted) return;
+    _cardPulseCtrl.forward();
+    await Future.delayed(const Duration(seconds: 6));
+    if (!mounted) return;
+    _cardPulseCtrl.forward(from: 0.0);
   }
 
   @override
@@ -180,6 +239,7 @@ class _BingoCelebrationState extends State<BingoCelebration>
     _pulseCtrl.dispose();
     _starCtrl.dispose();
     _entryCtrl.dispose();
+    _cardPulseCtrl.dispose();
     _buttonCtrl.dispose();
     super.dispose();
   }
@@ -202,15 +262,20 @@ class _BingoCelebrationState extends State<BingoCelebration>
                     builder: (_, _) {
                       final t = (_starCtrl.value + s.phase) % 1.0;
                       final opacity =
-                          (0.4 + 0.6 * (t < 0.5 ? t * 2 : 2 - t * 2))
-                              .clamp(0.2, 1.0);
+                          (0.4 + 0.6 * (t < 0.5 ? t * 2 : 2 - t * 2)).clamp(
+                            0.2,
+                            1.0,
+                          );
                       return Positioned(
                         left: s.x * size.width - s.size / 2,
                         top: s.y * size.height * 0.5,
                         child: Opacity(
                           opacity: opacity,
-                          child: Icon(Icons.star,
-                              color: const Color(0xFFFFC73A), size: s.size),
+                          child: Icon(
+                            Icons.star,
+                            color: const Color(0xFFFFC73A),
+                            size: s.size,
+                          ),
                         ),
                       );
                     },
@@ -222,142 +287,171 @@ class _BingoCelebrationState extends State<BingoCelebration>
             // Scrollable content
             SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom),
+                constraints: BoxConstraints(
+                  minHeight:
+                      size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom,
+                ),
                 child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 680),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizes.paddingLarge,
-                      vertical: AppSizes.paddingLarge,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Pulsing BINGO
-                        ScaleTransition(
-                          scale: _pulseAnim,
-                          child: const _BingoText(),
-                        ),
-                        const SizedBox(height: 24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 680),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.paddingLarge,
+                        vertical: AppSizes.paddingLarge,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Pulsing BINGO
+                          ScaleTransition(
+                            scale: _pulseAnim,
+                            child: const _BingoText(),
+                          ),
+                          const SizedBox(height: 24),
 
-                        // ── Animal reward section ─────────────────────────
-                        if (widget.animal != null) ...[
-                          AnimatedOpacity(
-                            opacity: _isNew != null ? 1.0 : 0.0,
-                            duration: const Duration(milliseconds: 300),
-                            child: Text(
-                              (_isNew ?? false)
-                                  ? 'Congratulations!\nYou have a new friend.'
-                                  : 'You have a friend!',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontFamily: 'LuckiestGuy',
-                                fontSize: 28,
-                                color: Color(0xFFFFC73A),
+                          // ── Animal reward section ─────────────────────────
+                          if (widget.animal != null) ...[
+                            AnimatedOpacity(
+                              opacity: _isNew != null ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 300),
+                              child: Text(
+                                (_isNew ?? false)
+                                    ? 'Congratulations!\nYou have a new friend.'
+                                    : 'You have a friend!',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontFamily: 'LuckiestGuy',
+                                  fontSize: 28,
+                                  color: Color(0xFFFFC73A),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Center(
-                            child: SlideTransition(
-                              position: _slideAnim,
-                              child: FadeTransition(
-                                opacity: _fadeAnim,
-                                child: _AnimalCard(animal: widget.animal!),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-
-                        // ── Sign-in banner (anonymous users) ─────────────
-                        if (context.watch<AuthProvider>().isAnonymous) ...[
-                          SignInBannerButton(locale: widget.locale),
-                          const SizedBox(height: AppSizes.spacingMedium),
-                        ],
-
-                        // ── See your collection ───────────────────────────
-                        if (widget.animal != null) ...[
-                          FadeTransition(
-                            opacity: _buttonFade,
-                            child: ElevatedButton.icon(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => AnimalCollectionScreen(
-                                    onPlayAgain: widget.onPlayAgain,
+                            const SizedBox(height: 16),
+                            Center(
+                              child: SlideTransition(
+                                position: _slideAnim,
+                                child: FadeTransition(
+                                  opacity: _fadeAnim,
+                                  child: ScaleTransition(
+                                    scale: _cardPulseAnim,
+                                    child: _AnimalCard(animal: widget.animal!),
                                   ),
                                 ),
                               ),
-                              icon: const Icon(Icons.grid_view),
-                              label: const Text('See your collection'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.abiPink,
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size.fromHeight(52),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      AppSizes.borderRadiusLarge),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+
+                          // ── Sign-in banner (anonymous users) ─────────────
+                          if (context.watch<AuthProvider>().isAnonymous) ...[
+                            SignInBannerButton(locale: widget.locale),
+                            const SizedBox(height: AppSizes.spacingMedium),
+                          ],
+
+                          // ── See your collection (link) ────────────────────
+                          if (widget.animal != null) ...[
+                            FadeTransition(
+                              opacity: _buttonFade,
+                              child: TextButton.icon(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AnimalCollectionScreen(
+                                      onPlayAgain: widget.onPlayAgain,
+                                    ),
+                                  ),
                                 ),
-                                textStyle: const TextStyle(
-                                  fontFamily: 'ComicRelief',
-                                  fontSize: AppSizes.fontSizeLarge,
-                                  fontWeight: FontWeight.bold,
+                                icon: const Icon(
+                                  Icons.grid_view,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'See your collection',
+                                  style: TextStyle(
+                                    fontFamily: 'ComicRelief',
+                                    fontSize: AppSizes.fontSizeBody,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
+                            const SizedBox(height: AppSizes.spacingMedium),
+                          ],
+
+                          // ── Change Level + Play Again ─────────────────────
+                          // IntrinsicHeight + stretch so both buttons match the
+                          // height of whichever one wraps its text to 2 lines.
+                          FadeTransition(
+                            opacity: _buttonFade,
+                            child: IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: widget.onChangeLevel,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.abiPink,
+                                        foregroundColor: Colors.white,
+                                        minimumSize: const Size.fromHeight(52),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppSizes.borderRadiusLarge,
+                                          ),
+                                        ),
+                                        textStyle: const TextStyle(
+                                          fontFamily: 'ComicRelief',
+                                          fontSize: AppSizes.fontSizeLarge,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        localizer('general.change_level'),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSizes.spacingMedium),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: widget.onPlayAgain,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFF4CAF50,
+                                        ),
+                                        foregroundColor: Colors.white,
+                                        minimumSize: const Size.fromHeight(52),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppSizes.borderRadiusLarge,
+                                          ),
+                                        ),
+                                        textStyle: const TextStyle(
+                                          fontFamily: 'ComicRelief',
+                                          fontSize: AppSizes.fontSizeLarge,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        localizer('general.play_again'),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          const SizedBox(height: AppSizes.spacingMedium),
                         ],
-
-                        // ── Play Again ────────────────────────────────────
-                        FadeTransition(
-                          opacity: _buttonFade,
-                          child: ElevatedButton.icon(
-                            onPressed: widget.onPlayAgain,
-                            icon: const Icon(Icons.replay),
-                            label: Text(localizer('general.play_again')),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50),
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(52),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppSizes.borderRadiusLarge),
-                              ),
-                              textStyle: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: AppSizes.fontSizeLarge,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // ── Change Level ──────────────────────────────────
-                        const SizedBox(height: AppSizes.spacingMedium),
-                        FadeTransition(
-                          opacity: _buttonFade,
-                          child: TextButton.icon(
-                            onPressed: widget.onChangeLevel,
-                            icon: const Icon(Icons.grid_view,
-                                color: Colors.white),
-                            label: Text(
-                              localizer('general.change_level'),
-                              style: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: AppSizes.fontSizeBody,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
                 ),
               ),
             ),
@@ -374,50 +468,79 @@ class _AnimalCard extends StatelessWidget {
   final Animal animal;
   const _AnimalCard({required this.animal});
 
+  static final Color _borderDark = HSLColor.fromColor(AppColors.catrinBlue)
+      .withLightness(
+        (HSLColor.fromColor(AppColors.catrinBlue).lightness - 0.3).clamp(
+          0.0,
+          1.0,
+        ),
+      )
+      .toColor();
+  static final Color _backgroundLight = HSLColor.fromColor(AppColors.catrinBlue)
+      .withLightness(
+        (HSLColor.fromColor(AppColors.catrinBlue).lightness + 0.1).clamp(
+          0.0,
+          1.0,
+        ),
+      )
+      .toColor();
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 220,
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _backgroundLight,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _borderDark, width: 2),
         boxShadow: const [
           BoxShadow(
-              color: Colors.black38, blurRadius: 20, offset: Offset(0, 8)),
+            color: Colors.black38,
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClipRRect(
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
-            child: Image.asset(
-              animal.image,
-              width: 220,
-              height: 200,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.catrinBlue,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _borderDark, width: 2),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(19),
+              ),
+              child: Image.asset(
+                animal.image,
                 width: 220,
                 height: 200,
-                color: const Color(0xFFEEEEEE),
-                child:
-                    const Icon(Icons.pets, size: 80, color: Colors.grey),
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  width: 220,
+                  height: 200,
+                  color: const Color(0xFFEEEEEE),
+                  child: const Icon(Icons.pets, size: 80, color: Colors.grey),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              animal.name,
-              style: const TextStyle(
-                fontFamily: 'LuckiestGuy',
-                fontSize: 28,
-                color: Color(0xFF002D97),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                animal.name,
+                style: const TextStyle(
+                  fontFamily: 'LuckiestGuy',
+                  fontSize: 28,
+                  color: Color(0xFF002D97),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -451,31 +574,17 @@ class _BingoText extends StatelessWidget {
             color: _colors[i],
             shadows: const [
               Shadow(
-                  color: Colors.white,
-                  offset: Offset(-2, -2),
-                  blurRadius: 0),
-              Shadow(
-                  color: Colors.white,
-                  offset: Offset(2, -2),
-                  blurRadius: 0),
-              Shadow(
-                  color: Colors.white,
-                  offset: Offset(-2, 2),
-                  blurRadius: 0),
-              Shadow(
-                  color: Colors.white, offset: Offset(2, 2), blurRadius: 0),
-              Shadow(
-                  color: Colors.white, offset: Offset(4, 0), blurRadius: 0),
-              Shadow(
-                  color: Colors.white,
-                  offset: Offset(-4, 0),
-                  blurRadius: 0),
-              Shadow(
-                  color: Colors.white, offset: Offset(0, 4), blurRadius: 0),
-              Shadow(
-                  color: Colors.white,
-                  offset: Offset(0, -4),
-                  blurRadius: 0),
+                color: Colors.white,
+                offset: Offset(-2, -2),
+                blurRadius: 0,
+              ),
+              Shadow(color: Colors.white, offset: Offset(2, -2), blurRadius: 0),
+              Shadow(color: Colors.white, offset: Offset(-2, 2), blurRadius: 0),
+              Shadow(color: Colors.white, offset: Offset(2, 2), blurRadius: 0),
+              Shadow(color: Colors.white, offset: Offset(4, 0), blurRadius: 0),
+              Shadow(color: Colors.white, offset: Offset(-4, 0), blurRadius: 0),
+              Shadow(color: Colors.white, offset: Offset(0, 4), blurRadius: 0),
+              Shadow(color: Colors.white, offset: Offset(0, -4), blurRadius: 0),
             ],
           ),
         );
@@ -491,9 +600,10 @@ class _StarData {
   final double y;
   final double size;
   final double phase;
-  const _StarData(
-      {required this.x,
-      required this.y,
-      required this.size,
-      required this.phase});
+  const _StarData({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.phase,
+  });
 }

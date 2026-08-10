@@ -94,7 +94,6 @@ flutter:
 
     # Game-specific assets
     - assets/games/bubble_pop/
-    - assets/games/ear_game/
     - assets/games/colouring/
     - assets/games/card_matching/
     - assets/games/vowel_hand/

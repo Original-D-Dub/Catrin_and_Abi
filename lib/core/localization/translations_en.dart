@@ -239,15 +239,19 @@
   // -------------------------
   'counting_game.intro': 'Count the circles and tap the matching BSL number sign!',
   'counting_game.subtitle': 'Count the circles!',
-  'counting_game.level1.name': 'Red',
-  'counting_game.level2.name': 'Purple',
-  'counting_game.level3.name': 'Blue',
-  'counting_game.level4.name': 'Orange',
-  'counting_game.level5.name': 'Yellow',
-  'counting_game.level6.name': 'Green',
-  'counting_game.level7.name': 'Pink & Yellow',
-  'counting_game.level8.name': 'Blue & Red',
-  'counting_game.level9.name': 'Green & Purple',
+  'counting_game.level1.name': '1-5',
+  'counting_game.level2.name': '1-7',
+  'counting_game.level3.name': '1-10',
+  'counting_game.level4.name': 'Time Trial 1-10',
+  'counting_game.level5.name': '1-5',
+  'counting_game.level6.name': '1-7',
+  'counting_game.level7.name': '1-10',
+  'counting_game.level8.name': 'Time Trial 1-10',
+  'counting_game.level9.name': '1-5',
+  'counting_game.level10.name': '1-7',
+  'counting_game.level11.name': '1-10',
+  'counting_game.level12.name': 'Add to 10',
+  'counting_game.level13.name': '10+',
   'counting_game.round_label': 'Round',
   'counting_game.of_label': 'of',
 
@@ -262,6 +266,11 @@
   'counting_game.colour.blue': 'blue', //How many blue circles? How many blue circles are there?
   'counting_game.colour.red': 'red', //How many red circles? How many red circles are there?
   'counting_game.colour.purple': 'purple', //How many purple circles? How many purple circles are there?
+  'counting_game.colour.brown': 'brown', //How many brown circles? How many brown circles are there?
+  'counting_game.colour.black': 'black', //How many black circles? How many black circles are there?
+  'counting_game.colour.white': 'white', //How many white circles? How many white circles are there?
+  'counting_game.colour.light_green': 'light green', //How many light green circles? How many light green circles are there?
+  'counting_game.colour.dark_green': 'dark green', //How many dark green circles? How many dark green circles are there?
 
   // -------------------------
   // Number Line (Make 10)
@@ -546,7 +555,7 @@
   'profile.choose_avatar': 'Choose an avatar',
   'profile.save': 'Save',
   'profile.cancel': 'Cancel',
-  'profile.name_taken': 'That name is taken — try another!',
+  'profile.save_failed': 'Could not save. Please try again.',
   'profile.badges_title': 'Badges',
   'profile.badge.bsl_cup': 'BSL Champion',
   'profile.badge.iac_cup': 'IAC Champion',

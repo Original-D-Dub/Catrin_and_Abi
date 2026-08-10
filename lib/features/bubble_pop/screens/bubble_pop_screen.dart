@@ -356,61 +356,72 @@ class _BubblePopScreenState extends State<BubblePopScreen>
     double scale,
     AppLocalizations localizer,
   ) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Letter sign in rounded container
-        Center(
-          child: Container(
-            width: 140 * scale,
-            height: 120 * scale,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16 * scale),
-              border: Border.all(
-                color: AppColors.headerBorderDark,
-                width: 4 * scale,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(21 * scale),
-              child: provider.targetLetter.isNotEmpty
-                  ? Padding(
-                      padding: EdgeInsets.all(8 * scale),
-                      child: BslAlphabetSvg(
-                        letter: provider.targetLetter,
-                        signSystem: provider.signSystem,
-                        fit: BoxFit.contain,
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ),
-        ),
-
-        SizedBox(height: 4 * scale),
-
-        // "Find the letter" label in purple container
-        Center(
-          child: Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: 20 * scale, vertical: 6 * scale),
-            decoration: BoxDecoration(
-              color: AppColors.accentPurple,
-              borderRadius: BorderRadius.circular(16 * scale),
-            ),
-            child: Text(
-              localizer('bubble_pop.find_label'),
-              style: TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: 16 * scale,
-                fontWeight: FontWeight.bold,
+    final signHeight = 120 * scale;
+    return SizedBox(
+      height: signHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Letter sign in rounded container
+          Center(
+            child: Container(
+              width: 140 * scale,
+              height: signHeight,
+              decoration: BoxDecoration(
                 color: Colors.white,
+                borderRadius: BorderRadius.circular(16 * scale),
+                border: Border.all(
+                  color: AppColors.headerBorderDark,
+                  width: 4 * scale,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(21 * scale),
+                child: provider.targetLetter.isNotEmpty
+                    ? Padding(
+                        padding: EdgeInsets.all(8 * scale),
+                        child: BslAlphabetSvg(
+                          letter: provider.targetLetter,
+                          signSystem: provider.signSystem,
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    : const SizedBox.shrink(),
               ),
             ),
           ),
-        ),
-      ],
+
+          // "Find the letter" label, vertically centered on the sign's
+          // bottom edge via a translation by half its own height.
+          Positioned(
+            left: 0,
+            right: 0,
+            top: signHeight,
+            child: Center(
+              child: FractionalTranslation(
+                translation: const Offset(0, -0.5),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 20 * scale, vertical: 6 * scale),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentPurple,
+                    borderRadius: BorderRadius.circular(16 * scale),
+                  ),
+                  child: Text(
+                    localizer('bubble_pop.find_label'),
+                    style: const TextStyle(
+                      fontFamily: 'ComicRelief',
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

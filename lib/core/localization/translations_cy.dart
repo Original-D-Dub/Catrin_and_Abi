@@ -30,8 +30,6 @@ const Map<String, String> translationsCy = {
   'card_matching.description': "Parwch arwyddion BSL gyda'r llythrennau",
   'bubble_pop.title': 'Popio Swigod',
   'home.bubble_pop_desc': "Popiwch y swigod llythyren cywir",
-  'home.ear_game': 'Gêm y Glust',
-  'home.ear_game_desc': "Dysgwch rannau'r glust",
   'letter_quest.title': 'Chwilio Llythrennau', 
   'bsl_vowels.title': 'llafariaid BSL',
   'iac_vowels.title': 'Llafariaid IAC',
@@ -278,15 +276,19 @@ const Map<String, String> translationsCy = {
   // -------------------------
   'counting_game.intro': 'Cyfrifwch y cylchoedd a thapio\'r arwydd rhif BSL sy\'n cyfateb!',
   'counting_game.subtitle': 'Cyfrifwch y cylchoedd!',
-  'counting_game.level1.name': 'Coch',
-  'counting_game.level2.name': 'Piws',
-  'counting_game.level3.name': 'Glas',
-  'counting_game.level4.name': 'Oren',
-  'counting_game.level5.name': 'Melyn',
-  'counting_game.level6.name': 'Gwyrdd',
-  'counting_game.level7.name': 'Pinc a Melyn',
-  'counting_game.level8.name': 'Glas a Choch',
-  'counting_game.level9.name': 'Gwyrdd a Piws',
+  'counting_game.level1.name': '1-10',
+  'counting_game.level2.name': '1-7',
+  'counting_game.level3.name': '1-10',
+  'counting_game.level4.name': 'Amseru 1-10',
+  'counting_game.level5.name': '1-5',
+  'counting_game.level6.name': '1-7',
+  'counting_game.level7.name': '1-10',
+  'counting_game.level8.name': 'Amseru 1-10',
+  'counting_game.level9.name': '1-5',
+  'counting_game.level10.name': '1-10',
+  'counting_game.level11.name': '1-10',
+  'counting_game.level12.name': 'Adio i 10',
+  'counting_game.level13.name': '10+',
   'counting_game.round_label': 'Rownd',
   'counting_game.of_label': 'o',
   'counting_game.question_colour': 'Sawl cylch {colour}?',
@@ -300,6 +302,11 @@ const Map<String, String> translationsCy = {
   'counting_game.colour.blue': 'glas',//sawl cylch glas ? sawl cylch glas sydd?
   'counting_game.colour.red': 'coch',//sawl cylch coch ? sawl cylch coch sydd?
   'counting_game.colour.purple': 'piws',
+  'counting_game.colour.brown': 'brown',//sawl cylch brown ? sawl cylch brown sydd?
+  'counting_game.colour.black': 'du',//sawl cylch du ? sawl cylch du sydd?
+  'counting_game.colour.white': 'gwyn',//sawl cylch gwyn ? sawl cylch gwyn sydd?
+  'counting_game.colour.light_green': 'gwyrdd golau',//sawl cylch gwyrdd golau ? sawl cylch gwyrdd golau sydd?
+  'counting_game.colour.dark_green': 'gwyrdd tywyll',//sawl cylch gwyrdd tywyll ? sawl cylch gwyrdd tywyll sydd?
 
   // -------------------------
   // Number Line
@@ -541,7 +548,7 @@ const Map<String, String> translationsCy = {
   'profile.choose_avatar': 'Dewiswch avatar',
   'profile.save': 'Cadw',
   'profile.cancel': 'Canslo',
-  'profile.name_taken': "Mae'r enw hwnnw wedi'i gymryd — triwch un arall!",
+  'profile.save_failed': "Methwyd cadw. Rhowch gynnig arall arni.",
   'profile.badges_title': 'Bathodynnau',
   'profile.badge.bsl_cup': 'Pencampwr BSL',
   'profile.badge.iac_cup': 'Pencampwr IAC',

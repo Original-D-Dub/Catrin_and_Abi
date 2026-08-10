@@ -125,9 +125,6 @@ class AppRoutes {
   /// Letter Quest Level 6 (outdoor adventure)
   static const String letterQuestLevel4 = '/games/letter-quest/level-4';
 
-  /// Ear game (placeholder for future)
-  static const String earGame = '/games/ear-game';
-
   /// Letter Bingo game (BSL letter matching bingo)
   static const String letterBingo = '/games/letter-bingo';
 
@@ -651,13 +648,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       final locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => SettingsScreen(currentLocale: locale),
-        settings: settings,
-      );
-
-    // Placeholder routes for future games
-    case AppRoutes.earGame:
-      return MaterialPageRoute(
-        builder: (_) => const HomeScreen(), // Redirect to home for now
         settings: settings,
       );
 

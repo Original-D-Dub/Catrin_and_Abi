@@ -170,7 +170,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final profile = context.watch<ProfileProvider>();
     final isLinked = !auth.isAnonymous && auth.isLoggedIn;
     final avatar = avatarById(profile.avatarId);
-    final screenName = (profile.username ?? '').trim();
+    final screenName = (profile.screenName ?? '').trim();
 
     return Scaffold(
       backgroundColor: const Color(0xFF1E1250),
@@ -744,7 +744,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   void initState() {
     super.initState();
     final profile = context.read<ProfileProvider>();
-    _nameController = TextEditingController(text: profile.username ?? '');
+    _nameController = TextEditingController(text: profile.screenName ?? '');
     _selectedAvatarId = avatarById(profile.avatarId).id;
   }
 
@@ -761,7 +761,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     });
 
     final ok = await context.read<ProfileProvider>().updateProfile(
-          username: _nameController.text,
+          screenName: _nameController.text,
           avatarId: _selectedAvatarId,
         );
 
@@ -771,7 +771,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     } else {
       setState(() {
         _isSaving = false;
-        _errorMessage = widget.localizer('profile.name_taken');
+        _errorMessage = widget.localizer('profile.save_failed');
       });
     }
   }

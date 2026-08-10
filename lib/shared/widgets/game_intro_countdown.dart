@@ -234,7 +234,7 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
       child: Column(
         children: [
           if (widget.topText != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
             Text(
               widget.topText!,
               textAlign: TextAlign.center,

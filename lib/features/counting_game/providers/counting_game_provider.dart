@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,39 @@ import 'package:flutter/material.dart';
 import '../../../shared/services/game_stats_service.dart';
 
 // ── Colour pairs ─────────────────────────────────────────────────────────────
+
+/// Canonical colour for each number 1-10, matching the standard Cuisenaire
+/// rod colours. Used by levels that colour-code circles by their count
+/// value rather than by a fixed per-level "colour A/B" role, so the same
+/// number always looks the same everywhere it appears — reinforcing that
+/// each number is a distinct, consistent value.
+const Map<int, Color> numberColours = {
+  1: Color(0xFFFFFFFF), // white
+  2: Color(0xFFE53935), // red
+  3: Color(0xFF8BC34A), // light green
+  4: Color.fromARGB(255, 112, 67, 160), // purple
+  5: Color(0xFFFDD835), // yellow
+  6: Color(0xFF2E7D32), // dark green
+  7: Color(0xFF212121), // black
+  8: Color(0xFF6D4C41), // brown
+  9: Color(0xFF1E88E5), // blue
+  10: Color(0xFFFF6F00), // orange
+};
+
+/// Colour-name suffixes matching [numberColours], for building
+/// `counting_game.colour.<name>` translation keys.
+const Map<int, String> numberColourNames = {
+  1: 'white',
+  2: 'red',
+  3: 'light_green',
+  4: 'purple',
+  5: 'yellow',
+  6: 'dark_green',
+  7: 'black',
+  8: 'brown',
+  9: 'blue',
+  10: 'orange',
+};
 
 /// The two circle colours used in one game session.
 class CircleColourPair {
@@ -26,6 +60,27 @@ class CircleColourPair {
   /// [dicePipPositions]) instead of [CountingGameProvider]'s random scatter.
   final bool useDicePattern;
 
+  /// When set (with [useDicePattern] also true), every round's countA +
+  /// countB always equals this value — e.g. "Add to 10" always splits 10
+  /// circles across two groups instead of picking a random total. Rendered
+  /// as two side-by-side panels, each group coloured by its own count via
+  /// [numberColours] (see [usesNumberColours]) rather than by [colorA]
+  /// /[colorB].
+  final int? fixedTotal;
+
+  /// When true, this level always shows a fixed group of 10 circles (laid
+  /// out as two rows of 5 with a divider) beside a second group of 1-10
+  /// circles (in the usual dice pattern) — used by the "Ten and More"
+  /// teen-number level. Each group is coloured by its own count via
+  /// [numberColours] (see [usesNumberColours]) rather than by [colorA]
+  /// /[colorB].
+  final bool isTeenGrid;
+
+  /// When true, this level is a 60-second timed challenge instead of the
+  /// usual fixed 5 rounds: rounds keep generating until the clock runs out,
+  /// and the score is simply "how many right in 1 minute".
+  final bool isTimed;
+
   const CircleColourPair({
     required this.colorA,
     required this.colorB,
@@ -38,10 +93,19 @@ class CircleColourPair {
       QuestionType.total,
     ],
     this.useDicePattern = false,
+    this.fixedTotal,
+    this.isTeenGrid = false,
+    this.isTimed = false,
   });
 
   /// True when this level shows circles in a single colour only.
-  bool get singleColour => questionOrder.length == 1;
+  bool get singleColour => colorA == colorB;
+
+  /// True when this level colours each group by its own count value (via
+  /// [numberColours]) instead of using the fixed [colorA]/[colorB] pair —
+  /// so the same number always looks the same, reinforcing that each
+  /// number is a distinct value.
+  bool get usesNumberColours => fixedTotal != null || isTeenGrid;
 }
 
 const List<CircleColourPair> countingColourPairs = [
@@ -73,10 +137,21 @@ const List<CircleColourPair> countingColourPairs = [
     questionOrder: [QuestionType.total],
     useDicePattern: true,
   ),
+  // Level 4: timed duplicate of level 3 — how many right in 1 minute.
+  CircleColourPair(
+    colorA: Color(0xFF1E88E5),
+    colorB: Color(0xFF1E88E5),
+    name: 'counting_game.level4.name',
+    nameA: 'blue',
+    nameB: 'blue',
+    questionOrder: [QuestionType.total],
+    useDicePattern: true,
+    isTimed: true,
+  ),
   CircleColourPair(
     colorA: Color(0xFFFF6F00),
     colorB: Color(0xFFFF6F00),
-    name: 'counting_game.level4.name',
+    name: 'counting_game.level5.name',
     nameA: 'orange',
     nameB: 'orange',
     questionOrder: [QuestionType.total],
@@ -84,7 +159,7 @@ const List<CircleColourPair> countingColourPairs = [
   CircleColourPair(
     colorA: Color(0xFFFDD835),
     colorB: Color(0xFFFDD835),
-    name: 'counting_game.level5.name',
+    name: 'counting_game.level6.name',
     nameA: 'yellow',
     nameB: 'yellow',
     questionOrder: [QuestionType.total],
@@ -92,31 +167,66 @@ const List<CircleColourPair> countingColourPairs = [
   CircleColourPair(
     colorA: Color(0xFF43A047),
     colorB: Color(0xFF43A047),
-    name: 'counting_game.level6.name',
+    name: 'counting_game.level7.name',
     nameA: 'green',
     nameB: 'green',
     questionOrder: [QuestionType.total],
   ),
+  // Level 8: timed duplicate of level 7 — how many right in 1 minute.
+  CircleColourPair(
+    colorA: Color(0xFF43A047),
+    colorB: Color(0xFF43A047),
+    name: 'counting_game.level8.name',
+    nameA: 'green',
+    nameB: 'green',
+    questionOrder: [QuestionType.total],
+    isTimed: true,
+  ),
   CircleColourPair(
     colorA: Color(0xFFEE009B),
     colorB: Color(0xFFcca815),
-    name: 'counting_game.level7.name',
+    name: 'counting_game.level9.name',
     nameA: 'pink',
     nameB: 'yellow',
   ),
   CircleColourPair(
     colorA: Color(0xFF1E88E5),
     colorB: Color(0xFFE53935),
-    name: 'counting_game.level8.name',
+    name: 'counting_game.level10.name',
     nameA: 'blue',
     nameB: 'red',
   ),
   CircleColourPair(
     colorA: Color(0xFF43A047),
     colorB: Color.fromARGB(255, 112, 67, 160),
-    name: 'counting_game.level9.name',
+    name: 'counting_game.level11.name',
     nameA: 'green',
     nameB: 'purple',
+  ),
+  // Level 12: two groups that always add up to 10, in the same grid
+  // pattern as levels 1-3. colorA/colorB/nameA/nameB are unused — each
+  // group is coloured by its own count via numberColours (usesNumberColours).
+  CircleColourPair(
+    colorA: Color(0xFFE53935),
+    colorB: Color(0xFF43A047),
+    name: 'counting_game.level12.name',
+    nameA: 'red',
+    nameB: 'green',
+    useDicePattern: true,
+    fixedTotal: 10,
+  ),
+  // Level 13: a fixed group of 10 beside a second group of 1-10 — teen
+  // numbers as "10 and some more". colorA/colorB/nameA/nameB are unused —
+  // each group is coloured by its own count via numberColours
+  // (usesNumberColours).
+  CircleColourPair(
+    colorA: Color(0xFF1E88E5),
+    colorB: Color(0xFFFF6F00),
+    name: 'counting_game.level13.name',
+    nameA: 'blue',
+    nameB: 'orange',
+    questionOrder: [QuestionType.total],
+    isTeenGrid: true,
   ),
 ];
 
@@ -196,7 +306,14 @@ List<Offset> stackedDicePipPixelPositions(
   if (rows == null) {
     throw ArgumentError('count=$count is not a stacked dice pattern');
   }
+  return _stackedRowsPipPositions(rows, width, height);
+}
 
+/// Shared layout math for two die-face sub-patterns [rows] stacked
+/// vertically with a gap between them, each sized so its bounding box is a
+/// true square regardless of the play area's aspect ratio.
+List<Offset> _stackedRowsPipPositions(
+    List<int> rows, double width, double height) {
   final double gap = height * 0.08;
   final double cell = min(width, (height - gap) / 2);
   final double left = (width - cell) / 2;
@@ -211,6 +328,12 @@ List<Offset> stackedDicePipPixelPositions(
     ..._diePipPattern[rows[1]]!.map((p) => toPixel(p, bottomRowTop)),
   ];
 }
+
+/// Pixel-space pip positions for a fixed group of 10: two rows of 5 with a
+/// horizontal divider, the same stacked style as the 8/9 dice patterns.
+/// Used by level 11's constant "always 10" group.
+List<Offset> tenBlockStackedPipPositions(double width, double height) =>
+    _stackedRowsPipPositions(const [5, 5], width, height);
 
 /// Pixel-space pip positions for count 10: two "5" sub-patterns side by
 /// side, each sized so its bounding box is a true square — independent of
@@ -230,6 +353,23 @@ List<Offset> sideBySideDicePipPixelPositions(double width, double height) {
     ..._diePipPattern[5]!.map((p) => toPixel(p, leftColLeft)),
     ..._diePipPattern[5]!.map((p) => toPixel(p, rightColLeft)),
   ];
+}
+
+/// Pixel-space pip positions for [count] (1-10) within a [width]x[height]
+/// box, picking whichever dice pattern fits: a direct die face (1-6), a
+/// stacked pair (7-9), or side-by-side fives (10). The 1-6 die face is
+/// confined to a square sub-region centred within the box (rather than
+/// stretched to fill a non-square box) so it stays proportionally correct,
+/// matching how the 7-9/10 patterns are already square-cell sized. Used to
+/// render a single colour's group within its own panel — see
+/// [CircleColourPair.fixedTotal].
+List<Offset> dicePatternPipPixelPositions(int count, double width, double height) {
+  if (count == 10) return sideBySideDicePipPixelPositions(width, height);
+  if (count >= 7) return stackedDicePipPixelPositions(count, width, height);
+  final double side = min(width, height);
+  final Rect square =
+      Rect.fromLTWH((width - side) / 2, (height - side) / 2, side, side);
+  return _pipsInRect(count, square);
 }
 
 // ── Question types ────────────────────────────────────────────────────────────
@@ -282,25 +422,33 @@ class CountingRound {
 
 // ── Game state ────────────────────────────────────────────────────────────────
 
-enum CountingGameState { playing, won }
+enum CountingGameState { playing, won, timeUp }
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 /// Provider for the Counting Game.
 ///
 /// Structure:
-/// - 5 rounds per game, each showing a new collection of circles.
+/// - 5 rounds per game, each showing a new collection of circles — except
+///   [CircleColourPair.isTimed] levels, which keep generating rounds for
+///   [timedLevelDurationSeconds] instead of stopping at a fixed count.
 /// - Each round asks the questions in [CircleColourPair.questionOrder]:
 ///   single-colour levels ask just "total"; two-colour levels ask
 ///   colour A → colour B → total.
 /// - 3 BSL number buttons per question; wrong taps are greyed out/disabled.
 /// - Correct answer awards 1 point and advances to the next question.
-/// - The game is won once every round's questions have been answered.
+/// - The game is won once every round's questions have been answered, or
+///   (for timed levels) once the clock runs out.
 class CountingGameProvider extends ChangeNotifier {
   static const int totalRounds = 5;
 
+  /// Countdown duration for [CircleColourPair.isTimed] levels.
+  static const int timedLevelDurationSeconds = 60;
+
   /// Maximum total circle count per level.
-  static const List<int> _maxTotals = [5, 7, 10, 5, 7, 10, 5, 10, 20];
+  static const List<int> _maxTotals = [
+    5, 7, 10, 10, 5, 7, 10, 10, 5, 10, 20, 10, 20,
+  ];
 
   int get _maxTotal => _maxTotals[_levelIndex];
 
@@ -346,6 +494,13 @@ class CountingGameProvider extends ChangeNotifier {
   GameResult? _lastResult;
   GameResult? get lastResult => _lastResult;
 
+  /// True when the current level is a 60-second timed challenge.
+  bool get isTimedLevel => colours.isTimed;
+
+  Timer? _timedLevelTimer;
+  int _secondsRemaining = 0;
+  int get secondsRemaining => _secondsRemaining;
+
   // ── lifecycle ──────────────────────────────────────────────────────────────
 
   CountingGameProvider() {
@@ -354,6 +509,7 @@ class CountingGameProvider extends ChangeNotifier {
 
   void showLevelSelection() {
     _showLevelSelect = true;
+    _timedLevelTimer?.cancel();
     notifyListeners();
   }
 
@@ -363,17 +519,51 @@ class CountingGameProvider extends ChangeNotifier {
     _score = 0;
     _lastResult = null;
     _state = CountingGameState.playing;
-    _rounds = List.generate(totalRounds, (_) => _generateRound());
+    _timedLevelTimer?.cancel();
+
+    if (colours.isTimed) {
+      _rounds = [_generateRound()];
+      _secondsRemaining = timedLevelDurationSeconds;
+      _timedLevelTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        _secondsRemaining--;
+        if (_secondsRemaining <= 0) {
+          _timedLevelTimer?.cancel();
+          _state = CountingGameState.timeUp;
+          _lastResult = null;
+          notifyListeners();
+          _statsService
+              .recordGameResult(GameIds.countingGame, _score, level: levelNumber)
+              .then((result) {
+            _lastResult = result;
+            notifyListeners();
+          });
+          return;
+        }
+        notifyListeners();
+      });
+    } else {
+      _rounds = [];
+      for (int i = 0; i < totalRounds; i++) {
+        _rounds.add(_generateRound(previous: i == 0 ? null : _rounds[i - 1]));
+      }
+    }
+
     _roundIndex = 0;
     _questionIndexInRound = 0;
     _buildOptions();
     notifyListeners();
   }
 
+  @override
+  void dispose() {
+    _timedLevelTimer?.cancel();
+    super.dispose();
+  }
+
   // ── answer handling ────────────────────────────────────────────────────────
 
   void selectAnswer(int answer) {
-    if (_state == CountingGameState.won) return;
+    if (_state != CountingGameState.playing) return;
     if (disabledAnswers.contains(answer)) return;
 
     if (answer == correctAnswer) {
@@ -393,6 +583,16 @@ class CountingGameProvider extends ChangeNotifier {
     if (nextQInRound < _questionsPerRound) {
       // More questions in this round
       _questionIndexInRound = nextQInRound;
+      _buildOptions();
+      notifyListeners();
+      return;
+    }
+
+    if (colours.isTimed) {
+      // Timed levels keep generating rounds until the clock runs out.
+      _roundIndex++;
+      _questionIndexInRound = 0;
+      _rounds.add(_generateRound(previous: _rounds[_roundIndex - 1]));
       _buildOptions();
       notifyListeners();
       return;
@@ -443,7 +643,39 @@ class CountingGameProvider extends ChangeNotifier {
   CountingRound _generateRound({CountingRound? previous}) {
     final maxTotal = _maxTotal;
 
+    if (colours.isTeenGrid) {
+      while (true) {
+        final countB = _random.nextInt(10) + 1;
+
+        if (previous != null && countB == previous.countB) {
+          continue;
+        }
+
+        return CountingRound(countA: 10, countB: countB, positions: const []);
+      }
+    }
+
     if (colours.useDicePattern) {
+      final fixedTotal = colours.fixedTotal;
+
+      if (fixedTotal != null) {
+        while (true) {
+          final countA = _random.nextInt(fixedTotal - 1) + 1;
+          final countB = fixedTotal - countA;
+
+          if (previous != null &&
+              countA == previous.countA &&
+              countB == previous.countB) {
+            continue;
+          }
+
+          // Rendered as two side-by-side panels (one colour each), so no
+          // merged composite pattern is needed here — see _CirclePlayArea.
+          return CountingRound(
+              countA: countA, countB: countB, positions: const []);
+        }
+      }
+
       while (true) {
         final count = _random.nextInt(maxTotal) + 1;
 

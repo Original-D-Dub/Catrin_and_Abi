@@ -157,10 +157,20 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
   bool _showExtraContent = false;
   Timer? _extraContentTimer;
 
+  /// Controls whether the overlay itself has appeared yet (delayed on mount
+  /// so the player's last in-game action/animation isn't cut off).
+  bool _visible = false;
+  Timer? _entryTimer;
+
+  static const Duration _entryDelay = Duration(milliseconds: 1500);
+
   @override
   void initState() {
     super.initState();
     AudioService.playSuccess(widget.gameId ?? '', locale: widget.locale);
+    _entryTimer = Timer(_entryDelay, () {
+      if (mounted) setState(() => _visible = true);
+    });
     if (widget.backgroundImage != null && widget.extraContent != null) {
       _extraContentTimer = Timer(const Duration(seconds: 5), () {
         if (mounted) setState(() => _showExtraContent = true);
@@ -172,6 +182,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
 
   @override
   void dispose() {
+    _entryTimer?.cancel();
     _extraContentTimer?.cancel();
     super.dispose();
   }
@@ -205,6 +216,23 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
     final scoreLine = _scoreLine(localizer);
     final changeLevelLabel =
         widget.changeLevelLabel ?? localizer('general.change_level');
+    return IgnorePointer(
+      ignoring: !_visible,
+      child: AnimatedOpacity(
+        opacity: _visible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 300),
+        child: _buildContent(context, localizer, headingText, scoreLine, changeLevelLabel),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    AppLocalizations localizer,
+    String headingText,
+    String? scoreLine,
+    String changeLevelLabel,
+  ) {
     return Container(
       decoration: widget.backgroundImage != null
           ? BoxDecoration(

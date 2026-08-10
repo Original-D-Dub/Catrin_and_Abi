@@ -234,9 +234,25 @@ class _CardGameScreenState extends State<CardGameScreen>
                       padding: const EdgeInsets.all(AppSizes.paddingMedium),
                       child: cardGrid,
                     )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                      child: cardGrid,
+                  : LayoutBuilder(
+                      // Captured here, before SingleChildScrollView gives its
+                      // child unbounded height along the scroll axis.
+                      builder: (context, playAreaConstraints) {
+                        return SingleChildScrollView(
+                          padding:
+                              const EdgeInsets.all(AppSizes.paddingMedium),
+                          child: CardGrid(
+                            cards: provider.cards,
+                            levelNumber: provider.level.levelNumber,
+                            onCardTap: (cardId) =>
+                                provider.selectCard(cardId: cardId),
+                            signSystem: provider.signSystem,
+                            locale: widget.locale,
+                            availableHeight: playAreaConstraints.maxHeight -
+                                AppSizes.paddingMedium * 2,
+                          ),
+                        );
+                      },
                     ),
             ),
           ],
