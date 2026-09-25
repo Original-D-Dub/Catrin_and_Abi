@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Data for a single level button in [LevelSelectScreen].
 class LevelSelectItem {
@@ -44,10 +45,10 @@ class LevelSelectItem {
 const List<Color> kLevelSelectColors = [
   AppColors.abiPink,
   AppColors.accentNavyBlue,
-  AppColors.accentLimeGreen,
+  AppColors.accentDarkGreen,
   AppColors.accentOrange,
   AppColors.accentPurple,
-  AppColors.catrinBlue,
+  AppColors.accentLimeGreen,
 ];
 
 /// Returns a colour from [kLevelSelectColors] for the given 0-based index.
@@ -91,10 +92,8 @@ class LevelSelectScreen extends StatelessWidget {
             // Title
             Text(
               localizer('level_select.title'),
-              style: const TextStyle(
-                fontFamily: 'ComicRelief',
+              style: AppTheme.title.copyWith(
                 fontSize: AppSizes.fontSizeTitle,
-                fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -104,9 +103,10 @@ class LevelSelectScreen extends StatelessWidget {
               Text(
                 subtitle!,
                 style: const TextStyle(
-                  fontFamily: 'ComicRelief',
-                  fontSize: AppSizes.fontSizeBody,
-                  color: AppColors.textSecondary,
+                  fontFamily: 'Quicksand',
+                  fontSize: AppSizes.fontSizeLarge,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -173,9 +173,9 @@ class LevelSelectScreen extends StatelessWidget {
             item.displayLabel ??
                 '${localizer('level_select.level_prefix')} ${item.number}',
             style: const TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: AppSizes.fontSizeLarge,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           if (item.name != null) ...[
@@ -183,12 +183,10 @@ class LevelSelectScreen extends StatelessWidget {
             Text(
               item.name!,
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: AppSizes.fontSizeBody,
               ),
               textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
           if (item.description != null) ...[
@@ -196,7 +194,7 @@ class LevelSelectScreen extends StatelessWidget {
             Text(
               item.description!,
               style: TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: AppSizes.fontSizeSmall,
                 color: Colors.white.withValues(alpha: 0.85),
               ),

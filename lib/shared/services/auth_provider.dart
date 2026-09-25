@@ -1,17 +1,48 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/config/app_config.dart';
+
 /// Manages authentication state for the app.
 ///
 /// Wraps Supabase auth so the rest of the app stays decoupled from it.
 /// Provided at the root of the widget tree (see app.dart) so any screen
 /// can access the current user without importing Supabase directly.
 class AuthProvider extends ChangeNotifier {
+  /// Localization key set when a signed-in account is rejected by
+  /// [_enforceHwbOnlyIfNeeded] because it isn't a Hwb account — resolve with
+  /// an [AppLocalizations] at the display site, since this provider has no
+  /// locale/context of its own. Cleared on the next successful sign-in.
+  String? hwbRejectionMessage;
+
   AuthProvider() {
     // Listen to auth state changes (sign-in, sign-out, token refresh)
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      _enforceHwbOnlyIfNeeded(data.session?.user);
       notifyListeners();
     });
+  }
+
+  /// When [AppConfig.hwbOnlyLogin] is true, signs out any non-anonymous
+  /// account whose email isn't on a Hwb domain. Lets AppConfig.hwbOnlyLogin
+  /// be the single switch that enforces Hwb-only sign-in, independent of
+  /// which screen/flow a session came from.
+  Future<void> _enforceHwbOnlyIfNeeded(User? user) async {
+    if (!AppConfig.hwbOnlyLogin) return;
+    if (user == null || user.isAnonymous) return;
+    if (_isHwbEmail(user.email)) {
+      hwbRejectionMessage = null;
+      return;
+    }
+    hwbRejectionMessage = 'auth.hwb_rejection_message';
+    await Supabase.instance.client.auth.signOut();
+  }
+
+  bool _isHwbEmail(String? email) {
+    if (email == null || !email.contains('@')) return false;
+    final domain = email.split('@').last.toLowerCase();
+    return AppConfig.hwbEmailDomains
+        .any((d) => domain == d || domain.endsWith('.$d'));
   }
 
   User? get currentUser => Supabase.instance.client.auth.currentUser;
@@ -75,6 +106,22 @@ class AuthProvider extends ChangeNotifier {
     );
     notifyListeners();
     return response;
+  }
+
+  /// Starts Hwb sign-in via Microsoft/Entra OAuth. Opens the system browser;
+  /// the resulting session arrives asynchronously through
+  /// [onAuthStateChange] once the app is redirected back via the
+  /// 'catrinabi://login-callback' deep link, at which point
+  /// [_enforceHwbOnlyIfNeeded] verifies it's actually a Hwb account.
+  ///
+  /// Requires the Azure provider to be configured in the Supabase dashboard
+  /// (client ID/secret from an Entra app registration) before this will work.
+  Future<void> signInWithHwb() {
+    return Supabase.instance.client.auth.signInWithOAuth(
+      OAuthProvider.azure,
+      redirectTo: 'catrinabi://login-callback',
+      scopes: 'email openid profile',
+    );
   }
 
   /// Sends a 6-digit OTP to [email].

@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../features/home/models/trail_node.dart';
+import '../../../features/home/providers/trail_provider.dart';
+import '../../../features/home/widgets/trail_navigation.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
@@ -25,7 +28,12 @@ import '../providers/counting_game_provider.dart';
 class CountingGameScreen extends StatefulWidget {
   final String locale;
 
-  const CountingGameScreen({super.key, this.locale = 'en'});
+  /// Set when launched from the "Learn BSL trail" — the id of the trail
+  /// node this session represents. Null for normal play from the game's
+  /// own home tile.
+  final String? trailNodeId;
+
+  const CountingGameScreen({super.key, this.locale = 'en', this.trailNodeId});
 
   @override
   State<CountingGameScreen> createState() => _CountingGameScreenState();
@@ -46,7 +54,28 @@ class _CountingGameScreenState extends State<CountingGameScreen>
   @override
   void initState() {
     super.initState();
-    AudioService.playTitle('counting', locale: widget.locale);
+    if (widget.trailNodeId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final provider = context.read<CountingGameProvider>();
+        final node = bslTrail.firstWhere((n) => n.id == widget.trailNodeId);
+        context.read<TrailProvider>().enterTrail(widget.trailNodeId!);
+        provider.onLevelComplete = (score) {
+          if (node.minScore == null || score >= node.minScore!) {
+            context.read<TrailProvider>().completeNode(widget.trailNodeId!);
+          }
+        };
+        // Timed levels aren't auto-started by CountingGameProvider's
+        // initialLevelNumber (see its constructor) — show the same intro
+        // countdown normal timed-level play gets, same as level-select's
+        // onTap for isTimed levels below.
+        if (countingColourPairs[node.level - 1].isTimed) {
+          setState(() {
+            _pendingLevelIndex = node.level - 1;
+            _showingIntro = true;
+          });
+        }
+      });
+    }
   }
 
   void _onAnswerTapped(int n, CountingGameProvider provider) {
@@ -55,9 +84,11 @@ class _CountingGameScreenState extends State<CountingGameScreen>
       HapticFeedback.mediumImpact();
       AudioService.playCorrect('counting_game');
       setState(() => _isWaiting = true);
-      final delay = provider.currentQuestionType == QuestionType.total
-          ? const Duration(seconds: 3)
-          : const Duration(seconds: 2);
+      final delay = provider.isTimedLevel
+          ? const Duration(milliseconds: 500)
+          : provider.currentQuestionType == QuestionType.total
+              ? const Duration(seconds: 1)
+              : const Duration(milliseconds: 500);
       Future.delayed(delay, () {
         if (!mounted) return;
         setState(() => _isWaiting = false);
@@ -70,7 +101,10 @@ class _CountingGameScreenState extends State<CountingGameScreen>
       });
       AudioService.playWrong('counting_game');
       setState(() => _isWaiting = true);
-      Future.delayed(const Duration(seconds: 2), () {
+      final wrongDelay = provider.isTimedLevel
+          ? const Duration(milliseconds: 500)
+          : const Duration(seconds: 2);
+      Future.delayed(wrongDelay, () {
         if (!mounted) return;
         setState(() => _isWaiting = false);
         provider.selectAnswer(n);
@@ -106,10 +140,11 @@ class _CountingGameScreenState extends State<CountingGameScreen>
                       ? _buildLevelSelect(context, provider, localizer)
                       : _buildGame(context, provider, localizer),
                 ),
-                // Intro countdown — outside SafeArea, covers full screen
+                // Intro countdown — outside SafeArea, covers full screen.
                 if (_showingIntro)
                   GameIntroCountdown(
                     gameId: 'counting_game',
+                    levelNumber: _pendingLevelIndex! + 1,
                     locale: widget.locale,
                     onComplete: () {
                       final levelIndex = _pendingLevelIndex;
@@ -117,14 +152,20 @@ class _CountingGameScreenState extends State<CountingGameScreen>
                         _showingIntro = false;
                         _pendingLevelIndex = null;
                       });
-                      if (levelIndex != null) provider.startGame(levelIndex);
+                      if (levelIndex != null) {
+                        provider.startGame(levelIndex);
+                      }
                     },
                     onBack: () {
                       setState(() {
                         _showingIntro = false;
                         _pendingLevelIndex = null;
                       });
-                      provider.showLevelSelection();
+                      if (widget.trailNodeId != null) {
+                        advanceTrail(context, context.read<TrailProvider>());
+                      } else {
+                        provider.showLevelSelection();
+                      }
                     },
                   ),
                 if (!provider.showLevelSelect &&
@@ -141,11 +182,17 @@ class _CountingGameScreenState extends State<CountingGameScreen>
                       personalBest: provider.lastResult?.personalBest,
                       onPlayAgain: () =>
                           provider.startGame(provider.levelNumber - 1),
-                      onNextLevel:
-                          provider.levelNumber < countingColourPairs.length
-                              ? () => provider.startGame(provider.levelNumber)
-                              : null,
-                      onChangeLevel: () => provider.showLevelSelection(),
+                      onNextLevel: _canAdvance(context, provider)
+                          ? () => _onNextLevel(context, provider)
+                          : null,
+                      onChangeLevel: () {
+                        final trail = context.read<TrailProvider>();
+                        if (trail.activeNodeId != null) {
+                          advanceTrail(context, trail);
+                        } else {
+                          provider.showLevelSelection();
+                        }
+                      },
                     ),
                   ),
 
@@ -158,6 +205,24 @@ class _CountingGameScreenState extends State<CountingGameScreen>
         );
       },
     );
+  }
+
+  /// Whether "Next Level" has anywhere to go — either the next trail node
+  /// (when launched from the trail) or the next level in this game.
+  bool _canAdvance(BuildContext context, CountingGameProvider provider) {
+    if (context.watch<TrailProvider>().activeNodeId != null) return true;
+    return provider.levelNumber < countingColourPairs.length;
+  }
+
+  /// "Next Level" — advances the trail when this session came from it,
+  /// otherwise behaves exactly as it always has (next level in this game).
+  void _onNextLevel(BuildContext context, CountingGameProvider provider) {
+    final trail = context.read<TrailProvider>();
+    if (trail.activeNodeId != null) {
+      advanceTrail(context, trail);
+    } else {
+      provider.startGame(provider.levelNumber);
+    }
   }
 
   // ── Level select ────────────────────────────────────────────────────────────
@@ -208,7 +273,14 @@ class _CountingGameScreenState extends State<CountingGameScreen>
         const SizedBox(height: 8),
 
         GameHeaderBar(
-          onBack: () => provider.showLevelSelection(),
+          onBack: () {
+            final trail = context.read<TrailProvider>();
+            if (trail.activeNodeId != null) {
+              advanceTrail(context, trail);
+            } else {
+              provider.showLevelSelection();
+            }
+          },
           scoreValue: '${provider.score}',
           levelNumber: provider.levelNumber,
           centerContent: provider.isTimedLevel
@@ -221,9 +293,9 @@ class _CountingGameScreenState extends State<CountingGameScreen>
                     '${localizer('counting_game.round_label')} ${provider.roundNumber} '
                     '${localizer('counting_game.of_label')} ${CountingGameProvider.totalRounds}',
                     style: const TextStyle(
-                      fontFamily: 'ComicRelief',
+                      fontFamily: 'Quicksand',
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
                   ),
@@ -256,9 +328,9 @@ class _CountingGameScreenState extends State<CountingGameScreen>
                 questionText,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontFamily: 'ComicRelief',
+                  fontFamily: 'Quicksand',
                   fontSize: AppSizes.fontSizeLarge,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -310,9 +382,9 @@ class _CountingGameScreenState extends State<CountingGameScreen>
               Text(
                 localizer('general.try_again'),
                 style: const TextStyle(
-                  fontFamily: 'ComicRelief',
+                  fontFamily: 'Quicksand',
                   fontSize: AppSizes.fontSizeLarge,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.accentRed,
                 ),
               ),
@@ -332,6 +404,7 @@ class _CountingGameScreenState extends State<CountingGameScreen>
                 ? provider.answerOptions.toSet()
                 : provider.disabledAnswers,
             onTap: (n) => _onAnswerTapped(n, provider),
+            showNumbers: provider.colours.showAnswerNumerals,
           ),
         ),
 
@@ -559,10 +632,15 @@ class _BslAnswerRow extends StatelessWidget {
   final Set<int> disabledAnswers;
   final ValueChanged<int> onTap;
 
+  /// False for levels that drill sign recognition without the numeral as
+  /// a crutch — see [CircleColourPair.showAnswerNumerals].
+  final bool showNumbers;
+
   const _BslAnswerRow({
     required this.options,
     required this.disabledAnswers,
     required this.onTap,
+    this.showNumbers = true,
   });
 
   @override
@@ -606,19 +684,21 @@ class _BslAnswerRow extends StatelessWidget {
                               child: BslNumberDisplay(number: n, size: 72),
                             )
                           : BslNumberDisplay(number: n, size: 72),
-                      const SizedBox(height: 4),
-                      // Numeral label below the sign
-                      Text(
-                        '$n',
-                        style: TextStyle(
-                          fontFamily: 'ComicRelief',
-                          fontSize: AppSizes.fontSizeHeading,
-                          fontWeight: FontWeight.bold,
-                          color: isDisabled
-                              ? Colors.grey.shade500
-                              : AppColors.textPrimary,
+                      if (showNumbers) ...[
+                        const SizedBox(height: 4),
+                        // Numeral label below the sign
+                        Text(
+                          '$n',
+                          style: TextStyle(
+                            fontFamily: 'Quicksand',
+                            fontSize: AppSizes.fontSizeHeading,
+                            fontWeight: FontWeight.w600,
+                            color: isDisabled
+                                ? Colors.grey.shade500
+                                : AppColors.textPrimary,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

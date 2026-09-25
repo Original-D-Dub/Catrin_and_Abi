@@ -49,7 +49,6 @@ class _SudokuBodyState extends State<_SudokuBody> {
   @override
   void initState() {
     super.initState();
-    AudioService.playTitle('sudoku', locale: widget.locale);
   }
 
   @override
@@ -223,9 +222,9 @@ class _SudokuBodyState extends State<_SudokuBody> {
                 child: Text(
                   _difficultyLabel(provider.difficulty, localizer),
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                   textAlign: TextAlign.center,
@@ -272,7 +271,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
                                 child: Text(
                                   localizer(provider.tutorialMessageKey),
                                   style: const TextStyle(
-                                    fontFamily: 'ComicRelief',
+                                    fontFamily: 'Quicksand',
                                     fontSize: 16,
                                     color: Color(0xFF1A237E),
                                   ),
@@ -290,9 +289,9 @@ class _SudokuBodyState extends State<_SudokuBody> {
                                   Text(
                                     localizer('sudoku.howtoplay.next'),
                                     style: const TextStyle(
-                                      fontFamily: 'ComicRelief',
+                                      fontFamily: 'Quicksand',
                                       fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w600,
                                       color: Color(0xFF1A237E),
                                     ),
                                   ),
@@ -355,7 +354,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
               LevelSelectItem(
                 number: 0,
                 displayLabel: localizer('sudoku.difficulty.how_to_play'),
-                name: 'BSL Sudoku',
+                name: localizer('sudoku.title'),
                 description: localizer('sudoku.level0.description'),
                 color: levelColor(0),
                 onTap: () =>
@@ -464,9 +463,9 @@ class _ExpertModeToggle extends StatelessWidget {
                   Text(
                     localizer('sudoku.expert_mode'),
                     style: TextStyle(
-                      fontFamily: 'ComicRelief',
+                      fontFamily: 'Quicksand',
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: provider.expertMode
                           ? const Color(0xFF1A237E)
                           : AppColors.catrinBlue,
@@ -475,7 +474,7 @@ class _ExpertModeToggle extends StatelessWidget {
                   Text(
                     localizer('sudoku.expert_mode_subtitle'),
                     style: TextStyle(
-                      fontFamily: 'ComicRelief',
+                      fontFamily: 'Quicksand',
                       fontSize: 12,
                       color: Colors.black.withValues(alpha: 0.55),
                     ),
@@ -851,9 +850,9 @@ class _ActionButton extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 15,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: AppColors.catrinBlue,
               ),
             ),

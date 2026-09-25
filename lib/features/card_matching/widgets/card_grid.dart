@@ -64,14 +64,24 @@ class CardGrid extends StatelessWidget {
           shrinkWrap = false;
           physics = null;
         } else {
-          if (levelNumber <= 2 && constraints.maxWidth < 600) {
-            crossAxisCount = _bestColumnCountForSmallLevel(
+          if (constraints.maxWidth < 600) {
+            crossAxisCount = levelNumber <= 2
+                ? _bestColumnCount(
+                    availableWidth: constraints.maxWidth,
+                    availableHeight: availableHeight,
+                    cardCount: cards.length,
+                    preferredColumns: 3,
+                    fallbackColumns: 4,
+                  )
+                : 4;
+          } else {
+            crossAxisCount = _bestColumnCount(
               availableWidth: constraints.maxWidth,
               availableHeight: availableHeight,
               cardCount: cards.length,
+              preferredColumns: 4,
+              fallbackColumns: 5,
             );
-          } else {
-            crossAxisCount = constraints.maxWidth < 600 ? 4 : 5;
           }
           childAspectRatio = 0.8;
           shrinkWrap = true;
@@ -117,16 +127,18 @@ class CardGrid extends StatelessWidget {
     );
   }
 
-  /// Levels 1-2 have few cards, so on narrow phones a 3-column layout gives
-  /// noticeably larger cards than 4 columns. Use 3 columns when the extra
-  /// rows it produces still fit within [availableHeight] (so every card
-  /// stays visible without scrolling); otherwise fall back to 4 columns.
-  int _bestColumnCountForSmallLevel({
+  /// Fewer columns means bigger cards, a better use of space. Use
+  /// [preferredColumns] when the extra rows it produces still fit within
+  /// [availableHeight] (so every card stays visible without scrolling);
+  /// otherwise fall back to [fallbackColumns].
+  int _bestColumnCount({
     required double availableWidth,
     required double? availableHeight,
     required int cardCount,
+    required int preferredColumns,
+    required int fallbackColumns,
   }) {
-    if (availableHeight == null) return 4;
+    if (availableHeight == null) return fallbackColumns;
 
     double gridHeightFor(int columns) {
       final cardWidth = (availableWidth -
@@ -137,6 +149,8 @@ class CardGrid extends StatelessWidget {
       return rows * cardHeight + (rows - 1) * AppSizes.cardGridSpacing;
     }
 
-    return gridHeightFor(3) <= availableHeight ? 3 : 4;
+    return gridHeightFor(preferredColumns) <= availableHeight
+        ? preferredColumns
+        : fallbackColumns;
   }
 }

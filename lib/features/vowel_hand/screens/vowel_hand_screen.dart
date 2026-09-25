@@ -5,6 +5,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../../../core/constants/game_filters.dart';
+import '../../../features/home/models/trail_node.dart';
+import '../../../features/home/providers/trail_provider.dart';
+import '../../../features/home/widgets/trail_navigation.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/game_app_bar.dart';
@@ -39,7 +42,12 @@ class VowelHandScreen extends StatefulWidget {
   /// UI locale ('en' or 'cy') used for titles, level info, and overlay text.
   final String locale;
 
-  const VowelHandScreen({super.key, this.locale = 'en'});
+  /// Set when launched from the "Learn BSL trail" — the id of the trail
+  /// node this session represents. Null for normal play from the game's
+  /// own home tile.
+  final String? trailNodeId;
+
+  const VowelHandScreen({super.key, this.locale = 'en', this.trailNodeId});
 
   @override
   State<VowelHandScreen> createState() => _VowelHandScreenState();
@@ -62,11 +70,19 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<VowelHandProvider>();
-      AudioService.playTitle(
-        provider.signSystem == SignSystem.iac ? 'iac_vowels' : 'vowel_hand',
-        locale: widget.locale,
-      );
-      if (VowelHandLevel.forSignSystem(provider.signSystem).length <= 1) {
+      if (widget.trailNodeId != null) {
+        final node = bslTrail.firstWhere((n) => n.id == widget.trailNodeId);
+        context.read<TrailProvider>().enterTrail(widget.trailNodeId!);
+        provider.onLevelComplete = (score) {
+          if (node.minScore == null || score >= node.minScore!) {
+            context.read<TrailProvider>().completeNode(widget.trailNodeId!);
+          }
+        };
+        provider.prepareForIntro(
+          level: VowelHandLevel.forSignSystem(provider.signSystem)[node.level - 1],
+        );
+        setState(() => _showingIntro = true);
+      } else if (VowelHandLevel.forSignSystem(provider.signSystem).length <= 1) {
         // Only one level available — skip level selection and go straight
         // into the intro countdown.
         provider.prepareForIntro(level: VowelHandLevel.vowelMatch);
@@ -88,6 +104,16 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
   void dispose() {
     AudioService.stopTts();
     super.dispose();
+  }
+
+  /// The `<gameId>[.levelN]` id used to look up both the instruction text
+  /// (`'<id>.intro'`) and its matching audio for the current level.
+  String _introGameId(VowelHandProvider provider) {
+    return provider.signSystem == SignSystem.iac
+        ? (provider.selectedLevel == VowelHandLevel.vowelMatch
+            ? 'iac_vowels'
+            : 'iac_vowels.level${provider.selectedLevel.number}')
+        : 'vowel_hand.level${provider.selectedLevel.number}';
   }
 
   @override
@@ -126,7 +152,15 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
 
                                 // Header bar with score, time, level
                                 GameHeaderBar(
-                                  onBack: () => provider.showLevelSelection(),
+                                  onBack: () {
+                                    final trail =
+                                        context.read<TrailProvider>();
+                                    if (trail.activeNodeId != null) {
+                                      advanceTrail(context, trail);
+                                    } else {
+                                      provider.showLevelSelection();
+                                    }
+                                  },
                                   scoreValue: '${provider.score}',
                                   levelNumber: provider.selectedLevel.number,
                                   centerContent: (provider.selectedLevel ==
@@ -137,9 +171,9 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                                           child: Text(
                                             '${provider.completedWords.length} / ${VowelHandProvider.targetWords} ${AppLocalizations(locale: widget.locale).translate('vowel_hand.words_label')}',
                                             style: const TextStyle(
-                                              fontFamily: 'ComicRelief',
+                                              fontFamily: 'Quicksand',
                                               fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                              fontWeight: FontWeight.w600,
                                               color: Colors.white,
                                             ),
                                           ),
@@ -168,14 +202,13 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                           ],
                         ),
                 ),
-                // Intro countdown — outside SafeArea, covers full screen
+                // Intro countdown — outside SafeArea, covers full screen.
                 if (_showingIntro)
                   GameIntroCountdown(
-                    gameId: provider.signSystem == SignSystem.iac
-                        ? (provider.selectedLevel == VowelHandLevel.vowelMatch
-                            ? 'iac_vowels'
-                            : 'iac_vowels.level${provider.selectedLevel.number}')
-                        : 'vowel_hand.level${provider.selectedLevel.number}',
+                    gameId: _introGameId(provider),
+                    levelNumber: provider.selectedLevel.number,
+                    levelNameGameId: 'vowel_hand',
+                    signSystem: provider.signSystem,
                     locale: widget.locale,
                     characterImage: AssetPaths.vowelHandIntroImage,
                     backgroundImage:
@@ -189,7 +222,11 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                     },
                     onBack: () {
                       setState(() => _showingIntro = false);
-                      provider.showLevelSelection();
+                      if (widget.trailNodeId != null) {
+                        advanceTrail(context, context.read<TrailProvider>());
+                      } else {
+                        provider.showLevelSelection();
+                      }
                     },
                   ),
                 if (!provider.showLevelSelect &&
@@ -229,9 +266,9 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                                     AppLocalizations(locale: widget.locale)
                                         .translate('vowel_hand.words_completed'),
                                     style: const TextStyle(
-                                      fontFamily: 'ComicRelief',
+                                      fontFamily: 'Quicksand',
                                       fontSize: 18,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w600,
                                       color: Color(0xFF002D97),
                                     ),
                                   ),
@@ -240,7 +277,7 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                                     (w) => Text(
                                       w,
                                       style: const TextStyle(
-                                        fontFamily: 'ComicRelief',
+                                        fontFamily: 'Quicksand',
                                         fontSize: 20,
                                         color: Color(0xFF2E7D32),
                                       ),
@@ -251,7 +288,9 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                             )
                           : null,
                       onPlayAgain: () => provider.startGame(),
-                      onNextLevel: switch (provider.selectedLevel) {
+                      onNextLevel: context.watch<TrailProvider>().activeNodeId != null
+                          ? () => advanceTrail(context, context.read<TrailProvider>())
+                          : switch (provider.selectedLevel) {
                         VowelHandLevel.vowelMatch =>
                           () => provider.startGame(level: VowelHandLevel.vowelWords),
                         VowelHandLevel.vowelWords => () {
@@ -276,7 +315,14 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                           },
                         VowelHandLevel.noMistakes => null,
                       },
-                      onChangeLevel: () => provider.showLevelSelection(),
+                      onChangeLevel: () {
+                        final trail = context.read<TrailProvider>();
+                        if (trail.activeNodeId != null) {
+                          advanceTrail(context, trail);
+                        } else {
+                          provider.showLevelSelection();
+                        }
+                      },
                     ),
                   ),
               ],

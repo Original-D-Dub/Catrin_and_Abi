@@ -14,7 +14,7 @@ import '../providers/zoo_quiz_provider.dart';
 import '../widgets/bsl_question_video.dart';
 import '../widgets/captured_photo_card.dart';
 import '../widgets/photo_gallery.dart';
-import '../widgets/zoo_camera_button.dart';
+import '../widgets/zoo_too_far_message.dart';
 import 'zoo_level_select_screen.dart';
 
 /// The zoo's video-quiz levels (1: zoo animals, 3: farm animals), played
@@ -22,9 +22,10 @@ import 'zoo_level_select_screen.dart';
 ///
 /// The player explores the map ([ZooQuizGame]) with the current question's
 /// BSL video below the header bar. The video's answer is one of the
-/// animals on the map; the player walks to that animal's enclosure and
-/// presses Take a Picture. A correct picture reveals a photo of the
-/// animal and plays the next video; a wrong one buzzes. After three
+/// animals on the map; the player walks to that animal and taps it to
+/// take a picture. A correct picture reveals a photo of the animal and
+/// plays the next video; a wrong one buzzes; tapping while not standing
+/// in an animal's zone shows a "too far away" message. After three
 /// correct answers the success overlay celebrates.
 class ZooQuizScreen extends StatefulWidget {
   const ZooQuizScreen({super.key});
@@ -43,10 +44,30 @@ class _ZooQuizScreenState extends State<ZooQuizScreen> {
 
   bool _showSuccess = false;
 
+  /// Whether the "too far away" message is up, after tapping the map
+  /// outside any animal's zone.
+  bool _showFarMessage = false;
+
   @override
   void initState() {
     super.initState();
-    _game = ZooQuizGame(provider: context.read<ZooQuizProvider>());
+    final provider = context.read<ZooQuizProvider>();
+    _game = ZooQuizGame(
+      provider: provider,
+      onMapTapped: () => _onMapTapped(provider),
+    );
+  }
+
+  void _onMapTapped(ZooQuizProvider provider) {
+    if (_showingCapture || _showSuccess) return;
+    if (provider.activeZone == null) {
+      setState(() => _showFarMessage = true);
+      Future.delayed(const Duration(milliseconds: 1800), () {
+        if (mounted) setState(() => _showFarMessage = false);
+      });
+      return;
+    }
+    _takePicture(provider);
   }
 
   Future<void> _takePicture(ZooQuizProvider provider) async {
@@ -135,28 +156,17 @@ class _ZooQuizScreenState extends State<ZooQuizScreen> {
               );
             },
           ),
-          // Take a Picture button — visible while the player is standing
-          // in an animal zone with a question outstanding.
-          if (!_showSuccess && !_showingCapture)
-            Consumer<ZooQuizProvider>(
-              builder: (context, provider, _) {
-                if (provider.activeZone == null || provider.isComplete) {
-                  return const SizedBox.shrink();
-                }
-                return Align(
-                  alignment: Alignment.bottomRight,
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: ZooCameraButton(
-                        key: ValueKey(provider.activeZone!.id),
-                        tooltip: localizer('zoo.take_picture'),
-                        onPressed: () => _takePicture(provider),
-                      ),
-                    ),
-                  ),
-                );
-              },
+          // "Too far away" message — shown briefly after tapping the map
+          // outside any animal's zone.
+          if (_showFarMessage)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ZooTooFarMessage(message: localizer('zoo.too_far')),
+                ),
+              ),
             ),
           // Photo reveal for the animal just captured.
           if (_showingCapture)
@@ -219,7 +229,6 @@ class _ZooQuizScreenState extends State<ZooQuizScreen> {
                   : null,
               onChangeLevel: () => Navigator.popUntil(
                   context, ModalRoute.withName(AppRoutes.zooLevels)),
-              changeLevelLabel: localizer('level_select.title'),
             ),
         ],
       ),

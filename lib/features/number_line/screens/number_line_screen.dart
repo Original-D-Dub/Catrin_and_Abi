@@ -38,12 +38,6 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
   int _lastAudioLevel = -1;
 
   @override
-  void initState() {
-    super.initState();
-    AudioService.playTitle('number_line', locale: widget.locale);
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final provider = context.read<NumberLineGameProvider>();
@@ -249,9 +243,9 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
               '${localizer('number_line.round_label')} ${provider.roundNumber} '
               '${localizer('number_line.of_label')} ${provider.currentLevel.totalRounds}',
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 16,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
             ),
@@ -303,9 +297,9 @@ class _NumberLineGameScreenState extends State<NumberLineGameScreen> {
                       .replaceAll('{n}', '${provider.currentLevel.targetNumber}'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: AppSizes.fontSizeLarge,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -473,9 +467,9 @@ class _NumberLineWidget extends StatelessWidget {
               '${i + 1}',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 15,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),
@@ -628,9 +622,9 @@ class _NumberAnswerButton extends StatelessWidget {
                       Text(
                         '$n',
                         style: const TextStyle(
-                          fontFamily: 'ComicRelief',
+                          fontFamily: 'Quicksand',
                           fontSize: AppSizes.fontSizeHeading,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
                       ),

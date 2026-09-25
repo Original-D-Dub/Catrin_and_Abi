@@ -1,10 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../features/home/models/trail_node.dart';
+import '../../../features/home/providers/trail_provider.dart';
+import '../../../features/home/widgets/trail_navigation.dart';
 import '../../../shared/services/audio_service.dart';
+import '../../../shared/services/game_instructions_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/game_header_bar.dart';
@@ -25,11 +32,16 @@ import '../widgets/card_grid.dart';
 ///
 /// [locale] controls UI text ('en' or 'cy'); the sign system (BSL/IAC) is
 /// read from [CardGameProvider.signSystem], set when the route is created
-/// from the player's current [SettingsProvider] preference.
+/// from the player's current sign-system preference.
 class CardGameScreen extends StatefulWidget {
   final String locale;
 
-  const CardGameScreen({super.key, this.locale = 'en'});
+  /// Set when launched from the "Learn BSL trail" — the id of the trail
+  /// node this session represents. Null for normal play from the game's
+  /// own home tile.
+  final String? trailNodeId;
+
+  const CardGameScreen({super.key, this.locale = 'en', this.trailNodeId});
 
   @override
   State<CardGameScreen> createState() => _CardGameScreenState();
@@ -37,13 +49,38 @@ class CardGameScreen extends StatefulWidget {
 
 class _CardGameScreenState extends State<CardGameScreen>
     with LevelTransitionMixin<CardGameScreen> {
+  final _tapInstructionBubbleKey = GlobalKey<_TapInstructionBubbleState>();
+  final _instructionsService = GameInstructionsService();
+
+  /// Whether the "tap the first/second card" bubble should show — false
+  /// until [GameInstructionsService.hasSeenInstructions] resolves, so it
+  /// never flashes on for a returning player.
+  bool _showTapInstructions = false;
+
+  static const _tapInstructionsGameId = 'card_matching_tap_instructions';
+
   @override
   void initState() {
     super.initState();
-    AudioService.playTitle('card_matching', locale: widget.locale);
+    _instructionsService.hasSeenInstructions(_tapInstructionsGameId).then((seen) {
+      if (mounted && !seen) setState(() => _showTapInstructions = true);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<CardGameProvider>();
-      provider.showLevelSelection();
+      // A trail launch already starts at its target level (see
+      // CardGameProvider's initialLevelNumber) — forcing level-select here
+      // would undo that.
+      if (widget.trailNodeId == null) {
+        provider.showLevelSelection();
+      } else {
+        context.read<TrailProvider>().enterTrail(widget.trailNodeId!);
+        provider.onLevelComplete = (score) {
+          final node = bslTrail.firstWhere((n) => n.id == widget.trailNodeId);
+          if (node.minScore == null || score >= node.minScore!) {
+            context.read<TrailProvider>().completeNode(widget.trailNodeId!);
+          }
+        };
+      }
       provider.onAnswerResult = (isMatch) {
         if (isMatch) {
           AudioService.playCorrect('card_matching');
@@ -51,7 +88,17 @@ class _CardGameScreenState extends State<CardGameScreen>
           AudioService.playWrong('card_matching');
         }
       };
+      provider.onSecondCardFlipped = () {
+        _tapInstructionBubbleKey.currentState?._dismiss();
+      };
     });
+  }
+
+  /// Marks the tap instructions seen for good — via the bubble's "got it"
+  /// link or by completing a first pair-matching attempt — and hides it.
+  void _dismissTapInstructions() {
+    _instructionsService.markInstructionsSeen(_tapInstructionsGameId);
+    if (mounted) setState(() => _showTapInstructions = false);
   }
 
   @override
@@ -96,6 +143,9 @@ class _CardGameScreenState extends State<CardGameScreen>
                       scoreStyle: SuccessScoreStyle.custom,
                       customScoreLine: localizer('card_matching.success_moves')
                           .replaceAll('{n}', '${provider.moveCount}'),
+                      scoreAudioPrefix: 'card_matching_success_moves',
+                      scoreAudioNumber: provider.moveCount,
+                      scoreAudioSuffix: 'card_matching_moves_suffix',
                       personalBestSuffix: localizer('card_matching.moves_suffix'),
                       imageAsset: 'assets/success/Abi-as-Holmes.png',
                       showPersonalBest: true,
@@ -103,11 +153,17 @@ class _CardGameScreenState extends State<CardGameScreen>
                           provider.lastResult?.isNewPersonalBest ?? false,
                       personalBest: provider.lastResult?.personalBest,
                       onPlayAgain: () => provider.resetGame(),
-                      onNextLevel: provider.level.levelNumber < provider.levels.length
-                          ? () => provider.startLevel(
-                              provider.levels[provider.level.levelNumber])
+                      onNextLevel: _canAdvance(context, provider)
+                          ? () => _onNextLevel(context, provider)
                           : null,
-                      onChangeLevel: () => provider.showLevelSelection(),
+                      onChangeLevel: () {
+                        final trail = context.read<TrailProvider>();
+                        if (trail.activeNodeId != null) {
+                          advanceTrail(context, trail);
+                        } else {
+                          provider.showLevelSelection();
+                        }
+                      },
                     ),
                   ),
                 Positioned.fill(
@@ -119,6 +175,24 @@ class _CardGameScreenState extends State<CardGameScreen>
         );
       },
     );
+  }
+
+  /// Whether "Next Level" has anywhere to go — either the next trail node
+  /// (when launched from the trail) or the next level in this game.
+  bool _canAdvance(BuildContext context, CardGameProvider provider) {
+    if (context.watch<TrailProvider>().activeNodeId != null) return true;
+    return provider.level.levelNumber < provider.levels.length;
+  }
+
+  /// "Next Level" — advances the trail when this session came from it,
+  /// otherwise behaves exactly as it always has (next level in this game).
+  void _onNextLevel(BuildContext context, CardGameProvider provider) {
+    final trail = context.read<TrailProvider>();
+    if (trail.activeNodeId != null) {
+      advanceTrail(context, trail);
+    } else {
+      provider.startLevel(provider.levels[provider.level.levelNumber]);
+    }
   }
 
   /// Builds the level selection screen.
@@ -176,7 +250,14 @@ class _CardGameScreenState extends State<CardGameScreen>
             const SizedBox(height: 8),
 
             GameHeaderBar(
-              onBack: () => provider.showLevelSelection(),
+              onBack: () {
+                final trail = context.read<TrailProvider>();
+                if (trail.activeNodeId != null) {
+                  advanceTrail(context, trail);
+                } else {
+                  provider.showLevelSelection();
+                }
+              },
               scoreLabel: localizer('card_matching.moves_label'),
               scoreValue: '${provider.moveCount}',
               scoreLabelFontSize: 12,
@@ -189,9 +270,9 @@ class _CardGameScreenState extends State<CardGameScreen>
                     Text(
                       localizer(provider.level.name),
                       style: const TextStyle(
-                        fontFamily: 'ComicRelief',
+                        fontFamily: 'Quicksand',
                         fontSize: 20,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
@@ -199,9 +280,9 @@ class _CardGameScreenState extends State<CardGameScreen>
                     Text(
                       '${provider.matchCount}/${provider.totalPairs} ${localizer('card_matching.pairs_label')}',
                       style: const TextStyle(
-                        fontFamily: 'ComicRelief',
+                        fontFamily: 'Quicksand',
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white70,
                       ),
                       textAlign: TextAlign.center,
@@ -209,21 +290,6 @@ class _CardGameScreenState extends State<CardGameScreen>
                   ],
                 ),
               ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Text(
-              provider.firstSelection != null
-                  ? localizer('card_matching.tap_second')
-                  : localizer('card_matching.tap_first'),
-              style: const TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
             ),
 
             const SizedBox(height: 8),
@@ -257,7 +323,201 @@ class _CardGameScreenState extends State<CardGameScreen>
             ),
           ],
         ),
+        if (_showTapInstructions)
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.topCenter,
+              // 8px leading gap + GameHeaderBar's fixed 88px height + a
+              // small breathing gap, so the bubble sits just below the
+              // header bar instead of overlapping it.
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8 + 88 + AppSizes.spacingSmall),
+                child: _TapInstructionBubble(
+                  key: _tapInstructionBubbleKey,
+                  messageKey: provider.firstSelection != null
+                      ? 'tap_second'
+                      : 'tap_first',
+                  text: provider.firstSelection != null
+                      ? localizer('card_matching.tap_second')
+                      : localizer('card_matching.tap_first'),
+                  locale: widget.locale,
+                  dismissLabel: localizer('card_matching.got_it'),
+                  onDismiss: _dismissTapInstructions,
+                ),
+              ),
+            ),
+          ),
       ],
+    );
+  }
+}
+
+/// Pink instruction bubble that stays visible for 3 seconds and then fades
+/// out over 300ms. Switches from the "tap first" to the "tap second"
+/// prompt (and reappears, playing that prompt's spoken clip) as soon as
+/// the player flips their first card, then is dismissed for good — via
+/// [onDismiss] — once they flip their second, since by then they've shown
+/// they know how to play. Includes a "got it" link that dismisses it
+/// immediately.
+class _TapInstructionBubble extends StatefulWidget {
+  final String text;
+
+  /// Identifies which prompt [text] is — `'tap_first'` or `'tap_second'` —
+  /// so the matching `card_matching_<messageKey>` clip can be played
+  /// whenever it's the one being shown.
+  final String messageKey;
+
+  final String dismissLabel;
+  final String locale;
+
+  /// Called when the bubble is dismissed for good — via the "got it" link
+  /// or by completing a first pair-matching attempt — used to persist that
+  /// instructions shouldn't be shown again.
+  final VoidCallback onDismiss;
+
+  const _TapInstructionBubble({
+    super.key,
+    required this.text,
+    required this.messageKey,
+    required this.dismissLabel,
+    required this.locale,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_TapInstructionBubble> createState() => _TapInstructionBubbleState();
+}
+
+class _TapInstructionBubbleState extends State<_TapInstructionBubble> {
+  static const _visibleDuration = Duration(milliseconds: 3000);
+  static const _fadeDuration = Duration(milliseconds: 300);
+
+  bool _visible = true;
+  Timer? _hideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _playMessageAudio();
+    _scheduleHide();
+  }
+
+  @override
+  void didUpdateWidget(_TapInstructionBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.text != oldWidget.text) {
+      setState(() => _visible = true);
+      _playMessageAudio();
+      _scheduleHide();
+    }
+  }
+
+  void _playMessageAudio() {
+    AudioService.playInstructionClip(
+      'card_matching',
+      widget.messageKey,
+      locale: widget.locale,
+    );
+  }
+
+  void _scheduleHide() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(_visibleDuration, () {
+      if (mounted) setState(() => _visible = false);
+    });
+  }
+
+  void _hide() {
+    _hideTimer?.cancel();
+    setState(() => _visible = false);
+  }
+
+  void _dismiss() {
+    _hide();
+    widget.onDismiss();
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.of(context).size.width >= 600;
+
+    return AnimatedOpacity(
+      opacity: _visible ? 1.0 : 0.0,
+      duration: _fadeDuration,
+      child: Container(
+        width: isWideScreen ? 320 : 280,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.accentPurple,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              fit: StackFit.passthrough,
+              children: [
+                Text(
+                  widget.text,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    foreground: Paint()
+                      ..style = PaintingStyle.stroke
+                      ..strokeWidth = 1
+                      ..color = const Color(0xFF0F57DD),
+                  ),
+                ),
+                Text(
+                  widget.text,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: _dismiss,
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.dismissLabel,
+                        style: const TextStyle(
+                          fontFamily: 'Quicksand',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.thumb_up, size: 16, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

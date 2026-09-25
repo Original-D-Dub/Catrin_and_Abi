@@ -228,9 +228,9 @@ class _BslQuestionVideoState extends State<BslQuestionVideo> {
           widget.placeholderLabel,
           style: const TextStyle(
             color: Colors.white,
-            fontFamily: 'ComicRelief',
+            fontFamily: 'Quicksand',
             fontSize: 16,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
           textAlign: TextAlign.center,
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -12,13 +13,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A237E),
         foregroundColor: Colors.white,
-        title: const Text(
+        title: Text(
           'Privacy Policy',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: AppTheme.title.copyWith(fontSize: 24, color: Colors.white),
         ),
         leading: IconButton(
           icon: const BackArrowIcon(),
@@ -172,9 +169,9 @@ class _PolicyTitle extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style: const TextStyle(
-          fontFamily: 'ComicRelief',
+          fontFamily: 'Quicksand',
           fontSize: 20,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           color: Color(0xFF1A237E),
         ),
       );
@@ -208,9 +205,9 @@ class _SectionHeader extends StatelessWidget {
         child: Text(
           text,
           style: const TextStyle(
-            fontFamily: 'ComicRelief',
+            fontFamily: 'Quicksand',
             fontSize: 16,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: Color(0xFF1A237E),
           ),
         ),

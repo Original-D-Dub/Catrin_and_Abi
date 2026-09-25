@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/constants/asset_paths.dart';
-import '../../core/constants/app_colors.dart';
+import '../../core/constants/game_filters.dart' show SignSystem;
+import '../../core/theme/app_theme.dart';
 import '../services/audio_service.dart';
+import '../services/game_instructions_service.dart';
+import 'button.dart';
 
 /// Full-screen intro shown when a timed game starts.
 ///
@@ -38,36 +41,69 @@ class GameIntroCountdown extends StatefulWidget {
   /// of above it with a pointing tail.
   final bool roundedBubble;
 
+  /// Level number announced via [AudioService.playLevelName] in place of
+  /// the instruction screen when a returning player has already seen it.
+  final int levelNumber;
+
+  /// Base game id used for that level-name lookup, when it differs from
+  /// [gameId] — e.g. games whose [gameId] embeds a level suffix or a
+  /// sign-system-specific prefix for the intro/title clips (which
+  /// [AudioService.playLevelName] doesn't use). Defaults to [gameId].
+  final String? levelNameGameId;
+
+  /// Sign system passed through to [AudioService.playLevelName]'s BSL/IAC
+  /// audio lookup. Defaults to null (single-sign-system games).
+  final SignSystem? signSystem;
+
   const GameIntroCountdown({
     super.key,
     required this.gameId,
     required this.onComplete,
     required this.onBack,
+    required this.levelNumber,
     this.characterImage,
     this.locale = 'en',
     this.backgroundImage,
     this.topText,
     this.roundedBubble = false,
+    this.levelNameGameId,
+    this.signSystem,
   });
 
   @override
   State<GameIntroCountdown> createState() => _GameIntroCountdownState();
 }
 
-enum _Phase { instruction, countdown }
+enum _Phase { checking, instruction, countdown }
 
 class _GameIntroCountdownState extends State<GameIntroCountdown> {
-  _Phase _phase = _Phase.instruction;
+  _Phase _phase = _Phase.checking;
   double _instructionOpacity = 1.0;
   int _countdownValue = 3;
   bool _cancelled = false;
 
+  final _instructionsService = GameInstructionsService();
+
   @override
   void initState() {
     super.initState();
-    // Play intro audio in the background; the player triggers
-    // the countdown by tapping Play.
-    AudioService.playIntro(widget.gameId, locale: widget.locale);
+    _init();
+  }
+
+  /// Shows the instruction screen only on the player's first play of
+  /// [GameIntroCountdown.gameId]; on repeat plays it skips straight to the
+  /// title-then-countdown flow.
+  Future<void> _init() async {
+    final seen = await _instructionsService.hasSeenInstructions(widget.gameId);
+    if (!mounted || _cancelled) return;
+    if (seen) {
+      _runReturningFlow();
+    } else {
+      setState(() => _phase = _Phase.instruction);
+      // Play intro audio in the background; the player triggers
+      // the countdown by tapping Play.
+      AudioService.playIntro(widget.gameId, locale: widget.locale);
+    }
   }
 
   @override
@@ -80,7 +116,11 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
   Future<void> _onPlayTapped() async {
     if (_cancelled) return;
     await AudioService.stopAll();
-    _runCountdown();
+    _instructionsService.markInstructionsSeen(widget.gameId);
+    setState(() => _instructionOpacity = 0.0);
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted || _cancelled) return;
+    _runCountdownLoop();
   }
 
   Future<void> _onBackTapped() async {
@@ -89,17 +129,28 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
     widget.onBack();
   }
 
-  Future<void> _runCountdown() async {
-    setState(() => _instructionOpacity = 0.0);
-    await Future.delayed(const Duration(milliseconds: 400));
+  /// Skips the instruction screen for a returning player: announces the
+  /// level name, gives it 1.5s to play, then runs the normal countdown.
+  Future<void> _runReturningFlow() async {
+    setState(() => _phase = _Phase.countdown);
+    AudioService.playLevelName(
+      widget.levelNameGameId ?? widget.gameId,
+      widget.levelNumber,
+      locale: widget.locale,
+      signSystem: widget.signSystem,
+    );
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted || _cancelled) return;
+    _runCountdownLoop();
+  }
 
+  Future<void> _runCountdownLoop() async {
     setState(() => _phase = _Phase.countdown);
 
     for (int i = 3; i >= 1; i--) {
       if (!mounted || _cancelled) return;
       setState(() => _countdownValue = i);
-      AudioService.playSpeechMp3('$i', locale: widget.locale).ignore();
+      AudioService.playSpeechMp3('emph$i', locale: widget.locale).ignore();
       await Future.delayed(const Duration(seconds: 1));
     }
 
@@ -140,9 +191,11 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
           ),
           // Content — always fully opaque
           SafeArea(
-            child: _phase == _Phase.instruction
-                ? _buildInstruction(localizer)
-                : _buildCountdown(),
+            child: switch (_phase) {
+              _Phase.checking => const SizedBox.shrink(),
+              _Phase.instruction => _buildInstruction(localizer),
+              _Phase.countdown => _buildCountdown(),
+            },
           ),
         ],
       ),
@@ -174,9 +227,9 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
                       localizer('${widget.gameId}.intro'),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontFamily: 'ComicRelief',
+                        fontFamily: 'Quicksand',
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: Color(0xFF002D97),
                         height: 1.45,
                       ),
@@ -216,12 +269,19 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
           ),
 
           // ── Back + Play buttons ───────────────────────────────────────
-          const SizedBox(height: 16),
           _buildActionRow(localizer),
-          const SizedBox(height: 16),
         ],
       ),
     );
+  }
+
+  /// Font size for [GameIntroCountdown.topText] — shrunk below
+  /// [AppTheme.wideDeviceBreakpoint] so longer words don't wrap onto a
+  /// second line on narrow phones.
+  double _topTextFontSize(BuildContext context) {
+    return MediaQuery.of(context).size.width < AppTheme.wideDeviceBreakpoint
+        ? 38
+        : 52;
   }
 
   /// Alternate instruction layout: heading text at the top, the character
@@ -231,122 +291,108 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
     return AnimatedOpacity(
       opacity: _instructionOpacity,
       duration: const Duration(milliseconds: 300),
-      child: Column(
-        children: [
-          if (widget.topText != null) ...[
-            const SizedBox(height: 24),
-            Text(
-              widget.topText!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'LuckiestGuy',
-                fontSize: 56,
-                height: 1,
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    color: Color(0x80013595),
-                    offset: Offset(0, 4),
-                    blurRadius: 8,
+      child: Center(
+        child: FractionallySizedBox(
+          widthFactor: 0.8,
+          heightFactor: 0.8,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Column(
+              children: [
+                if (widget.topText != null) ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    widget.topText!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'LuckiestGuy',
+                      fontSize: _topTextFontSize(context),
+                      height: 1,
+                      color: Colors.white,
+                      shadows: const [
+                        Shadow(
+                          color: Color(0x80013595),
+                          offset: Offset(0, 4),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-            ),
-          ],
 
-          // ── Character image — fills remaining space above the box ──────
-          Expanded(
-            child: Image.asset(
-              widget.characterImage ?? AssetPaths.catrinDefault,
-              fit: BoxFit.contain,
-              alignment: Alignment.bottomCenter,
-            ),
-          ),
-
-          // ── Rounded text box — sits directly below with no gap ─────────
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF0091CE), width: 1),
-                ),
-                child: Text(
-                  localizer('${widget.gameId}.intro'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'ComicRelief',
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF002D97),
-                    height: 1.45,
+                // ── Character image — fills remaining space above the box ──
+                Expanded(
+                  child: Image.asset(
+                    widget.characterImage ?? AssetPaths.catrinDefault,
+                    fit: BoxFit.contain,
+                    alignment: Alignment.bottomCenter,
                   ),
                 ),
-              ),
+
+                // ── Rounded text box — sits directly below with no gap ────
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border:
+                        Border.all(color: const Color(0xFF0091CE), width: 1),
+                  ),
+                  child: Text(
+                    localizer('${widget.gameId}.intro'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Quicksand',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF002D97),
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+
+                // ── Back + Play buttons ─────────────────────────────────
+                _buildActionRow(localizer),
+              ],
             ),
           ),
-
-          // ── Back + Play buttons ───────────────────────────────────────
-          const SizedBox(height: 16),
-          _buildActionRow(localizer),
-          const SizedBox(height: 16),
-        ],
+        ),
       ),
     );
   }
 
-  /// Row containing the Back (Catrin blue) and Play (green) buttons, shared
-  /// by both instruction layouts.
+  /// Row containing the Back (tertiary blue) and Play (green) buttons, shared
+  /// by both instruction layouts. Each button expands to fill half the row.
+  /// Carries its own vertical spacing so both call sites can just place it
+  /// directly after the preceding content.
   Widget _buildActionRow(AppLocalizations localizer) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 120,
-          height: 64,
-          child: ElevatedButton(
-            onPressed: _onBackTapped,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.catrinBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(32),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'ComicRelief',
-              ),
+    // Welsh labels run longer than English — shrink the button text so it
+    // doesn't wrap or overflow.
+    final fontSize = widget.locale == 'cy' ? 16.0 : null;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: TertiaryButton(
+              label: localizer('general.back'),
+              onPressed: _onBackTapped,
+              expanded: true,
+              fontSize: fontSize,
             ),
-            child: Text(localizer('general.back')),
           ),
-        ),
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 200,
-          height: 64,
-          child: ElevatedButton(
-            onPressed: _onPlayTapped,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF20A754),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(32),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'ComicRelief',
-              ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: PrimaryButton(
+              label: localizer('general.play'),
+              onPressed: _onPlayTapped,
+              expanded: true,
+              fontSize: fontSize,
             ),
-            child: Text(localizer('general.play')),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -367,9 +413,9 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
           label,
           key: ValueKey(label),
           style: TextStyle(
-            fontFamily: 'ComicRelief',
+            fontFamily: 'Quicksand',
             fontSize: 140,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: color,
             shadows: const [
               Shadow(blurRadius: 30, color: Colors.black54, offset: Offset(0, 4)),

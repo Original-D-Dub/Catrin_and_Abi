@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/services/audio_service.dart';
+import '../../../shared/services/video_asset_service.dart';
 import '../models/word_whirl_models.dart';
 
 class WordWhirlProvider extends ChangeNotifier {
@@ -12,8 +13,18 @@ class WordWhirlProvider extends ChangeNotifier {
 
   WordWhirlProvider({this.locale = 'en'}) {
     _level = WordWhirlLevel.forLocale(locale).first;
-    AudioService.playTitle('word_search', locale: locale);
     AudioService.playIntro('word_whirl', locale: locale);
+    // Warm the local video cache for every colour-sign video reachable in
+    // this locale, so they're ready to play instantly once the player
+    // reaches a "colours" category level.
+    VideoAssetService.preload(
+      WordWhirlLevel.forLocale(locale)
+          .expand((level) => [level, ...level.variants])
+          .expand((level) => level.words)
+          .map((word) => word.videoAssetPath)
+          .where((path) => path.startsWith('assets/colours_video2/'))
+          .toSet(),
+    );
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -126,14 +137,6 @@ class WordWhirlProvider extends ChangeNotifier {
     state = WordWhirlState.playing;
     selectedIndices = [];
     flashWrong = false;
-    notifyListeners();
-  }
-
-  /// Clears the current attempt so the player can start spelling again.
-  void clearAttempt() {
-    if (state != WordWhirlState.playing) return;
-    if (selectedIndices.isEmpty) return;
-    selectedIndices = [];
     notifyListeners();
   }
 }

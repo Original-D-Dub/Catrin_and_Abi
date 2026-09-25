@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/game_filters.dart';
+import '../../../features/home/models/trail_node.dart';
+import '../../../features/home/providers/trail_provider.dart';
+import '../../../features/home/widgets/trail_navigation.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
@@ -31,7 +34,12 @@ import '../widgets/bubble_widget.dart';
 class BubblePopScreen extends StatefulWidget {
   final String locale;
 
-  const BubblePopScreen({super.key, this.locale = 'en'});
+  /// Set when launched from the "Learn BSL trail" — the id of the trail
+  /// node this session represents. Null for normal play from the game's
+  /// own home tile.
+  final String? trailNodeId;
+
+  const BubblePopScreen({super.key, this.locale = 'en', this.trailNodeId});
 
   @override
   State<BubblePopScreen> createState() => _BubblePopScreenState();
@@ -44,10 +52,23 @@ class _BubblePopScreenState extends State<BubblePopScreen>
   @override
   void initState() {
     super.initState();
-    AudioService.playTitle('bubble_pop', locale: widget.locale);
-    // Show level selection when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BubblePopProvider>().showLevelSelection();
+      final provider = context.read<BubblePopProvider>();
+      if (widget.trailNodeId == null) {
+        provider.showLevelSelection();
+      } else {
+        context.read<TrailProvider>().enterTrail(widget.trailNodeId!);
+        provider.onLevelComplete = (score) {
+          final node = bslTrail.firstWhere((n) => n.id == widget.trailNodeId);
+          if (node.minScore == null || score >= node.minScore!) {
+            context.read<TrailProvider>().completeNode(widget.trailNodeId!);
+          }
+        };
+        // BubblePopProvider's initialLevelNumber already prepared this
+        // level (bubbles spawned, timer not running) — show the same
+        // intro countdown normal play gets before starting the clock.
+        setState(() => _showingIntro = true);
+      }
     });
   }
 
@@ -103,19 +124,30 @@ class _BubblePopScreenState extends State<BubblePopScreen>
                   ),
                 ),
 
-                // Intro countdown — outside SafeArea, covers full screen
+                // Intro countdown — outside SafeArea, covers full screen.
                 if (_showingIntro)
                   GameIntroCountdown(
                     gameId: introGameId,
+                    levelNumber: provider.currentLevel.number,
+                    levelNameGameId: 'bubble_pop',
+                    signSystem: provider.signSystem,
                     locale: widget.locale,
                     characterImage: 'assets/characters/space-jamjam.png',
+                    backgroundImage:
+                        'assets/backgrounds/math-background-1080x1920.jpg',
+                    topText: localizer('bubble_pop.intro_heading'),
+                    roundedBubble: true,
                     onComplete: () {
                       setState(() => _showingIntro = false);
                       provider.startGame();
                     },
                     onBack: () {
                       setState(() => _showingIntro = false);
-                      provider.showLevelSelection();
+                      if (widget.trailNodeId != null) {
+                        advanceTrail(context, context.read<TrailProvider>());
+                      } else {
+                        provider.showLevelSelection();
+                      }
                     },
                   ),
 
@@ -133,15 +165,17 @@ class _BubblePopScreenState extends State<BubblePopScreen>
                           provider.lastResult?.isNewPersonalBest ?? false,
                       personalBest: provider.lastResult?.personalBest,
                       onPlayAgain: () => provider.startGame(),
-                      onNextLevel: provider.currentLevel.number <
-                              provider.levels.length
-                          ? () {
-                              provider.setLevel(
-                                  provider.currentLevel.number + 1);
-                              provider.startGame();
-                            }
+                      onNextLevel: _canAdvance(context, provider)
+                          ? () => _onNextLevel(context, provider)
                           : null,
-                      onChangeLevel: () => provider.showLevelSelection(),
+                      onChangeLevel: () {
+                        final trail = context.read<TrailProvider>();
+                        if (trail.activeNodeId != null) {
+                          advanceTrail(context, trail);
+                        } else {
+                          provider.showLevelSelection();
+                        }
+                      },
                     ),
                   ),
 
@@ -154,6 +188,25 @@ class _BubblePopScreenState extends State<BubblePopScreen>
         );
       },
     );
+  }
+
+  /// Whether "Next Level" has anywhere to go — either the next trail node
+  /// (when launched from the trail) or the next level in this game.
+  bool _canAdvance(BuildContext context, BubblePopProvider provider) {
+    if (context.watch<TrailProvider>().activeNodeId != null) return true;
+    return provider.currentLevel.number < provider.levels.length;
+  }
+
+  /// "Next Level" — advances the trail when this session came from it,
+  /// otherwise behaves exactly as it always has (next level in this game).
+  void _onNextLevel(BuildContext context, BubblePopProvider provider) {
+    final trail = context.read<TrailProvider>();
+    if (trail.activeNodeId != null) {
+      advanceTrail(context, trail);
+    } else {
+      provider.setLevel(provider.currentLevel.number + 1);
+      provider.startGame();
+    }
   }
 
   /// Builds the level selection screen.
@@ -221,7 +274,12 @@ class _BubblePopScreenState extends State<BubblePopScreen>
             GameHeaderBar(
               onBack: () {
                 provider.stopGame();
-                Navigator.pop(context);
+                final trail = context.read<TrailProvider>();
+                if (trail.activeNodeId != null) {
+                  advanceTrail(context, trail);
+                } else {
+                  Navigator.pop(context);
+                }
               },
               scoreValue: '${provider.score}',
               levelNumber: provider.currentLevel.number,
@@ -410,9 +468,9 @@ class _BubblePopScreenState extends State<BubblePopScreen>
                   child: Text(
                     localizer('bubble_pop.find_label'),
                     style: const TextStyle(
-                      fontFamily: 'ComicRelief',
+                      fontFamily: 'Quicksand',
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
                   ),
@@ -444,9 +502,9 @@ class _BubblePopScreenState extends State<BubblePopScreen>
             child: Text(
               isCat ? '🐱 Meow!' : '🐕 Woof!',
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 60,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

@@ -45,6 +45,38 @@ HomeGameEntry homeGameEntry({
       arguments: arguments,
     );
 
+/// Spacing/shape constants for the home-screen game grid — kept alongside
+/// [gameGridCrossAxisCount] so anything that needs to match a game tile's
+/// size (e.g. the "Learn BSL/IAC" banner tile) uses the same numbers as the
+/// GridView itself.
+const double gameGridSpacing = 8.0;
+const double gameGridChildAspectRatio = 0.85;
+
+/// Cross-axis tile count for the home-screen game grid, based on device
+/// width/orientation. Shared by both home screens (and by widgets like the
+/// "Learn BSL/IAC" banner tile that need to match the grid's per-tile size)
+/// so the breakpoints can't drift between call sites.
+int gameGridCrossAxisCount(BuildContext context, double width) {
+  final mq = MediaQuery.of(context);
+  final isTabletLandscape =
+      mq.size.width >= 768 && mq.orientation == Orientation.landscape;
+  return isTabletLandscape
+      ? 4
+      : width < 400
+          ? 2
+          : 3;
+}
+
+/// Height a single game tile renders at in the grid, for a given
+/// [availableWidth] — mirrors [SliverGridDelegateWithFixedCrossAxisCount]'s
+/// own math so a non-grid widget (like the banner tile) can match it.
+double gameGridTileHeight(BuildContext context, double availableWidth) {
+  final crossAxisCount = gameGridCrossAxisCount(context, availableWidth);
+  final tileWidth = (availableWidth - gameGridSpacing * (crossAxisCount - 1)) /
+      crossAxisCount;
+  return tileWidth / gameGridChildAspectRatio;
+}
+
 /// Filters [allGames] by the player's current category/age-group settings
 /// and renders the remainder as [GameTile]s wired up to navigate via
 /// [Navigator.pushNamed].

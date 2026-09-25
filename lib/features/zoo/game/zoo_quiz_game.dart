@@ -1,3 +1,6 @@
+import 'dart:ui' show VoidCallback;
+
+import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 
 import '../models/zoo_animal_zone.dart';
@@ -11,16 +14,21 @@ import 'zoo_map_game_base.dart';
 /// The map world, player and camera come from [ZooMapGameBase]. Each frame
 /// the player's position is checked against the level's animal zones
 /// ([ZooQuizProvider.zones]); enter/leave changes are pushed to
-/// [ZooQuizProvider], which the screen watches to show the Take a Picture
-/// button.
-class ZooQuizGame extends ZooMapGameBase {
+/// [ZooQuizProvider], which the screen watches. Tapping the map (the
+/// animal) calls [onMapTapped] — the screen either takes the picture, if
+/// the player is standing in an animal zone, or shows a "too far away"
+/// message.
+class ZooQuizGame extends ZooMapGameBase with TapCallbacks {
   /// The quiz state provider (questions + active animal zone).
   final ZooQuizProvider provider;
+
+  /// Called when the player taps anywhere on the map.
+  final VoidCallback onMapTapped;
 
   /// The walkway network parsed from the map SVG.
   late final Path walkable;
 
-  ZooQuizGame({required this.provider});
+  ZooQuizGame({required this.provider, required this.onMapTapped});
 
   @override
   String get characterId => provider.characterId;
@@ -41,5 +49,11 @@ class ZooQuizGame extends ZooMapGameBase {
       provider.setActiveZone(
           ZooAnimalZone.zoneAt(provider.zones, player.position.toOffset()));
     }
+  }
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    super.onTapUp(event);
+    onMapTapped();
   }
 }

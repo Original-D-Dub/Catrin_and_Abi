@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/config/routes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/level_path_map.dart';
 import '../widgets/zoo_screen_chrome.dart';
@@ -51,12 +50,6 @@ class ZooLevelSelectScreen extends StatefulWidget {
 }
 
 class _ZooLevelSelectScreenState extends State<ZooLevelSelectScreen> {
-  @override
-  void initState() {
-    super.initState();
-    AudioService.playTitle('zoo', locale: widget.locale);
-  }
-
   @override
   Widget build(BuildContext context) {
     final locale = widget.locale;

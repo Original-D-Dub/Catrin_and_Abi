@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
@@ -15,7 +16,9 @@ import '../../../shared/widgets/level_select_screen.dart';
 import '../providers/counting_back_provider.dart';
 
 class CountingBackScreen extends StatefulWidget {
-  const CountingBackScreen({super.key});
+  final String locale;
+
+  const CountingBackScreen({super.key, this.locale = 'en'});
 
   @override
   State<CountingBackScreen> createState() => _CountingBackScreenState();
@@ -124,13 +127,14 @@ class _CountingBackScreenState extends State<CountingBackScreen>
 
   @override
   Widget build(BuildContext context) {
+    final localizer = AppLocalizations(locale: widget.locale);
     return Consumer<CountingBackProvider>(
       builder: (context, provider, _) {
         return Scaffold(
           extendBodyBehindAppBar: true,
           appBar: provider.showLevelSelect
               ? GameAppBar(
-                  title: 'Counting Back',
+                  title: localizer('counting_back.title'),
                   onBack: () => Navigator.of(context).pop(),
                 )
               : null,
@@ -146,8 +150,8 @@ class _CountingBackScreenState extends State<CountingBackScreen>
               children: [
                 SafeArea(
                   child: provider.showLevelSelect
-                      ? _buildLevelSelect(context, provider)
-                      : _buildGame(context, provider),
+                      ? _buildLevelSelect(context, provider, localizer)
+                      : _buildGame(context, provider, localizer),
                 ),
                 if (!provider.showLevelSelect &&
                     provider.state == CountingBackState.won)
@@ -167,6 +171,7 @@ class _CountingBackScreenState extends State<CountingBackScreen>
                               ? () => provider.startGame(provider.levelNumber)
                               : null,
                       onChangeLevel: () => provider.showLevelSelection(),
+                      locale: widget.locale,
                     ),
                   ),
               ],
@@ -179,15 +184,16 @@ class _CountingBackScreenState extends State<CountingBackScreen>
 
   // ── Level select ──────────────────────────────────────────────────────────
 
-  Widget _buildLevelSelect(
-      BuildContext context, CountingBackProvider provider) {
+  Widget _buildLevelSelect(BuildContext context, CountingBackProvider provider,
+      AppLocalizations localizer) {
     return LevelSelectScreen(
-      subtitle: 'Count back to find the answer!',
+      subtitle: localizer('counting_back.subtitle'),
+      locale: localizer.locale,
       levels: List.generate(countingBackLevels.length, (i) {
         final level = countingBackLevels[i];
         return LevelSelectItem(
           number: level.number,
-          name: level.name,
+          name: localizer(level.name),
           color: levelColor(i),
           onTap: () {
             provider.startGame(i);
@@ -200,7 +206,8 @@ class _CountingBackScreenState extends State<CountingBackScreen>
 
   // ── Game layout ───────────────────────────────────────────────────────────
 
-  Widget _buildGame(BuildContext context, CountingBackProvider provider) {
+  Widget _buildGame(BuildContext context, CountingBackProvider provider,
+      AppLocalizations localizer) {
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -211,11 +218,12 @@ class _CountingBackScreenState extends State<CountingBackScreen>
           levelNumber: provider.levelNumber,
           centerContent: Center(
             child: Text(
-              'Round ${provider.roundNumber} of ${CountingBackProvider.totalRounds}',
+              '${localizer('counting_back.round_label')} ${provider.roundNumber} '
+              '${localizer('counting_back.of_label')} ${CountingBackProvider.totalRounds}',
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 16,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
             ),
@@ -233,12 +241,14 @@ class _CountingBackScreenState extends State<CountingBackScreen>
               children: [
                 // Written question
                 Text(
-                  'What is ${provider.startNumber} take away ${provider.takeAway}?',
+                  localizer('counting_back.question')
+                      .replaceAll('{start}', '${provider.startNumber}')
+                      .replaceAll('{takeaway}', '${provider.takeAway}'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: AppSizes.fontSizeLarge,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -291,12 +301,12 @@ class _CountingBackScreenState extends State<CountingBackScreen>
               children: [
                 Icon(Icons.refresh, color: AppColors.accentRed, size: 24),
                 const SizedBox(width: AppSizes.spacingSmall),
-                const Text(
-                  'Try again!',
-                  style: TextStyle(
-                    fontFamily: 'ComicRelief',
+                Text(
+                  localizer('general.try_again'),
+                  style: const TextStyle(
+                    fontFamily: 'Quicksand',
                     fontSize: AppSizes.fontSizeLarge,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.accentRed,
                   ),
                 ),
@@ -349,9 +359,9 @@ class _CountingBackScreenState extends State<CountingBackScreen>
           Text(
             '$n',
             style: const TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
@@ -366,9 +376,9 @@ class _CountingBackScreenState extends State<CountingBackScreen>
       child: Text(
         symbol,
         style: const TextStyle(
-          fontFamily: 'ComicRelief',
+          fontFamily: 'Quicksand',
           fontSize: 36,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
       ),
@@ -389,9 +399,9 @@ class _CountingBackScreenState extends State<CountingBackScreen>
           child: Text(
             '?',
             style: TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: 48,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
@@ -538,9 +548,9 @@ class _HopPainter extends CustomPainter {
         text: TextSpan(
           text: '$i',
           style: TextStyle(
-            fontFamily: 'ComicRelief',
+            fontFamily: 'Quicksand',
             fontSize: 14,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: labelColor,
           ),
         ),
@@ -681,9 +691,9 @@ class _NumberAnswerButton extends StatelessWidget {
                 Text(
                   '$n',
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: AppSizes.fontSizeHeading,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),

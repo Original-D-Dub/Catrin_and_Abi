@@ -6,18 +6,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/services/video_asset_service.dart';
 import '../models/colouring_page.dart';
 
 // ── Levels ────────────────────────────────────────────────────────────────────
 
 enum ColouringLevel {
-  bslColours(number: 1, name: 'BSL Colours',
-      description: 'Tap the colour Miss Angela signs'),
-  freeColour(number: 2, name: 'Colour a Picture',
-      description: 'Choose a picture and colour it in');
+  bslColours(number: 1, name: 'colouring.level1.name',
+      description: 'colouring.level1.description'),
+  freeColour(number: 2, name: 'colouring.level2.name',
+      description: 'colouring.level2.description');
 
   final int number;
+
+  /// Localization key for the level's display name.
   final String name;
+
+  /// Localization key for the level's description.
   final String description;
   const ColouringLevel({required this.number, required this.name,
       required this.description});
@@ -25,25 +30,36 @@ enum ColouringLevel {
 
 // ── BSL colour list ───────────────────────────────────────────────────────────
 
+/// [name] is a localization key (e.g. 'colouring.colour.black'); [videoName]
+/// is the (locale-independent) asset-path segment for the BSL sign video.
 typedef BslColour = ({Color colour, String name, String videoName});
 
 const List<BslColour> bslColourList = [
-  (colour: Color(0xFF000000),      name: 'Black',  videoName: 'black'),
-  (colour: AppColors.accentRed,    name: 'Red',    videoName: 'red'),
-  (colour: AppColors.accentOrange, name: 'Orange', videoName: 'orange'),
-  (colour: AppColors.accentYellow, name: 'Yellow', videoName: 'yellow'),
-  (colour: AppColors.schoolGreen,  name: 'Green',  videoName: 'green'),
-  (colour: AppColors.catrinBlue,   name: 'Blue',   videoName: 'blue'),
-  (colour: AppColors.accentPurple, name: 'Purple', videoName: 'purple'),
-  (colour: AppColors.abiPink,      name: 'Pink',   videoName: 'pink'),
-  (colour: Colors.brown,           name: 'Brown',  videoName: 'brown'),
-  (colour: AppColors.lightGrey,    name: 'Grey',   videoName: 'grey'),
-  (colour: Colors.white,           name: 'White',  videoName: 'white'),
+  (colour: Color(0xFF000000),      name: 'colouring.colour.black',  videoName: 'black'),
+  (colour: AppColors.accentRed,    name: 'colouring.colour.red',    videoName: 'red'),
+  (colour: AppColors.accentOrange, name: 'colouring.colour.orange', videoName: 'orange'),
+  (colour: AppColors.accentYellow, name: 'colouring.colour.yellow', videoName: 'yellow'),
+  (colour: AppColors.schoolGreen,  name: 'colouring.colour.green',  videoName: 'green'),
+  (colour: AppColors.catrinBlue,   name: 'colouring.colour.blue',   videoName: 'blue'),
+  (colour: AppColors.accentPurple, name: 'colouring.colour.purple', videoName: 'purple'),
+  (colour: AppColors.abiPink,      name: 'colouring.colour.pink',   videoName: 'pink'),
+  (colour: Colors.brown,           name: 'colouring.colour.brown',  videoName: 'brown'),
+  (colour: AppColors.lightGrey,    name: 'colouring.colour.grey',   videoName: 'grey'),
+  (colour: Colors.white,           name: 'colouring.colour.white',  videoName: 'white'),
 ];
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 class ColouringProvider extends ChangeNotifier {
+  ColouringProvider() {
+    // Warm the local video cache as soon as the game opens so the BSL
+    // colour-sign videos are ready to play instantly, with no buffering,
+    // by the time the player reaches either level.
+    VideoAssetService.preload(
+      bslColourList.map((c) => 'assets/colours_video/${c.videoName}.mov'),
+    );
+  }
+
   /// Row 1: Primary painting colours
   static const List<Color> paletteRow1 = [
     AppColors.accentRed,
@@ -130,9 +146,10 @@ class ColouringProvider extends ChangeNotifier {
   int _wrongGuessCount = 0;
   int get wrongGuessCount => _wrongGuessCount;
 
-  String? get wrongGuessMessage {
-    if (_wrongGuessCount == 1) return 'Are you sure?';
-    if (_wrongGuessCount >= 2) return 'Try again';
+  /// Localization key for the wrong-guess banner, or null to hide it.
+  String? get wrongGuessMessageKey {
+    if (_wrongGuessCount == 1) return 'colouring.are_you_sure';
+    if (_wrongGuessCount >= 2) return 'general.try_again';
     return null;
   }
 

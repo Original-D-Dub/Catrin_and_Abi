@@ -53,9 +53,9 @@ class CapturedPhotoCard extends StatelessWidget {
             Text(
               animalName,
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 20,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/experimental.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
@@ -31,14 +32,26 @@ import 'exit_door_component.dart';
 /// Everything is sized from the canvas ([EnclosureWalkLayout]) at camera
 /// zoom 1, so world units are logical pixels; the whole world is rebuilt
 /// on resize/rotation, preserving the player's progress.
-class EnclosureWalkGame extends FlameGame {
+///
+/// Tapping the map (an enclosure window) calls [onMapTapped] — the screen
+/// either takes the picture, if the player is stopped in front of a
+/// window, or shows a "too far away" message. Taps on the exit door are
+/// handled by [ExitDoorComponent] itself and don't reach [onMapTapped].
+class EnclosureWalkGame extends FlameGame with TapCallbacks {
   final EnclosureWalkProvider provider;
 
   /// Called when the exit door after the last enclosure is tapped — the
   /// screen pops back to the zoo map.
   final VoidCallback onExitTapped;
 
-  EnclosureWalkGame({required this.provider, required this.onExitTapped});
+  /// Called when the player taps anywhere else on the map.
+  final VoidCallback onMapTapped;
+
+  EnclosureWalkGame({
+    required this.provider,
+    required this.onExitTapped,
+    required this.onMapTapped,
+  });
 
   EnclosureWalkLayout? _layout;
   EnclosureWalkPlayer? _player;
@@ -184,6 +197,12 @@ class EnclosureWalkGame extends FlameGame {
         index != null || (stopped && layout.isAtDoor(player.position.x));
     provider.setActiveEnclosure(
         index == null ? null : provider.config.enclosures[index]);
+  }
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    super.onTapUp(event);
+    onMapTapped();
   }
 }
 

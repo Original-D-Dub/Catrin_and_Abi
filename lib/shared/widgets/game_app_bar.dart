@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../core/theme/app_theme.dart';
 import '../services/audio_service.dart';
 import 'back_arrow_icon.dart';
 
@@ -30,10 +31,8 @@ class GameAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: true,
       title: Text(
         title,
-        style: const TextStyle(
-          fontFamily: 'ComicRelief',
+        style: AppTheme.title.copyWith(
           fontSize: AppSizes.fontSizeLarge,
-          fontWeight: FontWeight.bold,
           color: AppColors.accentWhite,
         ),
       ),

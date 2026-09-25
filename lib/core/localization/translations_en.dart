@@ -26,19 +26,50 @@
   // Home Screen
   // -------------------------
   'home.title': 'Choose a Game',
+  'home.no_games_match': 'No games match the current filters.\nOpen Settings to adjust.',
   'home.sign_system_label': 'Sign Language',
+  'home.learn_bsl_tile': 'BSL Game Trail',
+  'home.learn_iac_tile': 'Learn IAC',
+  'home.learn_trail_start_here': 'Start here',
   'card_matching.title': 'Card Match',
   'bubble_pop.title': 'Bubble Pop',
   'letter_quest.title': 'Letter Quest',
   'bsl_vowels.title': 'BSL Vowels',
   'iac_vowels.title': 'IAC Vowels',
-  'iac_vowels.intro': 'Tap the correct fingertip or badge to make the sign for each Welsh vowel: a, e, i, o, u, w, y.',
-  'iac_vowels.level2.intro': 'Tap the correct fingertip or badge to make the sign for the missing letter in the word.',
-  'iac_vowels.level3.intro': 'Now try some more words. Tap the correct fingertip or badge to make the sign for the missing letter in the word.',
-  'iac_vowels.level5.intro': 'Tap the correct fingertip or badge to make the sign for each missing letter in the word.',
-  'iac_vowels.level6.intro': 'Big Points! Tap the correct fingertip or badge to make the sign for each letter. Score points for the words you guess correctly — the longer the word, the more points you score.',
+  'iac_vowels.intro': 'Tap the correct fingertip or badge to sign each Welsh vowel: a, e, i, o, u, w, y.',
+  'iac_vowels.level2.intro': 'Tap the correct fingertip or badge to sign the missing letter in the word.',
+  'iac_vowels.level3.intro': 'Now try some more words. Tap the fingertip or badge to sign the missing letter in the word.',
+  'iac_vowels.level5.intro': 'Tap the correct fingertip or badge to sign each missing letter in the word.',
+  'iac_vowels.level6.intro': 'Big Points! Tap the fingertip or badge to sign each letter. Score points for the words you guess correctly — the longer the word, the more points you score.',
   'colouring.title': 'Colouring',
+  'colouring.level1.name': 'BSL Colours',
+  'colouring.level1.description': 'Tap the colour Miss Angela signs',
+  'colouring.level2.name': 'Colour a Picture',
+  'colouring.level2.description': 'Choose a picture and colour it in',
+  'colouring.colour.black': 'Black',
+  'colouring.colour.red': 'Red',
+  'colouring.colour.orange': 'Orange',
+  'colouring.colour.yellow': 'Yellow',
+  'colouring.colour.green': 'Green',
+  'colouring.colour.blue': 'Blue',
+  'colouring.colour.purple': 'Purple',
+  'colouring.colour.pink': 'Pink',
+  'colouring.colour.brown': 'Brown',
+  'colouring.colour.grey': 'Grey',
+  'colouring.colour.white': 'White',
+  'colouring.are_you_sure': 'Are you sure?',
+  'colouring.miss_angela_label': 'Miss Angela',
+  'colouring.choose_picture': 'Choose a picture',
+  'colouring.no_image_loaded': 'No image loaded',
   'counting.title': 'Counting',
+  'counting_back.title': 'Counting Back',
+  'counting_back.subtitle': 'Count back to find the answer!',
+  'counting_back.round_label': 'Round',
+  'counting_back.of_label': 'of',
+  'counting_back.question': 'What is {start} take away {takeaway}?',
+  'counting_back.level1.name': 'Take away 1',
+  'counting_back.level2.name': 'Take away up to 2',
+  'counting_back.level3.name': 'Take away up to 4',
   'number_line.title': 'Make 10',
   'more_or_less.title': 'More or Less',
   'bsl_maths.title': 'BSL Maths',
@@ -47,7 +78,36 @@
   'character_id.title': 'Who has blue shoes?',
   'number_race.title': 'Number Race',
 
-  // -------------------------    
+  // -------------------------
+  // Learn BSL Trail 
+  // -------------------------
+
+  'trail.bsl.name': 'Learn BSL',
+  'trail.iac.name': 'Learn IAC',
+  'trail.section1.title': 'Finger Spelling',
+  'trail.bsl.section1.description': 'Learn the BSL alphabet and how to spell words with your fingers.',
+  'trail.iac.section1.description': 'Learn the IAC alphabet and how to spell words with your fingers.',
+  'trail.level1.name': 'Vowels',
+  'trail.level2.name': 'Card Match',
+  'trail.level3.name': 'Find Missing Vowels',
+  'trail.level4.name': 'Match Letters',
+  'trail.level5.name': 'Bubble Pop',
+  'trail.level6.name': 'Bingo',
+  'trail.level7.name': 'Bubble Pop',
+  'trail.level8.name': 'Card Match',
+  'trail.level9.name': 'Bingo',
+  'trail.level10.name': 'Bubble Pop',
+  'trail.section2.title': 'BSL Numbers',
+  'trail.section2.description': 'Count to 10 in BSL.',
+  'trail.level16.name': 'Letter Bingo a to i',
+  'trail.level17.name': 'Letter Bingo a to o',
+  'trail.section3.title': 'Finger Spelling',
+  'trail.section3.description': 'Learn the letters from a to o.',
+  'trail.locked_message_previous': 'You need to complete level {level} first',
+  'trail.locked_message_generic': 'Finish the other levels to unlock.',
+  'trail.level_name_fallback': 'Level name',
+
+  // -------------------------
   // Clothes Line
   // -------------------------
   'clothes_line.title': 'Clothes Line',
@@ -91,7 +151,7 @@
   'general.you_scored': 'You scored {score}',
   'general.you_matched': 'You matched {score}',
   'general.got_10_correct': 'You got 10 correct',
-  'general.personal_best': 'Personal Best! {score}{suffix}',
+  'general.personal_best': 'Personal Best!',
   'general.sign_in_to_save': 'Sign in to save your changes',
   'general.sign_in_to_save_scores': 'Sign in to save your scores',
   'general.score': 'Score',
@@ -148,6 +208,8 @@
   'general.correct': 'Correct!',
   'general.welldone': 'Well Done!',
   'general.congratulations': 'Congratulations!',
+  'general.close': 'Close',
+  'general.skip': 'Skip',
   'general.almost_there': 'Almost there!',
   'general.try_again': 'Try Again!',
 
@@ -174,17 +236,18 @@
   'vowel_hand.level5.name': 'My Special Dog',
   'vowel_hand.level5.description': 'Find every vowel in the word',
   'vowel_hand.level5.intro': 'Tap the correct fingertip to make the BSL vowel for each missing letter in the word.',
-  'vowel_hand.level6.name': 'No Mistakes',
+  'vowel_hand.level6.name': 'Play for points',
   'vowel_hand.level6.description': 'More points for longer words',
   'vowel_hand.level6.intro': 'Big Points! Score points for the words you guess correctly. The longer the word the more points you score.',
   'vowel_hand.words_label': 'words',
   'vowel_hand.words_completed': 'Words completed:',
-
+ 
   // -------------------------
   // Card Matching Game
   // -------------------------
   'card_matching.tap_first': 'Tap a card to flip it!',
   'card_matching.tap_second': 'Tap another card to find a match',
+  'card_matching.got_it': 'Got it',
   'card_matching.moves_label': 'Moves',
   'card_matching.pairs_label': 'pairs',
   'card_matching.success_moves': 'You did it in {n} moves!',
@@ -209,7 +272,8 @@
   // -------------------------
   // Bubble Pop Game
   // -------------------------
-  'bubble_pop.intro': 'Look at the BSL letter sign. Pop the bubble that shows the matching letter!',
+  'bubble_pop.intro_heading': 'Pop the letter bubbles',
+  'bubble_pop.intro': 'Look at the BSL sign at the top and pop the matching letter.',
   'bubble_pop.find_label': 'Find the letter',
   'bubble_pop.bsl.level1.name': 'Vowels',
   'bubble_pop.bsl.level2.name': 'a to e',
@@ -227,7 +291,7 @@
   // -------------------------
   // Welsh (IAC) Bubble Pop intro
   // -------------------------
-  'welsh_bubble_pop.intro': 'Look at the IAC letter sign. Pop the bubble that shows the matching letter!',
+  'welsh_bubble_pop.intro': 'Look at the IAC sign at the top and pop the matching letter.',
 
   // -------------------------
   // Colouring Game
@@ -243,15 +307,19 @@
   'counting_game.level2.name': '1-7',
   'counting_game.level3.name': '1-10',
   'counting_game.level4.name': 'Time Trial 1-10',
-  'counting_game.level5.name': '1-5',
-  'counting_game.level6.name': '1-7',
-  'counting_game.level7.name': '1-10',
-  'counting_game.level8.name': 'Time Trial 1-10',
+  'counting_game.level5.name': 'No Numbers 1-5',
+  'counting_game.level6.name': 'No Numbers 1-7',
+  'counting_game.level7.name': 'No Numbers 1-10',
+  'counting_game.level8.name': 'No Numbers Time Trial 1-10',
   'counting_game.level9.name': '1-5',
   'counting_game.level10.name': '1-7',
   'counting_game.level11.name': '1-10',
-  'counting_game.level12.name': 'Add to 10',
-  'counting_game.level13.name': '10+',
+  'counting_game.level12.name': 'Time Trial 1-10',
+  'counting_game.level13.name': '1-5',
+  'counting_game.level14.name': '1-7',
+  'counting_game.level15.name': '1-10',
+  'counting_game.level16.name': 'Add to 10',
+  'counting_game.level17.name': '10+',
   'counting_game.round_label': 'Round',
   'counting_game.of_label': 'of',
 
@@ -331,9 +399,13 @@
   'bsl_maths.level3.name': 'Teen Numbers',
   'bsl_maths.level4.name': 'Missing Number',
   'bsl_maths.level5.name': 'Competition',
-  'bsl_maths.level6.name': 'Take Away to 5',
-  'bsl_maths.level7.name': 'Take Away to 10',
-  'bsl_maths.level8.name': 'Take Away to 20',
+  'bsl_maths.level6.name': 'Sums to 10 (Signs Only)',
+  'bsl_maths.level7.name': 'Make 10 (Signs Only)',
+  'bsl_maths.level8.name': 'Teen Numbers (Signs Only)',
+  'bsl_maths.level9.name': 'Missing Number (Signs Only)',
+  'bsl_maths.level10.name': 'Competition (Signs Only)',
+  'bsl_maths.level11.name': 'Take Away to 5',
+  'bsl_maths.level12.name': 'Take Away to 10',
 
   // -------------------------
   // BSL Sprint
@@ -356,6 +428,7 @@
   // Letter Quest
   // -------------------------
   'letter_quest.subtitle': 'Move Pero to find the letters to spell the word!',
+  'letter_quest.jump_button': 'Jump',
   'letter_quest.level1.name': 'Intro Room',
   'letter_quest.level2.name': 'Simple Room',
   'letter_quest.level3_house.name': 'Upstairs',
@@ -372,11 +445,18 @@
   // -------------------------
   // Letter Bingo
   // -------------------------
-    'letter_bingo.bsl.intro': 'Match the BSL signs to the letters called at the bottom of the screen. Complete a line for BINGO!',
-    'letter_bingo.iac.intro': 'Match the IAC signs to the letters called at the bottom of the screen. Complete a line for BINGO!',
+    'letter_bingo.bsl.tap_first': 'Match the BSL sign to the letter at the bottom of the screen',
+    'letter_bingo.iac.tap_first': 'Match the IAC sign to the letter at the bottom of the screen',
+    'letter_bingo.tap_second': 'Complete a line for BINGO!',
+    'letter_bingo.got_it': 'Got it',
     'letter_bingo.bingo': 'Bingo!',
     'letter_bingo.friend': 'You have a friend',
     'letter_bingo.new_friend': 'You have a new friend',
+    'letter_bingo.see_collection': 'Tap to see your collection',
+    'letter_bingo.levels_button': 'Levels',
+    'letter_bingo.cards_label': 'Cards',
+    'letter_bingo.animals_header': 'Animals',
+    'letter_bingo.find_letter': 'Find the letter',
     'letter_bingo.bsl.level1.name': 'a to e',
     'letter_bingo.bsl.level2.name': 'a to i',
     'letter_bingo.bsl.level3.name': 'a to o',
@@ -413,7 +493,6 @@
   'word_whirl.level2.name': 'Colours',
   'word_whirl.level3.name': 'Weather',
   'word_whirl.video_coming_soon': 'Video coming soon',
-  'word_whirl.clear': 'Clear',
 
   // -------------------------
   // Zoo Adventure
@@ -439,6 +518,7 @@
   'zoo.aquarium': 'Aquarium',
   'zoo.coming_soon': 'More to explore here soon!',
   'zoo.take_picture': 'Take a picture',
+  'zoo.too_far': 'You\'re too far away — move around to get a better shot!',
   'zoo.photos_label': 'Photos',
   'zoo.exit': 'Exit',
   'zoo.quiz.watch_sign': 'Watch the sign',
@@ -577,12 +657,48 @@
   'profile.menu.videos': 'Videos',
   'profile.menu.settings': 'Settings',
   'profile.scores_title': 'Scores',
+  'profile.scores_best_label': 'Best',
+  'profile.scores_animals_label': 'Animals',
+  'profile.scores_levels_header': 'Levels',
+  'profile.scores_empty': "You haven't set any high scores yet — go play a game!",
+  'profile.scores_sign_in_message':
+      'Sign in to save your high scores and see them here.',
   'profile.account_section': 'Account',
   'profile.yes': 'Yes',
   'profile.delete_account_message':
       'Permanently delete your account and all saved data including profile, game scores and achievements. This cannot be undone.',
   'profile.delete_account_button': 'Delete Account',
   'profile.delete_account_confirm': 'This cannot be undone. Are you sure?',
+  'profile.delete_account_error':
+      'Could not delete your account. Please check your connection and try again.',
+  'profile.account_deleted_snackbar':
+      'Your account and all saved data have been deleted.',
+  'profile.account_linked': 'Account linked',
+  'profile.sign_out_button': 'Sign Out',
+  'profile.sign_out_error': 'Could not sign out. Please try again.',
+  'profile.signed_out_snackbar': 'You have been signed out.',
+  'profile.save_scores_heading': 'Save your scores',
+  'profile.hwb_sign_in_message': 'Sign in with your school Hwb account.',
+  'profile.hwb_sign_in_button': 'Sign in with Hwb',
+  'profile.hwb_sign_in_error': 'Could not open Hwb sign-in. Please try again.',
+  'profile.email_sign_in_heading': 'Or sign in with email',
+  'profile.email_sign_in_message':
+      "Enter your email and we'll send you a sign-in code. No password needed.",
+  'profile.email_label': 'Email',
+  'profile.email_invalid': 'Enter a valid email',
+  'profile.send_code_button': 'Send Code',
+  'profile.send_code_error': 'Could not send code. Please try again.',
+  'profile.check_email_heading': 'Check your email',
+  'profile.otp_sent_message': 'We sent a 6-digit code to {email}.',
+  'profile.otp_code_label': '6-digit code',
+  'profile.otp_invalid': 'Enter the 6-digit code',
+  'profile.verify_code_button': 'Verify Code',
+  'profile.verify_code_error':
+      'Incorrect code. Please check your email and try again.',
+  'profile.otp_verified_snackbar':
+      'Account saved! Your scores will now be recorded.',
+  'profile.use_different_email': 'Use a different email',
+  'profile.resend_code': 'Resend code',
 
   // -------------------------
   // Profile Settings Screen (sound / instructions toggles)
@@ -592,5 +708,10 @@
   'profile_settings.sound_effects_sub': 'Correct and wrong answer sounds',
   'profile_settings.instructions': 'Instructions',
   'profile_settings.instructions_sub': 'Spoken game instructions',
+
+  // -------------------------
+  // Auth
+  // -------------------------
+  'auth.hwb_rejection_message': 'Please sign in with your Hwb account.',
 
 };

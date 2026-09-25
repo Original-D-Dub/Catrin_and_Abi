@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
+
 /// Titled, bordered box grouping a set of [SettingsSelectionTile]s —
 /// shared between the app-wide `SettingsScreen` and `ProfileSettingsScreen`
 /// so sections like "Language" look identical wherever they appear.
@@ -20,10 +22,8 @@ class SettingsSection extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               title.toUpperCase(),
-              style: const TextStyle(
-                fontFamily: 'ComicRelief',
+              style: AppTheme.heading.copyWith(
                 fontSize: 12,
-                fontWeight: FontWeight.bold,
                 color: Colors.white54,
                 letterSpacing: 1.2,
               ),
@@ -80,16 +80,16 @@ class SettingsSelectionTile extends StatelessWidget {
                   Text(
                     label,
                     style: const TextStyle(
-                      fontFamily: 'ComicRelief',
+                      fontFamily: 'Quicksand',
                       fontSize: 17,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
                   ),
                   Text(
                     sublabel,
                     style: const TextStyle(
-                      fontFamily: 'ComicRelief',
+                      fontFamily: 'Quicksand',
                       fontSize: 13,
                       color: Colors.white60,
                     ),

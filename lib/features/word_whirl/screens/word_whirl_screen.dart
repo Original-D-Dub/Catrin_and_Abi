@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/services/video_asset_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
@@ -66,9 +67,9 @@ class WordWhirlScreen extends StatelessWidget {
                                 child: Text(
                                   localizer(provider.level.category),
                                   style: const TextStyle(
-                                    fontFamily: 'ComicRelief',
+                                    fontFamily: 'Quicksand',
                                     fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                   ),
                                   textAlign: TextAlign.center,
@@ -117,19 +118,7 @@ class WordWhirlScreen extends StatelessWidget {
                                   ? () => provider.setLevel(
                                         provider.nextLevel!.randomVariant(),
                                       )
-                                  : null,
-                              changeLevelIsButton: true,
-                              changeLevelLabel: localizer('general.home'),
-                              changeLevelIcon: Icons.home_rounded,
-                            ),
-                          ),
-                        if (provider.state == WordWhirlState.playing)
-                          Positioned(
-                            right: 16,
-                            bottom: 16,
-                            child: _ClearButton(
-                              label: localizer('word_whirl.clear'),
-                              onTap: provider.clearAttempt,
+                                   : null,
                             ),
                           ),
                       ],
@@ -178,8 +167,15 @@ class _VideoPlayerState extends State<_VideoPlayer> {
   }
 
   Future<void> _init() async {
-    final controller = VideoPlayerController.asset(widget.videoPath);
     try {
+      final VideoPlayerController controller;
+      if (VideoAssetService.isRemote(widget.videoPath)) {
+        final file = await VideoAssetService.resolveLocalFile(widget.videoPath);
+        if (!mounted) return;
+        controller = VideoPlayerController.file(file);
+      } else {
+        controller = VideoPlayerController.asset(widget.videoPath);
+      }
       await controller.initialize();
       if (!mounted) {
         controller.dispose();
@@ -193,7 +189,6 @@ class _VideoPlayerState extends State<_VideoPlayer> {
       controller.play();
     } catch (_) {
       // Video not yet available — placeholder is shown.
-      controller.dispose();
     }
   }
 
@@ -272,7 +267,7 @@ class _VideoPlayerState extends State<_VideoPlayer> {
                     Text(
                       widget.localizer('word_whirl.video_coming_soon'),
                       style: const TextStyle(
-                          color: Colors.white30, fontFamily: 'ComicRelief'),
+                          color: Colors.white30, fontFamily: 'Quicksand'),
                     ),
                   ],
                 ),
@@ -597,55 +592,6 @@ class _LetterTile extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Clear button — resets the current attempt
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ClearButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _ClearButton({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Colors.white24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.backspace_outlined,
-                size: 18, color: Color(0xFF69F0AE)),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Correct banner — shown briefly after a right answer
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -683,16 +629,16 @@ class _CorrectBanner extends StatelessWidget {
                 Text(
                   localizer('general.correct'),
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: 44,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
                 Text(
                   word.toUpperCase(),
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: 26,
                     color: Colors.white70,
                   ),

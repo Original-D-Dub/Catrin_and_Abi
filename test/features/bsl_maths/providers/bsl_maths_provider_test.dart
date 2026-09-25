@@ -1,16 +1,32 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:catrin_abi_bsl/features/bsl_maths/providers/bsl_maths_provider.dart';
 
 void main() {
+  // GameStatsService reads Supabase.instance.client on construction, so it
+  // must be initialized before any BslMathsProvider is created. No test
+  // here exercises a real network call (score never reaches the win
+  // threshold), so a dummy project is sufficient. Supabase's local session
+  // storage needs a mocked shared_preferences backend to initialize in tests.
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await Supabase.initialize(
+      url: 'https://example.supabase.co',
+      publishableKey: 'test-publishable-key',
+    );
+  });
+
   group('BslMathsLevel', () {
     test('all levels are defined', () {
-      expect(BslMathsLevel.all.length, 3);
+      expect(BslMathsLevel.all.length, 12);
     });
 
     test('Level 1 has correct configuration', () {
       final level1 = BslMathsLevel.all[0];
       expect(level1.number, 1);
-      expect(level1.name, 'Sums to 10');
+      expect(level1.name, 'bsl_maths.level1.name');
       expect(level1.maxAnswer, 10);
       expect(level1.isMissingOperand, false);
     });
@@ -18,17 +34,44 @@ void main() {
     test('Level 2 has correct configuration', () {
       final level2 = BslMathsLevel.all[1];
       expect(level2.number, 2);
-      expect(level2.name, 'Sums to 20');
-      expect(level2.maxAnswer, 20);
-      expect(level2.isMissingOperand, false);
+      expect(level2.name, 'bsl_maths.level2.name');
+      expect(level2.maxAnswer, 10);
+      expect(level2.isMissingOperand, true);
+      expect(level2.fixedTarget, 10);
     });
 
     test('Level 3 has correct configuration', () {
       final level3 = BslMathsLevel.all[2];
       expect(level3.number, 3);
-      expect(level3.name, 'Find the Missing Number');
-      expect(level3.maxAnswer, 10);
-      expect(level3.isMissingOperand, true);
+      expect(level3.name, 'bsl_maths.level3.name');
+      expect(level3.maxAnswer, 19);
+      expect(level3.useTeenKeys, true);
+    });
+
+    test('Level 6 has correct configuration', () {
+      final level6 = BslMathsLevel.all[5];
+      expect(level6.number, 6);
+      expect(level6.name, 'bsl_maths.level6.name');
+      expect(level6.maxAnswer, 10);
+      expect(level6.isMissingOperand, false);
+      expect(level6.hideDigits, true);
+    });
+
+    test('Level 10 has correct configuration', () {
+      final level10 = BslMathsLevel.all[9];
+      expect(level10.number, 10);
+      expect(level10.name, 'bsl_maths.level10.name');
+      expect(level10.isCompetition, true);
+      expect(level10.hideDigits, true);
+    });
+
+    test('Level 12 (last level) has correct configuration', () {
+      final level12 = BslMathsLevel.all[11];
+      expect(level12.number, 12);
+      expect(level12.name, 'bsl_maths.level12.name');
+      expect(level12.maxAnswer, 10);
+      expect(level12.isSubtraction, true);
+      expect(level12.hideDigits, false);
     });
   });
 
@@ -56,8 +99,7 @@ void main() {
         expect(provider.score, 0);
       });
 
-      test('starts with no entered digits', () {
-        expect(provider.tensDigit, isNull);
+      test('starts with no entered digit', () {
         expect(provider.unitsDigit, isNull);
         expect(provider.enteredAnswer, isNull);
       });
@@ -118,28 +160,28 @@ void main() {
         expect(provider.gameState, BslMathsGameState.playing);
       });
 
-      test('clears any entered digits', () {
-        provider.startGame();
-        provider.setLevel(2);
+      test('clears any entered digit', () {
         provider.startGame();
         provider.enterDigit(5);
-        expect(provider.unitsDigit, 5);
+        expect(provider.unitsDigit, isNotNull);
 
         provider.startGame();
-        expect(provider.tensDigit, isNull);
         expect(provider.unitsDigit, isNull);
       });
     });
 
-    group('enterDigit - Level 1 (single digit mode)', () {
+    // Every key tap directly sets the digit and immediately checks the
+    // answer — there's no separate accumulate-then-submit step.
+    group('enterDigit', () {
       setUp(() {
         provider.setLevel(1);
         provider.startGame();
       });
 
-      test('entering digit sets units digit', () {
+      test('entering a digit sets it and locks input', () {
         provider.enterDigit(5);
         expect(provider.unitsDigit, 5);
+        expect(provider.isInputLocked, true);
       });
 
       test('entering correct answer increments score', () {
@@ -177,164 +219,34 @@ void main() {
         provider.enterDigit(correctAnswer);
         expect(provider.isInputLocked, true);
       });
-    });
 
-    group('enterDigit - Level 2 (two digit mode)', () {
-      setUp(() {
-        provider.setLevel(2);
-        provider.startGame();
-      });
-
-      test('first digit goes to units', () {
-        provider.enterDigit(5);
-        expect(provider.unitsDigit, 5);
-        expect(provider.tensDigit, isNull);
-        expect(provider.enteredAnswer, 5);
-      });
-
-      test('second digit shifts first to tens', () {
-        provider.enterDigit(1);
-        provider.enterDigit(5);
-
-        expect(provider.tensDigit, 1);
-        expect(provider.unitsDigit, 5);
-        expect(provider.enteredAnswer, 15);
-      });
-
-      test('requires explicit submit in two digit mode', () {
-        provider.enterDigit(5);
-        // Should still be playing - not auto-submitted
-        expect(provider.gameState, BslMathsGameState.playing);
-      });
-    });
-
-    group('submitAnswer - Level 2', () {
-      setUp(() {
-        provider.setLevel(2);
-        provider.startGame();
-      });
-
-      test('does nothing if no digits entered', () {
-        provider.submitAnswer();
-        expect(provider.gameState, BslMathsGameState.playing);
-      });
-
-      test('submitting correct answer increments score', () {
+      test('further digit presses are ignored while locked', () {
         final correctAnswer = provider.correctAnswer!;
+        final wrongAnswer = (correctAnswer + 1) % 11;
 
-        if (correctAnswer >= 10) {
-          provider.enterDigit(correctAnswer ~/ 10);
-          provider.enterDigit(correctAnswer % 10);
-        } else {
-          provider.enterDigit(correctAnswer);
-        }
-
-        provider.submitAnswer();
+        provider.enterDigit(correctAnswer);
         expect(provider.score, 1);
-      });
 
-      test('submitting correct answer sets state to correct', () {
-        final correctAnswer = provider.correctAnswer!;
-
-        if (correctAnswer >= 10) {
-          provider.enterDigit(correctAnswer ~/ 10);
-          provider.enterDigit(correctAnswer % 10);
-        } else {
-          provider.enterDigit(correctAnswer);
-        }
-
-        provider.submitAnswer();
-        expect(provider.gameState, BslMathsGameState.correct);
-      });
-    });
-
-    group('clearAnswer', () {
-      setUp(() {
-        provider.setLevel(2);
-        provider.startGame();
-      });
-
-      test('clears entered digits', () {
-        provider.enterDigit(1);
-        provider.enterDigit(5);
-        expect(provider.enteredAnswer, 15);
-
-        provider.clearAnswer();
-        expect(provider.tensDigit, isNull);
-        expect(provider.unitsDigit, isNull);
-        expect(provider.enteredAnswer, isNull);
-      });
-
-      test('does nothing when input is locked', () {
-        final correctAnswer = provider.correctAnswer!;
-        if (correctAnswer >= 10) {
-          provider.enterDigit(correctAnswer ~/ 10);
-          provider.enterDigit(correctAnswer % 10);
-        } else {
-          provider.enterDigit(correctAnswer);
-        }
-        provider.submitAnswer();
-
-        // Input is now locked
-        expect(provider.isInputLocked, true);
-
-        // Clear should do nothing
-        provider.clearAnswer();
-        expect(provider.unitsDigit, isNotNull);
+        // Locked - this should be ignored
+        provider.enterDigit(wrongAnswer);
+        expect(provider.score, 1);
+        expect(provider.unitsDigit, correctAnswer);
       });
     });
 
     group('enteredAnswer computed property', () {
       setUp(() {
-        provider.setLevel(2);
+        provider.setLevel(1);
         provider.startGame();
       });
 
-      test('returns null when no digits entered', () {
+      test('returns null when no digit entered', () {
         expect(provider.enteredAnswer, isNull);
       });
 
-      test('returns units value for single digit', () {
+      test('returns the entered digit', () {
         provider.enterDigit(7);
         expect(provider.enteredAnswer, 7);
-      });
-
-      test('calculates two digit value correctly', () {
-        provider.enterDigit(1);
-        provider.enterDigit(8);
-        expect(provider.enteredAnswer, 18);
-      });
-
-      test('handles zero in units place', () {
-        provider.enterDigit(1);
-        provider.enterDigit(0);
-        expect(provider.enteredAnswer, 10);
-      });
-
-      test('handles zero in tens place', () {
-        provider.enterDigit(0);
-        provider.enterDigit(5);
-        expect(provider.enteredAnswer, 5);
-      });
-    });
-
-    group('requiresTwoDigitInput', () {
-      test('returns false for Level 1', () {
-        provider.setLevel(1);
-        provider.startGame();
-        expect(provider.requiresTwoDigitInput, false);
-      });
-
-      test('returns true for Level 2', () {
-        provider.setLevel(2);
-        provider.startGame();
-        expect(provider.requiresTwoDigitInput, true);
-      });
-
-      test('returns false for Level 3 (missing operand)', () {
-        provider.setLevel(3);
-        provider.startGame();
-        expect(provider.requiresTwoDigitInput, false);
       });
     });
 
@@ -344,13 +256,18 @@ void main() {
         expect(provider.isMissingOperandLevel, false);
       });
 
-      test('returns false for Level 2', () {
+      test('returns true for Level 2 (Make 10)', () {
         provider.setLevel(2);
+        expect(provider.isMissingOperandLevel, true);
+      });
+
+      test('returns false for Level 3 (teen keys)', () {
+        provider.setLevel(3);
         expect(provider.isMissingOperandLevel, false);
       });
 
-      test('returns true for Level 3', () {
-        provider.setLevel(3);
+      test('returns true for Level 4 (missing number)', () {
+        provider.setLevel(4);
         expect(provider.isMissingOperandLevel, true);
       });
     });
@@ -370,7 +287,7 @@ void main() {
       });
 
       test('returns operand2 for missing operand level', () {
-        provider.setLevel(3);
+        provider.setLevel(4);
         provider.startGame();
 
         final question = provider.currentQuestion!;
@@ -439,16 +356,12 @@ void main() {
         expect(provider.isInputLocked, false);
       });
 
-      test('wrong answer clears digits after delay', () async {
-        provider.setLevel(2);
-        provider.startGame();
+      test('wrong answer clears the entered digit after delay', () async {
+        final correctAnswer = provider.correctAnswer!;
+        final wrongAnswer = (correctAnswer + 1) % 11;
 
-        // Enter a wrong answer
-        provider.enterDigit(9);
-        provider.enterDigit(9);
-        provider.submitAnswer();
-
-        expect(provider.unitsDigit, 9);
+        provider.enterDigit(wrongAnswer);
+        expect(provider.unitsDigit, wrongAnswer);
 
         // Wait for feedback timer
         await Future.delayed(
@@ -456,7 +369,6 @@ void main() {
         );
 
         expect(provider.unitsDigit, isNull);
-        expect(provider.tensDigit, isNull);
       });
     });
 
@@ -476,18 +388,6 @@ void main() {
         provider.addListener(() => notifyCount++);
 
         provider.enterDigit(5);
-        expect(notifyCount, greaterThan(0));
-      });
-
-      test('notifies on clearAnswer', () {
-        provider.setLevel(2);
-        provider.startGame();
-        provider.enterDigit(5);
-
-        int notifyCount = 0;
-        provider.addListener(() => notifyCount++);
-
-        provider.clearAnswer();
         expect(notifyCount, greaterThan(0));
       });
 

@@ -123,30 +123,30 @@ class WordPuzzleConstants {
 
   /// CVC words containing the vowel 'e' (11 words)
   static const List<String> wordsWithE = [
-    'bed', 'red', 'wet',
-    'hen', 'pen', 'ten', 'den', 'men',
-    'jet', 'net', 'pet',
+    'bed', 'red', 
+    'hen', 'pen', 'ten', 'men',
+    'jet', 'net', 'pet', 'wet',
   ];
 
   /// CVC words containing the vowel 'i' (13 words)
   static const List<String> wordsWithI = [
-    'pig', 'big', 'dig', 'bib', 'wig',
+    'pig', 'big', 'bib', 'wig',
     'bin', 'fin', 'pin', 'tin', 'win',
     'fit', 'hit', 'sit',
   ];
 
   /// CVC words containing the vowel 'o' (14 words)
   static const List<String> wordsWithO = [
-    'dog', 'fog', 'hog', 'jog', 'log',
-    'dot', 'got', 'hot', 'lot', 'pot',
+    'dog', 'fog', 'jog', 'log',
+    'dot', 'got', 'hot', 'pot',
     'box', 'fox', 'hop', 'top',
   ];
 
   /// CVC words containing the vowel 'u' (15 words)
   static const List<String> wordsWithU = [
-    'bug', 'dug', 'hug', 'jug', 'mug',
+    'hug', 'jug', 'mug',
     'bus', 'nut', 'cut', 'cup',
-    'bun', 'fun', 'gun', 'run', 'sun',
+    'bun', 'fun', 'run', 'sun',
   ];
 
   /// Map of vowel to its word list for efficient lookup.

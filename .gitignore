@@ -17,3 +17,7 @@ build/
 
 # macOS
 .DS_Store
+
+# opencode (contains API keys)
+.opencode.json
+.opencode/

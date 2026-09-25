@@ -9,6 +9,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
@@ -41,7 +42,6 @@ class _NumberRaceScreenState extends State<NumberRaceScreen> {
   @override
   void initState() {
     super.initState();
-    AudioService.playTitle('number_race', locale: widget.locale);
   }
 
   void _chooseCharacter(NumberRaceProvider provider, RaceCharacter character) {
@@ -135,8 +135,6 @@ class _NumberRaceScreenState extends State<NumberRaceScreen> {
                           ? () => _nextLevel(provider)
                           : null,
                       onChangeLevel: () => provider.showCharacterSelection(),
-                      changeLevelLabel: localizer('number_race.change_character'),
-                      changeLevelIcon: Icons.people_alt,
                       centerExtraContent: true,
                       extraContent: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -160,6 +158,7 @@ class _NumberRaceScreenState extends State<NumberRaceScreen> {
                 if (_showingIntro)
                   GameIntroCountdown(
                     gameId: 'number_race',
+                    levelNumber: provider.level,
                     locale: widget.locale,
                     characterImage: provider.playerCharacter?.assetPath,
                     onComplete: () {
@@ -192,10 +191,8 @@ class _NumberRaceScreenState extends State<NumberRaceScreen> {
             Text(
               localizer('number_race.choose_character'),
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'ComicRelief',
+              style: AppTheme.title.copyWith(
                 fontSize: AppSizes.fontSizeTitle,
-                fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
@@ -266,9 +263,9 @@ class _NumberRaceScreenState extends State<NumberRaceScreen> {
               localizer('number_race.question'),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: AppSizes.fontSizeLarge,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -359,9 +356,9 @@ class _CharacterCard extends StatelessWidget {
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: AppSizes.fontSizeLarge,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -601,9 +598,9 @@ class _BslAnswerRow extends StatelessWidget {
                       Text(
                         '$n',
                         style: const TextStyle(
-                          fontFamily: 'ComicRelief',
+                          fontFamily: 'Quicksand',
                           fontSize: AppSizes.fontSizeHeading,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -650,10 +647,8 @@ class _Podium extends StatelessWidget {
       children: [
         Text(
           localizer('number_race.podium_title'),
-          style: const TextStyle(
-            fontFamily: 'ComicRelief',
+          style: AppTheme.heading.copyWith(
             fontSize: AppSizes.fontSizeBody,
-            fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
           ),
         ),
@@ -707,9 +702,9 @@ class _Podium extends StatelessWidget {
                   Text(
                     localizer(character.nameKey),
                     style: const TextStyle(
-                      fontFamily: 'ComicRelief',
+                      fontFamily: 'Quicksand',
                       fontSize: AppSizes.fontSizeSmall,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                   ),
@@ -726,9 +721,9 @@ class _Podium extends StatelessWidget {
                     child: Text(
                       localizer('number_race.position.${place + 1}'),
                       style: const TextStyle(
-                        fontFamily: 'ComicRelief',
+                        fontFamily: 'Quicksand',
                         fontSize: AppSizes.fontSizeLarge,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
@@ -773,9 +768,9 @@ class _TimeResult extends StatelessWidget {
           Text(
             '${localizer('number_race.your_time')} ${_formatDuration(elapsed)}',
             style: const TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: AppSizes.fontSizeLarge,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),

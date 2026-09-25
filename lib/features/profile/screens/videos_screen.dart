@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../models/video_catalog.dart';
 
@@ -45,12 +46,7 @@ class VideosScreen extends StatelessWidget {
         ),
         title: Text(
           t('profile.videos_title'),
-          style: const TextStyle(
-            fontFamily: 'ComicRelief',
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-          ),
+          style: AppTheme.title.copyWith(fontSize: 22, color: Colors.white),
         ),
         centerTitle: true,
       ),
@@ -156,9 +152,9 @@ class _VideoTile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: titleFontSize,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
@@ -166,7 +162,7 @@ class _VideoTile extends StatelessWidget {
                 Text(
                   _durationLabel,
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: 12,
                     color: Colors.white70,
                   ),
@@ -184,7 +180,7 @@ class _VideoTile extends StatelessWidget {
                     Text(
                       video.watched ? watchedLabel : notWatchedLabel,
                       style: const TextStyle(
-                        fontFamily: 'ComicRelief',
+                        fontFamily: 'Quicksand',
                         fontSize: 11,
                         color: Colors.white70,
                       ),

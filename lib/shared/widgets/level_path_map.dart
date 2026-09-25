@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import 'level_select_screen.dart';
 
 /// Scrollable "Choose a Level" map: numbered level circles laid out along
@@ -82,10 +83,8 @@ class LevelPathMap extends StatelessWidget {
               Text(
                 localizer('level_select.title'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'ComicRelief',
+                style: AppTheme.title.copyWith(
                   fontSize: AppSizes.fontSizeTitle,
-                  fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
@@ -215,9 +214,9 @@ class _LevelNode extends StatelessWidget {
                   : Text(
                       '$level',
                       style: const TextStyle(
-                        fontFamily: 'ComicRelief',
+                        fontFamily: 'Quicksand',
                         fontSize: AppSizes.fontSizeHeading,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),

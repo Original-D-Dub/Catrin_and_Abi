@@ -10,7 +10,6 @@ import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/level_select_screen.dart';
@@ -67,7 +66,6 @@ class _ClothesLineViewState extends State<_ClothesLineView>
   void initState() {
     super.initState();
     _provider = context.read<ClothesLineProvider>();
-    AudioService.playTitle('clothes_line', locale: _provider.locale);
     _slideController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 380),
@@ -302,16 +300,16 @@ class _ClothesLineViewState extends State<_ClothesLineView>
                             Text(
                               '${localizer('general.score')}: ${provider.score}',
                               style: const TextStyle(
-                                fontFamily: 'ComicRelief',
+                                fontFamily: 'Quicksand',
                                 fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 color: Color(0xFF1A237E),
                               ),
                             ),
                             Text(
                               '${provider.currentIndex + 1} / ${ClothesLineProvider.totalItems}',
                               style: const TextStyle(
-                                fontFamily: 'ComicRelief',
+                                fontFamily: 'Quicksand',
                                 fontSize: 18,
                                 color: Color(0xFF1A237E),
                               ),
@@ -411,9 +409,9 @@ class _ClothesLineViewState extends State<_ClothesLineView>
                                 : _questionText(localizer, provider.currentItem),
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              fontFamily: 'ComicRelief',
+                              fontFamily: 'Quicksand',
                               fontSize: 22,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               color: Color(0xFF1A237E),
                             ),
                           ),
@@ -882,9 +880,9 @@ class _SpeedSlider extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: 14,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: Color(0xFF1A237E),
             ),
           ),
@@ -1106,9 +1104,9 @@ class _BslColourRiveButtonState extends State<_BslColourRiveButton> {
               widget.colourName[0].toUpperCase() +
                   widget.colourName.substring(1),
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: AppSizes.fontSizeLarge,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

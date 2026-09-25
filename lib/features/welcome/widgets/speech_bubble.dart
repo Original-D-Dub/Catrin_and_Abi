@@ -53,6 +53,7 @@ class SpeechBubble extends StatelessWidget {
           child: Text(
             text,
             style: TextStyle(
+              fontFamily: 'Quicksand',
               fontSize: AppSizes.fontSizeBody,
               color: textColor ?? AppColors.textPrimary,
               height: 1.4,

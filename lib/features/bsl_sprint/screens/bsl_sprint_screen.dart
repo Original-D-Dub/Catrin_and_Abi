@@ -101,7 +101,6 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     _provider = context.read<BslSprintProvider>();
     _focusNode = FocusNode();
     _ticker = createTicker(_onTick)..start();
-    AudioService.playTitle('bsl_sprint', locale: widget.locale);
   }
 
   void _onTick(Duration elapsed) {
@@ -234,6 +233,8 @@ class _BslSprintScreenState extends State<BslSprintScreen>
               if (_showingIntro)
                 GameIntroCountdown(
                   gameId: 'bsl_sprint.level${provider.currentLevel.number}',
+                  levelNumber: provider.currentLevel.number,
+                  levelNameGameId: 'bsl_sprint',
                   locale: widget.locale,
                   onComplete: () {
                     setState(() => _showingIntro = false);
@@ -675,8 +676,8 @@ class _CharacterPlaceholder extends StatelessWidget {
             style: TextStyle(
               color: Colors.white,
               fontSize: fontSize,
-              fontFamily: 'ComicRelief',
-              fontWeight: FontWeight.bold,
+              fontFamily: 'Quicksand',
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -941,18 +942,18 @@ class _SprintCenterHud extends StatelessWidget {
             Text(
               l.translate('bsl_sprint.words_label'),
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 13,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
             ),
             Text(
               '${provider.wordsCompleted}',
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 22,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w600,
                 color: Colors.white,
                 height: 1.0,
               ),
@@ -995,7 +996,7 @@ class _WordBar extends StatelessWidget {
         child: Text(
           l.translate('bsl_sprint.get_ready'),
           style: const TextStyle(
-              color: Colors.white60, fontFamily: 'ComicRelief', fontSize: 20),
+              color: Colors.white60, fontFamily: 'Quicksand', fontSize: 20),
         ),
       );
     }
@@ -1010,7 +1011,7 @@ class _WordBar extends StatelessWidget {
           Text(
             l.translate('bsl_sprint.collect_instruction'),
             style: const TextStyle(
-                color: Colors.white60, fontSize: 11, fontFamily: 'ComicRelief'),
+                color: Colors.white60, fontSize: 11, fontFamily: 'Quicksand'),
           ),
           const SizedBox(height: 6),
           Row(

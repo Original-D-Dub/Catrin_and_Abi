@@ -2,7 +2,7 @@ import 'package:catrin_abi_bsl/core/localization/app_localizations.dart';
 import 'package:catrin_abi_bsl/features/zoo/game/zoo_quiz_game.dart';
 import 'package:catrin_abi_bsl/features/zoo/providers/zoo_quiz_provider.dart';
 import 'package:catrin_abi_bsl/features/zoo/screens/zoo_quiz_screen.dart';
-import 'package:catrin_abi_bsl/features/zoo/widgets/zoo_camera_button.dart';
+import 'package:catrin_abi_bsl/features/zoo/widgets/zoo_too_far_message.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,8 +12,9 @@ import 'package:provider/provider.dart';
 /// The quiz screen mounts, the zoo map walk-around runs, and (with no BSL
 /// videos recorded yet) the question container shows its placeholder —
 /// currently the answer animal's name, standing in for the real sign video
-/// during testing. Walking into the right animal's zone arms Take a
-/// Picture; pressing it advances the quiz.
+/// during testing. Tapping the map away from the answer animal shows a
+/// "too far away" message; walking into its zone and tapping the map
+/// takes the picture and advances the quiz.
 void main() {
   testWidgets('quiz screen mounts and answers a question', (tester) async {
     await tester.runAsync(() async {
@@ -37,7 +38,20 @@ void main() {
       expect(find.text(localizer(provider.currentQuestion!.nameKey)),
           findsOneWidget);
       expect(find.text('0 / 3'), findsOneWidget);
-      expect(find.byType(ZooCameraButton), findsNothing);
+
+      // Tapping the map before reaching the animal shows the "too far
+      // away" message instead of taking a picture. The BSL video covers
+      // the centre of the map while full size and the header bar covers
+      // the top strip, so tap the bottom-left corner of the game canvas,
+      // clear of both.
+      const mapTapPoint = Offset(20, 580);
+      await tester.tapAt(mapTapPoint);
+      await tester.pump();
+      expect(find.byType(ZooTooFarMessage), findsOneWidget);
+      expect(provider.answeredCount, 0);
+      await Future<void>.delayed(const Duration(milliseconds: 1800));
+      await tester.pump();
+      expect(find.byType(ZooTooFarMessage), findsNothing);
 
       // Walk the player into the current question's zone (the game's
       // update loop derives the active zone from the position).
@@ -51,12 +65,10 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 16));
       await tester.pump();
-      expect(find.byType(ZooCameraButton), findsOneWidget);
 
-      // Let the reveal pulse animation finish before tapping, so the tap
-      // lands once the button is back to its resting size.
-      await tester.pump(const Duration(milliseconds: 400));
-      await tester.tap(find.byType(ZooCameraButton));
+      // Tap the map to take the picture now that the player is standing
+      // in the animal's zone.
+      await tester.tapAt(mapTapPoint);
       await tester.pump();
 
       // Photo card up, progress advanced.

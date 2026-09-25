@@ -81,6 +81,13 @@ class BslMathsLevel {
   /// in that range. Each key press auto-submits (no two-digit entry).
   final bool useTeenKeys;
 
+  /// Whether to hide the numeral labels on the BSL keyboard keys.
+  ///
+  /// When true, only the BSL hand-sign is shown on each key, with no digit
+  /// printed underneath. Competition levels already hide digits regardless
+  /// of this flag.
+  final bool hideDigits;
+
   const BslMathsLevel({
     required this.number,
     required this.name,
@@ -91,6 +98,7 @@ class BslMathsLevel {
     this.isSubtraction = false,
     this.maxSubtrahend = 10,
     this.useTeenKeys = false,
+    this.hideDigits = false,
   });
 
   /// All available levels
@@ -123,24 +131,56 @@ class BslMathsLevel {
     BslMathsLevel(
       number: 6,
       name: 'bsl_maths.level6.name',
-      maxAnswer: 5,
-      isSubtraction: true,
-      maxSubtrahend: 5,
+      maxAnswer: 10,
+      hideDigits: true,
     ),
 
     BslMathsLevel(
       number: 7,
       name: 'bsl_maths.level7.name',
       maxAnswer: 10,
-      isSubtraction: true,
+      isMissingOperand: true,
+      fixedTarget: 10,
+      hideDigits: true,
     ),
 
     BslMathsLevel(
       number: 8,
       name: 'bsl_maths.level8.name',
-      maxAnswer: 20,
+      maxAnswer: 19,
+      useTeenKeys: true,
+      hideDigits: true,
+    ),
+
+    BslMathsLevel(
+      number: 9,
+      name: 'bsl_maths.level9.name',
+      maxAnswer: 10,
+      isMissingOperand: true,
+      hideDigits: true,
+    ),
+
+    BslMathsLevel(
+      number: 10,
+      name: 'bsl_maths.level10.name',
+      maxAnswer: 10,
+      isCompetition: true,
+      hideDigits: true,
+    ),
+
+    BslMathsLevel(
+      number: 11,
+      name: 'bsl_maths.level11.name',
+      maxAnswer: 5,
       isSubtraction: true,
-      maxSubtrahend: 20,
+      maxSubtrahend: 5,
+    ),
+
+    BslMathsLevel(
+      number: 12,
+      name: 'bsl_maths.level12.name',
+      maxAnswer: 10,
+      isSubtraction: true,
     ),
   ];
 }
@@ -148,19 +188,11 @@ class BslMathsLevel {
 /// Provider for managing the BSL maths game state.
 ///
 /// Handles:
-/// - Level selection (Level 1: sums to 10, Level 2: sums to 20)
-/// - Random addition question generation
-/// - Two-digit answer input (tens and units columns)
-/// - Answer submission and correctness validation
+/// - Level selection
+/// - Random addition/subtraction question generation
+/// - Answer entry: each key tap directly submits and checks the answer
 /// - Score tracking (increments on correct answers)
-/// - Clear button functionality
 /// - Timed feedback display (green tick or "try again")
-///
-/// Two-digit input system (Level 2):
-/// - First tap: digit goes to units column (right)
-/// - Second tap: first digit shifts to tens column (left), new digit to units
-/// - Answer calculated as: (tens × 10) + units
-/// - Clear button (C) resets both columns
 class BslMathsProvider extends ChangeNotifier {
   // -------------------------
   // Constants
@@ -202,10 +234,6 @@ class BslMathsProvider extends ChangeNotifier {
   int _score = 0;
   int get score => _score;
 
-  /// Tens digit of the entered answer (null if empty)
-  int? _tensDigit;
-  int? get tensDigit => _tensDigit;
-
   /// Units digit of the entered answer (null if empty)
   int? _unitsDigit;
   int? get unitsDigit => _unitsDigit;
@@ -237,25 +265,10 @@ class BslMathsProvider extends ChangeNotifier {
   // Computed Properties
   // -------------------------
 
-  /// The currently entered answer value (computed from digits)
+  /// The currently entered answer value (computed from the entered digit).
   ///
-  /// Returns null if no digits entered.
-  /// For single digit: returns units value.
-  /// For two digits: returns (tens × 10) + units.
-  int? get enteredAnswer {
-    if (_unitsDigit == null) return null;
-    if (_tensDigit == null) return _unitsDigit;
-    return (_tensDigit! * 10) + _unitsDigit!;
-  }
-
-  /// Whether the current question requires two-digit input.
-  ///
-  /// Level 2 uses two-digit input (sums to 20).
-  /// Level 3 (missing operand) uses single-digit input (operands 1-10).
-  bool get requiresTwoDigitInput =>
-      _currentLevel.maxAnswer > 10 &&
-      !_currentLevel.isMissingOperand &&
-      !_currentLevel.useTeenKeys;
+  /// Returns null if no digit has been entered.
+  int? get enteredAnswer => _unitsDigit;
 
   /// Whether the current level uses teen number keys (11–19).
   bool get useTeenKeys => _currentLevel.useTeenKeys;
@@ -354,54 +367,19 @@ class BslMathsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clears the entered digits (called when C button pressed or after feedback).
-  void clearAnswer() {
-    if (_isInputLocked) return;
-    _clearDigits();
-    notifyListeners();
-  }
-
   /// Internal method to reset digit state.
   void _clearDigits() {
-    _tensDigit = null;
     _unitsDigit = null;
   }
 
-  /// Handles a digit key press (0-10).
+  /// Handles a digit key press and directly submits it as the answer.
   ///
-  /// [digit] is the number (0-10) the player tapped on the keyboard.
-  /// For single-digit answers: directly submits.
-  /// For two-digit answers: builds up the answer digit by digit.
+  /// [digit] is the number the player tapped on the keyboard.
   void enterDigit(int digit) {
     if (_isInputLocked || _currentQuestion == null) return;
 
-    if (requiresTwoDigitInput) {
-      // Two-digit input mode
-      if (_unitsDigit == null) {
-        // First digit goes to units
-        _unitsDigit = digit;
-      } else {
-        // Second digit: shift first to tens, new digit to units
-        _tensDigit = _unitsDigit;
-        _unitsDigit = digit;
-      }
-      notifyListeners();
-    } else {
-      // Single-digit mode (Level 1): treat as direct answer submission
-      _unitsDigit = digit;
-      notifyListeners();
-      _checkAnswer();
-    }
-  }
-
-  /// Submits the current answer for the current question (Level 2).
-  ///
-  /// Called when player has entered digits and confirms.
-  /// For Level 1, this is called automatically after digit entry.
-  void submitAnswer() {
-    if (_isInputLocked || _currentQuestion == null) return;
-    if (enteredAnswer == null) return;
-
+    _unitsDigit = digit;
+    notifyListeners();
     _checkAnswer();
   }
 

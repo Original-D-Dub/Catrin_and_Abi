@@ -8,6 +8,8 @@ import '../../../shared/services/game_stats_service.dart';
 
 class CountingBackLevel {
   final int number;
+
+  /// Localization key for the level's display name (e.g. 'counting_back.level1.name').
   final String name;
 
   /// Max starting number (X).
@@ -25,9 +27,9 @@ class CountingBackLevel {
 }
 
 const List<CountingBackLevel> countingBackLevels = [
-  CountingBackLevel(number: 1, name: 'Take away 1', maxX: 5, maxY: 1),
-  CountingBackLevel(number: 2, name: 'Take away up to 2', maxX: 5, maxY: 2),
-  CountingBackLevel(number: 3, name: 'Take away up to 4', maxX: 5, maxY: 4),
+  CountingBackLevel(number: 1, name: 'counting_back.level1.name', maxX: 5, maxY: 1),
+  CountingBackLevel(number: 2, name: 'counting_back.level2.name', maxX: 5, maxY: 2),
+  CountingBackLevel(number: 3, name: 'counting_back.level3.name', maxX: 5, maxY: 4),
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────

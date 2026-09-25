@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/config/routes.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/services/auth_provider.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
-import '../../../shared/widgets/primary_button.dart';
+import '../../../shared/widgets/button.dart';
 import '../models/profile_catalog.dart';
 import '../providers/profile_provider.dart';
 
@@ -25,7 +27,16 @@ import '../providers/profile_provider.dart';
 class ProfileScreen extends StatefulWidget {
   final String locale;
 
-  const ProfileScreen({super.key, this.locale = 'en'});
+  /// When true, the screen scrolls to the account section (sign-in /
+  /// account-linking) as soon as it's first laid out — used when arriving
+  /// here via a "sign in to save your scores/videos" prompt elsewhere.
+  final bool scrollToAccount;
+
+  const ProfileScreen({
+    super.key,
+    this.locale = 'en',
+    this.scrollToAccount = false,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -36,6 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _otpFormKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _otpController = TextEditingController();
+  final _accountSectionKey = GlobalKey();
 
   /// Whether the OTP has been sent and we're now on the code-entry step.
   bool _otpSent = false;
@@ -44,6 +56,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _isDeletingAccount = false;
   String? _deleteErrorMessage;
+
+  bool _isHwbLoading = false;
+  String? _hwbErrorMessage;
+
+  bool _isSigningOut = false;
+  String? _signOutErrorMessage;
+
+  AppLocalizations get _t => AppLocalizations(locale: widget.locale);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.scrollToAccount) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final accountContext = _accountSectionKey.currentContext;
+        if (accountContext != null) {
+          Scrollable.ensureVisible(
+            accountContext,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -65,7 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await context.read<AuthProvider>().sendOtp(_emailController.text.trim());
       setState(() => _otpSent = true);
     } catch (e) {
-      setState(() => _errorMessage = 'Could not send code. Please try again.');
+      setState(() => _errorMessage = _t('profile.send_code_error'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -87,24 +124,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account saved! Your scores will now be recorded.'),
+        SnackBar(
+          content: Text(_t('profile.otp_verified_snackbar')),
           backgroundColor: AppColors.success,
         ),
       );
     } catch (e) {
-      setState(() => _errorMessage = 'Incorrect code. Please check your email and try again.');
+      setState(() => _errorMessage = _t('profile.verify_code_error'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  /// Opens the system browser for Hwb (Microsoft/Entra) sign-in. The actual
+  /// session arrives later via deep link and [AuthProvider]'s auth-state
+  /// listener, so there's nothing to await here beyond launching the flow.
+  Future<void> _signInWithHwb() async {
+    setState(() {
+      _isHwbLoading = true;
+      _hwbErrorMessage = null;
+    });
+    try {
+      await context.read<AuthProvider>().signInWithHwb();
+    } catch (e) {
+      setState(() => _hwbErrorMessage = _t('profile.hwb_sign_in_error'));
+    } finally {
+      if (mounted) setState(() => _isHwbLoading = false);
+    }
+  }
+
   Future<void> _signOut() async {
+    setState(() {
+      _isSigningOut = true;
+      _signOutErrorMessage = null;
+    });
+
     final auth = context.read<AuthProvider>();
-    await auth.signOut();
-    await auth.signInAnonymously();
-    // No explicit ProfileProvider.refresh() needed — it reloads itself on
-    // every Supabase auth state change.
+    try {
+      await auth.signOut();
+      await auth.signInAnonymously();
+      // No explicit ProfileProvider.refresh() needed — it reloads itself on
+      // every Supabase auth state change.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_t('profile.signed_out_snackbar')),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _signOutErrorMessage = _t('profile.sign_out_error'));
+      }
+    } finally {
+      if (mounted) setState(() => _isSigningOut = false);
+    }
   }
 
   Future<void> _confirmDeleteAccount(AppLocalizations t) async {
@@ -132,15 +206,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await auth.signInAnonymously();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your account and all saved data have been deleted.'),
+        SnackBar(
+          content: Text(_t('profile.account_deleted_snackbar')),
           backgroundColor: AppColors.success,
         ),
       );
     } catch (e) {
       if (mounted) {
-        setState(() => _deleteErrorMessage =
-            'Could not delete your account. Please check your connection and try again.');
+        setState(() => _deleteErrorMessage = _t('profile.delete_account_error'));
       }
     } finally {
       if (mounted) setState(() => _isDeletingAccount = false);
@@ -183,44 +256,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         title: Text(
           t('profile.title'),
-          style: const TextStyle(
-            fontFamily: 'ComicRelief',
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-          ),
+          style: AppTheme.title.copyWith(fontSize: 22, color: Colors.white),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            tooltip: t('profile.menu.settings'),
+            onPressed: () => Navigator.pushNamed(
+              context,
+              AppRoutes.profileSettings,
+              arguments: widget.locale,
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSizes.paddingLarge),
           child: Column(
             children: [
-              _ProfileHeader(
-                avatar: avatar,
-                screenName: screenName,
-                placeholder: t('profile.screen_name_placeholder'),
-                editLabel: t('profile.edit'),
-                onEdit: profile.isLoading ? null : () => _openEditSheet(t),
-              ),
-              const SizedBox(height: AppSizes.spacingLarge),
-              _BadgeRow(
-                title: t('profile.badges_title'),
-                stats: profile.stats,
-                localizer: t,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSizes.paddingLarge),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Stack(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: Column(
+                        children: [
+                          _ProfileHeader(
+                            avatar: avatar,
+                            screenName: screenName,
+                            placeholder: t('profile.screen_name_placeholder'),
+                          ),
+                          if (isLinked) ...[
+                            const SizedBox(height: AppSizes.spacingLarge),
+                            _BadgeRow(
+                              title: t('profile.badges_title'),
+                              stats: profile.stats,
+                              localizer: t,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: _EditProfileButton(
+                        label: t('profile.edit'),
+                        onEdit:
+                            profile.isLoading ? null : () => _openEditSheet(t),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: AppSizes.spacingLarge * 1.5),
               _ProfileMenu(locale: widget.locale, localizer: t),
               const SizedBox(height: AppSizes.spacingLarge * 1.5),
               Align(
+                key: _accountSectionKey,
                 alignment: Alignment.centerLeft,
                 child: Text(
                   t('profile.account_section').toUpperCase(),
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white54,
                     letterSpacing: 1.2,
                   ),
@@ -240,11 +349,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      isLinked ? _buildLinkedView(auth) : _buildOtpFlow(),
-                      const SizedBox(height: AppSizes.spacingLarge),
-                      const Divider(color: Colors.white12, height: 1),
-                      const SizedBox(height: AppSizes.spacingLarge),
-                      _buildDeleteAccountSection(t),
+                      isLinked ? _buildLinkedView(auth) : _buildSignInOptions(auth),
+                      if (isLinked) ...[
+                        const SizedBox(height: AppSizes.spacingLarge),
+                        const Divider(color: Colors.white12, height: 1),
+                        const SizedBox(height: AppSizes.spacingLarge),
+                        _buildDeleteAccountSection(t),
+                      ],
                     ],
                   ),
                 ),
@@ -263,9 +374,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         const Icon(Icons.verified_user, size: 48, color: AppColors.success),
         const SizedBox(height: AppSizes.spacingMedium),
-        const Text(
-          'Account linked',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        Text(
+          _t('profile.account_linked'),
+          style: AppTheme.heading.copyWith(fontSize: 20),
         ),
         const SizedBox(height: AppSizes.spacingSmall),
         Text(
@@ -273,13 +384,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: const TextStyle(color: Colors.white70),
         ),
         const SizedBox(height: AppSizes.spacingLarge),
-        PrimaryButton(
-          label: 'Sign Out',
-          icon: Icons.logout,
-          expanded: true,
-          backgroundColor: Colors.white24,
-          onPressed: _signOut,
-        ),
+        if (_signOutErrorMessage != null) ...[
+          Text(
+            _signOutErrorMessage!,
+            style: const TextStyle(color: AppColors.accentRed),
+          ),
+          const SizedBox(height: AppSizes.spacingSmall),
+        ],
+        _isSigningOut
+            ? const Center(child: CircularProgressIndicator())
+            : SecondaryButton(
+                label: _t('profile.sign_out_button'),
+                icon: Icons.logout,
+                expanded: true,
+                onPressed: _signOut,
+              ),
       ],
     );
   }
@@ -304,18 +423,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: AppSizes.spacingMedium),
         _isDeletingAccount
             ? const Center(child: CircularProgressIndicator())
-            : PrimaryButton(
+            : WarningButton(
                 label: t('profile.delete_account_button'),
                 icon: Icons.delete_forever,
                 expanded: true,
-                backgroundColor: AppColors.accentRed,
                 onPressed: () => _confirmDeleteAccount(t),
               ),
       ],
     );
   }
 
-  /// Two-step OTP flow for anonymous players.
+  /// Sign-in options for anonymous players: Hwb (Microsoft/Entra) SSO, plus
+  /// — while [AppConfig.hwbOnlyLogin] is false — the email/OTP flow used for
+  /// testing before Hwb sign-in is fully wired up and verified.
+  Widget _buildSignInOptions(AuthProvider auth) {
+    final hwbError = _hwbErrorMessage ??
+        (auth.hwbRejectionMessage != null ? _t(auth.hwbRejectionMessage!) : null);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _t('profile.save_scores_heading'),
+          style: AppTheme.heading.copyWith(fontSize: 20),
+        ),
+        const SizedBox(height: AppSizes.spacingSmall),
+        Text(
+          _t('profile.hwb_sign_in_message'),
+          style: const TextStyle(color: Colors.white70),
+        ),
+        const SizedBox(height: AppSizes.spacingLarge),
+        if (hwbError != null) ...[
+          Text(
+            hwbError,
+            style: const TextStyle(color: AppColors.accentRed),
+          ),
+          const SizedBox(height: AppSizes.spacingSmall),
+        ],
+        _isHwbLoading
+            ? const Center(child: CircularProgressIndicator())
+            : PrimaryButton(
+                label: _t('profile.hwb_sign_in_button'),
+                icon: Icons.school,
+                expanded: true,
+                backgroundColor: AppColors.success,
+                onPressed: _signInWithHwb,
+              ),
+        if (!AppConfig.hwbOnlyLogin) ...[
+          const SizedBox(height: AppSizes.spacingLarge),
+          const Divider(color: Colors.white12, height: 1),
+          const SizedBox(height: AppSizes.spacingLarge),
+          _buildOtpFlow(),
+        ],
+      ],
+    );
+  }
+
+  /// Two-step OTP flow — kept for testing with any email address until Hwb
+  /// sign-in is verified end-to-end (see [AppConfig.hwbOnlyLogin]).
   Widget _buildOtpFlow() {
     return _otpSent ? _buildOtpEntry() : _buildEmailEntry();
   }
@@ -327,33 +491,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Save your scores',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          Text(
+            _t('profile.email_sign_in_heading'),
+            style: AppTheme.heading.copyWith(fontSize: 20),
           ),
           const SizedBox(height: AppSizes.spacingSmall),
-          const Text(
-            'Enter your email and we\'ll send you a sign-in code. No password needed.',
-            style: TextStyle(color: Colors.white70),
+          Text(
+            _t('profile.email_sign_in_message'),
+            style: const TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: AppSizes.spacingLarge),
 
           TextFormField(
             controller: _emailController,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              labelStyle: TextStyle(color: Colors.white70),
-              prefixIcon: Icon(Icons.email, color: Colors.white70),
-              border: OutlineInputBorder(),
-              enabledBorder: OutlineInputBorder(
+            decoration: InputDecoration(
+              labelText: _t('profile.email_label'),
+              labelStyle: const TextStyle(color: Colors.white70),
+              prefixIcon: const Icon(Icons.email, color: Colors.white70),
+              border: const OutlineInputBorder(),
+              enabledBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.white24),
               ),
             ),
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
-            validator: (v) =>
-                (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+            validator: (v) => (v == null || !v.contains('@'))
+                ? _t('profile.email_invalid')
+                : null,
           ),
 
           if (_errorMessage != null) ...[
@@ -368,9 +533,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : PrimaryButton(
-                  label: 'Send Code',
+                  label: _t('profile.send_code_button'),
                   icon: Icons.send,
                   expanded: true,
+                  backgroundColor: AppColors.success,
                   onPressed: _sendOtp,
                 ),
         ],
@@ -385,13 +551,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Check your email',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          Text(
+            _t('profile.check_email_heading'),
+            style: AppTheme.heading.copyWith(fontSize: 20),
           ),
           const SizedBox(height: AppSizes.spacingSmall),
           Text(
-            'We sent a 6-digit code to ${_emailController.text.trim()}.',
+            _t('profile.otp_sent_message')
+                .replaceAll('{email}', _emailController.text.trim()),
             style: const TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: AppSizes.spacingLarge),
@@ -399,19 +566,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextFormField(
             controller: _otpController,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: '6-digit code',
-              labelStyle: TextStyle(color: Colors.white70),
-              prefixIcon: Icon(Icons.lock_open, color: Colors.white70),
-              border: OutlineInputBorder(),
-              enabledBorder: OutlineInputBorder(
+            decoration: InputDecoration(
+              labelText: _t('profile.otp_code_label'),
+              labelStyle: const TextStyle(color: Colors.white70),
+              prefixIcon: const Icon(Icons.lock_open, color: Colors.white70),
+              border: const OutlineInputBorder(),
+              enabledBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.white24),
               ),
             ),
             keyboardType: TextInputType.number,
             maxLength: 6,
-            validator: (v) =>
-                (v == null || v.trim().length != 6) ? 'Enter the 6-digit code' : null,
+            validator: (v) => (v == null || v.trim().length != 6)
+                ? _t('profile.otp_invalid')
+                : null,
           ),
 
           if (_errorMessage != null) ...[
@@ -426,56 +594,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : PrimaryButton(
-                  label: 'Verify Code',
+                  label: _t('profile.verify_code_button'),
                   icon: Icons.check_circle,
                   expanded: true,
+                  backgroundColor: AppColors.success,
                   onPressed: _verifyOtp,
                 ),
 
           const SizedBox(height: AppSizes.spacingMedium),
-          Center(
-            child: TextButton(
-              onPressed: _isLoading ? null : () => setState(() {
-                _otpSent = false;
-                _otpController.clear();
-                _errorMessage = null;
-              }),
-              child: const Text(
-                'Use a different email',
-                style: TextStyle(color: AppColors.catrinBlue),
-              ),
-            ),
-          ),
-          Center(
-            child: TextButton(
-              onPressed: _isLoading ? null : _sendOtp,
-              child: const Text(
-                'Resend code',
-                style: TextStyle(color: AppColors.catrinBlue),
-              ),
-            ),
-          ),
+          _buildOtpEntrySecondaryActions(),
         ],
       ),
     );
   }
+
+  /// "Use a different email" / "Resend code" — full-width and stacked on
+  /// narrow screens, side by side (each sharing half the width) on wide ones.
+  Widget _buildOtpEntrySecondaryActions() {
+    final isWideScreen = MediaQuery.of(context).size.width >= 600;
+    final useDifferentEmailButton = SecondaryButton(
+      label: _t('profile.use_different_email'),
+      onPressed: _isLoading ? null : () => setState(() {
+        _otpSent = false;
+        _otpController.clear();
+        _errorMessage = null;
+      }),
+      expanded: true,
+      fontSize: 16,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.paddingMedium,
+        vertical: AppSizes.paddingSmall,
+      ),
+    );
+    final resendCodeButton = TertiaryButton(
+      label: _t('profile.resend_code'),
+      onPressed: _isLoading ? null : _sendOtp,
+      expanded: true,
+      fontSize: 16,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.paddingMedium,
+        vertical: AppSizes.paddingSmall,
+      ),
+    );
+
+    if (isWideScreen) {
+      return Row(
+        children: [
+          Expanded(child: useDifferentEmailButton),
+          const SizedBox(width: AppSizes.spacingMedium),
+          Expanded(child: resendCodeButton),
+        ],
+      );
+    }
+    return Column(
+      children: [
+        useDifferentEmailButton,
+        const SizedBox(height: AppSizes.spacingMedium),
+        resendCodeButton,
+      ],
+    );
+  }
 }
 
-// ── Header: avatar, screen name, edit button ─────────────────────────────────
+// ── Header: avatar, screen name ───────────────────────────────────────────────
 
 class _ProfileHeader extends StatelessWidget {
   final AvatarOption avatar;
   final String screenName;
   final String placeholder;
-  final String editLabel;
-  final VoidCallback? onEdit;
 
   const _ProfileHeader({
     required this.avatar,
     required this.screenName,
     required this.placeholder,
-    required this.editLabel,
-    required this.onEdit,
   });
 
   @override
@@ -509,14 +700,36 @@ class _ProfileHeader extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        const SizedBox(height: AppSizes.spacingMedium),
-        PrimaryButton(
-          label: editLabel,
-          icon: Icons.edit,
-          backgroundColor: Colors.white24,
-          onPressed: onEdit,
-        ),
       ],
+    );
+  }
+}
+
+// ── Edit button — responsive: shrinks its label on mobile, then drops to a
+// bare pencil icon below [_kIconOnlyBreakpoint] where there isn't room for
+// both the avatar/name and the label without crowding. ─────────────────────
+
+const double _kMobileBreakpoint = 600;
+const double _kIconOnlyBreakpoint = 375;
+
+class _EditProfileButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onEdit;
+
+  const _EditProfileButton({required this.label, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final iconOnly = width < _kIconOnlyBreakpoint;
+    final isMobile = width < _kMobileBreakpoint;
+    return PrimaryButton(
+      label: label,
+      icon: Icons.edit,
+      backgroundColor: Colors.white24,
+      onPressed: onEdit,
+      iconOnly: iconOnly,
+      fontSize: isMobile ? 14 : null,
     );
   }
 }
@@ -541,10 +754,8 @@ class _BadgeRow extends StatelessWidget {
       children: [
         Text(
           title.toUpperCase(),
-          style: const TextStyle(
-            fontFamily: 'ComicRelief',
+          style: AppTheme.heading.copyWith(
             fontSize: 12,
-            fontWeight: FontWeight.bold,
             color: Colors.white54,
             letterSpacing: 1.2,
           ),
@@ -618,9 +829,9 @@ class _BadgeCircle extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: 10,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: earned ? Colors.white : Colors.white54,
             ),
           ),
@@ -664,15 +875,6 @@ class _ProfileMenu extends StatelessWidget {
               arguments: locale,
             ),
           ),
-          _MenuItemRow(
-            label: localizer('profile.menu.settings'),
-            fontSize: fontSize,
-            onTap: () => Navigator.pushNamed(
-              context,
-              AppRoutes.profileSettings,
-              arguments: locale,
-            ),
-          ),
         ],
       ),
     );
@@ -708,9 +910,9 @@ class _MenuItemRow extends StatelessWidget {
                 label,
                 textAlign: TextAlign.left,
                 style: TextStyle(
-                  fontFamily: 'ComicRelief',
+                  fontFamily: 'Quicksand',
                   fontSize: fontSize,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
               ),
@@ -804,20 +1006,15 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             const SizedBox(height: AppSizes.spacingMedium),
             Text(
               t('profile.edit_title'),
-              style: const TextStyle(
-                fontFamily: 'ComicRelief',
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-              ),
+              style: AppTheme.title.copyWith(fontSize: 20, color: Colors.white),
             ),
             const SizedBox(height: AppSizes.spacingLarge),
             Text(
               t('profile.screen_name_label'),
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 13,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: Colors.white54,
               ),
             ),
@@ -841,9 +1038,9 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             Text(
               t('profile.choose_avatar'),
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 13,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: Colors.white54,
               ),
             ),
@@ -874,12 +1071,9 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             Row(
               children: [
                 Expanded(
-                  child: TextButton(
+                  child: TertiaryButton(
+                    label: t('profile.cancel'),
                     onPressed: _isSaving ? null : () => Navigator.pop(context),
-                    child: Text(
-                      t('profile.cancel'),
-                      style: const TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
                   ),
                 ),
                 const SizedBox(width: AppSizes.spacingMedium),
@@ -927,8 +1121,8 @@ class _DeleteConfirmDialog extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
-                fontWeight: FontWeight.bold,
+                fontFamily: 'Quicksand',
+                fontWeight: FontWeight.w600,
                 fontSize: 17,
                 color: Colors.white,
               ),
@@ -937,12 +1131,9 @@ class _DeleteConfirmDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: TextButton(
+                  child: TertiaryButton(
+                    label: cancelLabel,
                     onPressed: () => Navigator.pop(context, false),
-                    child: Text(
-                      cancelLabel,
-                      style: const TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
                   ),
                 ),
                 const SizedBox(width: AppSizes.spacingMedium),

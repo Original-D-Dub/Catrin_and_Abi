@@ -176,9 +176,10 @@ class _SimpleRiveDisplayState extends State<_SimpleRiveDisplay> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: widget.size,
       height: widget.size,
+      decoration: BoxDecoration(border: Border.all(color: Colors.red, width: 2)),
       child: RiveWidgetBuilder(
         key: ValueKey(_key),
         fileLoader: _fileLoader!,
@@ -264,9 +265,10 @@ class _RiveNumberDisplayState extends State<_RiveNumberDisplay> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: widget.size,
       height: widget.size,
+      decoration: BoxDecoration(border: Border.all(color: Colors.red, width: 2)),
       child: RiveWidgetBuilder(
         key: ValueKey(_key),
         fileLoader: _fileLoader!,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/theme/app_theme.dart';
 
 /// A greyed-out placeholder tile for games coming soon.
 ///
@@ -56,9 +57,8 @@ class PlaceholderTile extends StatelessWidget {
             // Title (greyed out)
             Text(
               title,
-              style: TextStyle(
+              style: AppTheme.title.copyWith(
                 fontSize: AppSizes.fontSizeLarge,
-                fontWeight: FontWeight.bold,
                 color: Colors.grey.shade600,
               ),
               textAlign: TextAlign.center,

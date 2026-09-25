@@ -1,16 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../features/home/models/trail_node.dart';
+import '../../../features/home/providers/trail_provider.dart';
+import '../../../features/home/widgets/trail_navigation.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/auth_provider.dart';
+import '../../../shared/services/game_instructions_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/level_select_screen.dart';
 import '../../../shared/widgets/level_transition_overlay.dart';
 import '../providers/letter_bingo_provider.dart';
+import 'animal_collection_screen.dart';
 import '../widgets/bingo_celebration.dart';
 import '../widgets/bingo_tile.dart';
 import '../widgets/called_letter_display.dart';
@@ -28,11 +36,16 @@ import '../widgets/called_letter_display.dart';
 ///
 /// [locale] controls UI text ('en' or 'cy'); the sign system (BSL/IAC) is
 /// read from [LetterBingoProvider.signSystem], set when the route is
-/// created from the player's current [SettingsProvider] preference.
+/// created from the player's current sign-system preference.
 class LetterBingoScreen extends StatefulWidget {
   final String locale;
 
-  const LetterBingoScreen({super.key, this.locale = 'en'});
+  /// Set when launched from the "Learn BSL trail" — the id of the trail
+  /// node this session represents. Null for normal play from the game's
+  /// own home tile.
+  final String? trailNodeId;
+
+  const LetterBingoScreen({super.key, this.locale = 'en', this.trailNodeId});
 
   @override
   State<LetterBingoScreen> createState() => _LetterBingoScreenState();
@@ -43,16 +56,52 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
   LetterBingoPhase? _lastPhase;
   Future<void>? _introFuture;
   bool _showTryAgain = false;
+  final _tapInstructionBubbleKey = GlobalKey<_TapInstructionBubbleState>();
+  final _instructionsService = GameInstructionsService();
+
+  /// Whether the "tap the first/second tile" bubble should show — false
+  /// until [GameInstructionsService.hasSeenInstructions] resolves, so it
+  /// never flashes on for a returning player.
+  bool _showTapInstructions = false;
+
+  static const _tapInstructionsGameId = 'letter_bingo_tap_instructions';
+
+  /// Resolve when the tap_first/tap_second instruction bubble's spoken clip
+  /// finishes, so [CalledLetterDisplay] can hold the first/second letter's
+  /// sound until the relevant instruction has finished playing. Replaced
+  /// with fresh completers on every level (re)start — see the phase
+  /// transition in [build].
+  Completer<void> _tapFirstAudioCompleter = Completer<void>();
+  Completer<void> _tapSecondAudioCompleter = Completer<void>();
 
   @override
   void initState() {
     super.initState();
-    AudioService.playTitle('letter_bingo', locale: widget.locale);
+    _instructionsService.hasSeenInstructions(_tapInstructionsGameId).then((seen) {
+      if (mounted && !seen) setState(() => _showTapInstructions = true);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<LetterBingoProvider>();
       provider.onCorrect = () => AudioService.playCorrect('letter_bingo');
       provider.onWrongTap = _handleWrongTap;
+      if (widget.trailNodeId != null) {
+        context.read<TrailProvider>().enterTrail(widget.trailNodeId!);
+        provider.onLevelComplete = (score) {
+          final node = bslTrail.firstWhere((n) => n.id == widget.trailNodeId);
+          if (node.minScore == null || score >= node.minScore!) {
+            context.read<TrailProvider>().completeNode(widget.trailNodeId!);
+          }
+        };
+      }
     });
+  }
+
+  /// Marks the tap instructions seen for good — via the bubble's "got it"
+  /// link or by finishing a level without tapping it — and hides it.
+  void _dismissTapInstructions() {
+    if (!_showTapInstructions) return;
+    _instructionsService.markInstructionsSeen(_tapInstructionsGameId);
+    if (mounted) setState(() => _showTapInstructions = false);
   }
 
   void _handleWrongTap() {
@@ -62,6 +111,24 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) setState(() => _showTryAgain = false);
     });
+  }
+
+  /// Releases the matching gate future once the tap_first/tap_second
+  /// bubble's clip finishes, so [CalledLetterDisplay] can speak the letter
+  /// it was holding for.
+  void _handleTapInstructionAudioComplete(String messageKey) {
+    switch (messageKey) {
+      case 'tap_first':
+        if (!_tapFirstAudioCompleter.isCompleted) {
+          _tapFirstAudioCompleter.complete();
+        }
+        break;
+      case 'tap_second':
+        if (!_tapSecondAudioCompleter.isCompleted) {
+          _tapSecondAudioCompleter.complete();
+        }
+        break;
+    }
   }
 
   @override
@@ -82,6 +149,23 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
               ? 'letter_bingo.iac'
               : 'letter_bingo.bsl';
           _introFuture = AudioService.playIntroAndWait(introGameId);
+          // Fresh completers each (re)start — the previous ones may already
+          // be completed from the last playthrough.
+          _tapFirstAudioCompleter = Completer<void>();
+          _tapSecondAudioCompleter = Completer<void>();
+        }
+        // Finishing a level counts as "first play" done, even if the player
+        // never tapped "got it" — otherwise the instructions would show
+        // again on every later level, not just the one they were shown on.
+        // Deferred to after this frame since dismissing calls setState, and
+        // other parts of this same tree (the tap instruction bubble) are
+        // still mid-build here.
+        if (provider.phase == LetterBingoPhase.bingo &&
+            _lastPhase == LetterBingoPhase.playing &&
+            _showTapInstructions) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _dismissTapInstructions();
+          });
         }
         _lastPhase = provider.phase;
 
@@ -112,20 +196,30 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
                   Positioned.fill(
                     child: BingoCelebration(
                       locale: widget.locale,
+                      signSystem: provider.signSystem,
                       animal: auth.isAnonymous ? null : provider.rewardAnimal,
                       playerId: auth.userId,
                       levelNumber: provider.currentLevel?.number ?? 1,
-                      onPlayAgain: () {
-                        final levelNumber = provider.currentLevel?.number ?? 1;
-                        final isNarrow =
-                            MediaQuery.of(context).size.width < 441;
-                        provider.startLevel(
-                          levelNumber: levelNumber,
-                          tileCountOverride:
-                              (levelNumber == 1 && isNarrow) ? 3 : null,
-                        );
+                      onPlayAgain: () => _playAgain(provider),
+                      onSeeCollection: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AnimalCollectionScreen(
+                            onPlayAgain: () => _playAgain(provider),
+                            locale: widget.locale,
+                            signSystem: provider.signSystem,
+                          ),
+                        ),
+                      ),
+                      onNextLevel: _nextLevelCallback(context, provider),
+                      onChangeLevel: () {
+                        final trail = context.read<TrailProvider>();
+                        if (trail.activeNodeId != null) {
+                          advanceTrail(context, trail);
+                        } else {
+                          provider.showLevelSelection();
+                        }
                       },
-                      onChangeLevel: () => provider.showLevelSelection(),
                     ),
                   ),
 
@@ -138,6 +232,30 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
         );
       },
     );
+  }
+
+  /// Restarts the current level (shared by the celebration's "Play Again"
+  /// and the collection screen's "Play Again").
+  void _playAgain(LetterBingoProvider provider) {
+    final levelNumber = provider.currentLevel?.number ?? 1;
+    final isNarrow = MediaQuery.of(context).size.width < 441;
+    provider.startLevel(
+      levelNumber: levelNumber,
+      tileCountOverride: (levelNumber == 1 && isNarrow) ? 3 : null,
+    );
+  }
+
+  /// "Next Level" for [BingoCelebration] — advances the trail when this
+  /// session came from it, otherwise behaves exactly like every other
+  /// game's next-level button (next level in this game, null on the last).
+  VoidCallback? _nextLevelCallback(
+      BuildContext context, LetterBingoProvider provider) {
+    if (context.watch<TrailProvider>().activeNodeId != null) {
+      return () => advanceTrail(context, context.read<TrailProvider>());
+    }
+    final current = provider.currentLevel?.number ?? 1;
+    if (current >= provider.levels.length) return null;
+    return () => provider.startLevel(levelNumber: current + 1);
   }
 
 /// Builds the appropriate body widget based on the current phase.
@@ -159,12 +277,7 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
   /// Builds the level selection view with title and 2-column grid.
   Widget _buildLevelSelect(BuildContext context, LetterBingoProvider provider,
       AppLocalizations localizer) {
-    final introKey = provider.signSystem == SignSystem.iac
-        ? 'letter_bingo.iac.intro'
-        : 'letter_bingo.bsl.intro';
-
     return LevelSelectScreen(
-      subtitle: localizer(introKey),
       locale: widget.locale,
       levels: provider.levels.map((level) {
         return LevelSelectItem(
@@ -208,6 +321,29 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
     final levelName = provider.currentLevel != null
         ? localizer(provider.currentLevel!.name)
         : '';
+    final showTapInstructions =
+        provider.phase == LetterBingoPhase.playing && _showTapInstructions;
+    final tappingFirst = provider.tappedLetters.isEmpty;
+    final tapFirstKey = provider.signSystem == SignSystem.iac
+        ? 'letter_bingo.iac.tap_first'
+        : 'letter_bingo.bsl.tap_first';
+    final tapFirstAudioGameId = provider.signSystem == SignSystem.iac
+        ? 'letter_bingo_iac'
+        : 'letter_bingo_bsl';
+
+    // Hold the first letter's sound until both the intro and the tap_first
+    // bubble's clip have finished; hold the second letter's sound until the
+    // tap_second bubble's clip has finished. Only relevant while the
+    // instructions are actually showing — once dismissed, letters play as
+    // soon as they're called, same as before this bubble existed.
+    final firstLetterGate = showTapInstructions
+        ? Future.wait([
+            _introFuture ?? Future<void>.value(),
+            _tapFirstAudioCompleter.future,
+          ]).then((_) {})
+        : _introFuture;
+    final secondLetterGate =
+        showTapInstructions ? _tapSecondAudioCompleter.future : null;
 
     return Stack(
       children: [
@@ -218,16 +354,23 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
 
             // Header bar with back arrow and level number
             GameHeaderBar(
-              onBack: () => provider.showLevelSelection(),
+              onBack: () {
+                final trail = context.read<TrailProvider>();
+                if (trail.activeNodeId != null) {
+                  advanceTrail(context, trail);
+                } else {
+                  provider.showLevelSelection();
+                }
+              },
               showScore: false,
               levelNumber: provider.currentLevel?.number ?? 1,
               centerContent: Center(
                 child: Text(
                   levelName,
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: 18,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                   textAlign: TextAlign.center,
@@ -263,12 +406,12 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
               padding: const EdgeInsets.only(bottom: 8),
               child: Opacity(
                 opacity: _showTryAgain ? 1.0 : 0.0,
-                child: const Text(
-                  'Try again!',
-                  style: TextStyle(
-                    fontFamily: 'ComicRelief',
+                child: Text(
+                  localizer('general.try_again'),
+                  style: const TextStyle(
+                    fontFamily: 'Quicksand',
                     fontSize: 28,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w600,
                     color: Colors.red,
                   ),
                   textAlign: TextAlign.center,
@@ -281,11 +424,38 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
               CalledLetterDisplay(
                 letter: provider.calledLetter!,
                 signSystem: provider.signSystem,
-                introFuture: _introFuture,
+                introFuture: firstLetterGate,
+                secondCallGateFuture: secondLetterGate,
+                locale: widget.locale,
               ),
           ],
         ),
 
+        if (showTapInstructions)
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.topCenter,
+              // 8px leading gap + GameHeaderBar's fixed 88px height + a
+              // small breathing gap, so the bubble sits just below the
+              // header bar instead of overlapping it.
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8 + 88 + AppSizes.spacingSmall),
+                child: _TapInstructionBubble(
+                  key: _tapInstructionBubbleKey,
+                  audioGameId:
+                      tappingFirst ? tapFirstAudioGameId : 'letter_bingo',
+                  messageKey: tappingFirst ? 'tap_first' : 'tap_second',
+                  text: tappingFirst
+                      ? localizer(tapFirstKey)
+                      : localizer('letter_bingo.tap_second'),
+                  locale: widget.locale,
+                  dismissLabel: localizer('letter_bingo.got_it'),
+                  onDismiss: _dismissTapInstructions,
+                  onAudioComplete: _handleTapInstructionAudioComplete,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -345,5 +515,163 @@ class _LetterBingoScreenState extends State<LetterBingoScreen>
     }
   }
 
+}
 
+/// Pink instruction bubble, pinned to the top of the screen, that stays
+/// visible until explicitly dismissed via its "got it" link — no auto-hide
+/// timer. Same visual style as card_matching's tap instruction bubble:
+/// switches from the "tap first" to the "tap second" prompt (and replays
+/// that prompt's spoken clip) as soon as the player lands their first
+/// correct tap. Dismissing via [onDismiss] persists so it doesn't show
+/// again.
+class _TapInstructionBubble extends StatefulWidget {
+  final String text;
+
+  /// The gameId prefix passed to [AudioService.playInstructionClip] — the
+  /// tap_first prompt differs by sign system (`letter_bingo_bsl` /
+  /// `letter_bingo_iac`) while tap_second is common (`letter_bingo`).
+  final String audioGameId;
+
+  /// Identifies which prompt [text] is — `'tap_first'` or `'tap_second'`.
+  final String messageKey;
+
+  final String dismissLabel;
+  final String locale;
+
+  /// Called when the bubble is dismissed for good — via the "got it" link
+  /// or by landing a second correct tap — used to persist that instructions
+  /// shouldn't be shown again.
+  final VoidCallback onDismiss;
+
+  /// Called with [messageKey] once the clip currently playing for [text]
+  /// finishes — lets the screen hold the matching called letter's sound
+  /// until the instruction has finished.
+  final void Function(String messageKey)? onAudioComplete;
+
+  const _TapInstructionBubble({
+    super.key,
+    required this.text,
+    required this.audioGameId,
+    required this.messageKey,
+    required this.dismissLabel,
+    required this.locale,
+    required this.onDismiss,
+    this.onAudioComplete,
+  });
+
+  @override
+  State<_TapInstructionBubble> createState() => _TapInstructionBubbleState();
+}
+
+class _TapInstructionBubbleState extends State<_TapInstructionBubble> {
+  static const _fadeDuration = Duration(milliseconds: 300);
+
+  bool _visible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _playMessageAudio();
+  }
+
+  @override
+  void didUpdateWidget(_TapInstructionBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.text != oldWidget.text) {
+      _playMessageAudio();
+    }
+  }
+
+  Future<void> _playMessageAudio() async {
+    final messageKey = widget.messageKey;
+    await AudioService.playInstructionClipAndWait(
+      widget.audioGameId,
+      messageKey,
+      locale: widget.locale,
+    );
+    widget.onAudioComplete?.call(messageKey);
+  }
+
+  void _dismiss() {
+    setState(() => _visible = false);
+    widget.onDismiss();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.of(context).size.width >= 600;
+
+    return AnimatedOpacity(
+      opacity: _visible ? 1.0 : 0.0,
+      duration: _fadeDuration,
+      child: Container(
+        width: isWideScreen ? 320 : 280,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.accentPurple,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              fit: StackFit.passthrough,
+              children: [
+                Text(
+                  widget.text,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    foreground: Paint()
+                      ..style = PaintingStyle.stroke
+                      ..strokeWidth = 1
+                      ..color = const Color(0xFF0F57DD),
+                  ),
+                ),
+                Text(
+                  widget.text,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: _dismiss,
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.dismissLabel,
+                        style: const TextStyle(
+                          fontFamily: 'Quicksand',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.thumb_up, size: 16, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/routes.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../models/zoo_character.dart';
 import '../widgets/zoo_framed_box.dart';
@@ -22,12 +21,6 @@ class ZooPickPlayerScreen extends StatefulWidget {
 }
 
 class _ZooPickPlayerScreenState extends State<ZooPickPlayerScreen> {
-  @override
-  void initState() {
-    super.initState();
-    AudioService.playTitle('zoo_pick_player', locale: widget.locale);
-  }
-
   @override
   Widget build(BuildContext context) {
     final locale = widget.locale;
@@ -137,9 +130,9 @@ class _CharacterTile extends StatelessWidget {
           Text(
             localizer(character.nameKey),
             style: const TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: 20,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
               shadows: [
                 Shadow(

@@ -33,8 +33,8 @@ class SignSystemToggle extends StatelessWidget {
         selectedForegroundColor: AppColors.accentPurple,
         side: const BorderSide(color: Colors.white70),
         textStyle: const TextStyle(
-          fontFamily: 'ComicRelief',
-          fontWeight: FontWeight.bold,
+          fontFamily: 'Quicksand',
+          fontWeight: FontWeight.w600,
           fontSize: 14,
         ),
       ),

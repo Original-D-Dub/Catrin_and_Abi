@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/config/routes.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/widgets/button.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../game/zoo_quest_game.dart';
 import '../providers/zoo_provider.dart';
@@ -118,18 +119,11 @@ class _ZooScreenState extends State<ZooScreen> {
               return Positioned(
                 left: left,
                 top: top,
-                child: FloatingActionButton.extended(
-                  backgroundColor: const Color(0xFF3B6231),
-                  foregroundColor: Colors.white,
-                  icon: const Icon(Icons.meeting_room),
-                  label: Text(
-                    '${localizer('zoo.enter')} — '
-                    '${localizer(zone.titleKey)}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                child: PrimaryButton(
+                  label:
+                      '${localizer('zoo.enter')} — '
+                      '${localizer(zone.titleKey)}',
+                  icon: Icons.meeting_room,
                   onPressed: () => Navigator.pushNamed(
                     context,
                     AppRoutes.zooBuilding,

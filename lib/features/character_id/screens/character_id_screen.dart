@@ -8,6 +8,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
+import '../../../shared/widgets/button.dart';
 import '../../../shared/widgets/circular_video_container.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
@@ -36,17 +37,6 @@ class CharacterIdScreen extends StatefulWidget {
 
 class _CharacterIdScreenState extends State<CharacterIdScreen> {
   bool _showingIntro = false;
-  bool _titlePlayed = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_titlePlayed) {
-      _titlePlayed = true;
-      AudioService.playTitle('character_id',
-          locale: AppLocalizations.of(context).locale);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,9 +90,9 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
                                         child: Text(
                                           localizer('character_id.level${provider.currentLevel.number}.name'),
                                           style: const TextStyle(
-                                            fontFamily: 'ComicRelief',
+                                            fontFamily: 'Quicksand',
                                             fontSize: 16,
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight: FontWeight.w600,
                                             color: Colors.white,
                                           ),
                                           textAlign: TextAlign.center,
@@ -119,6 +109,7 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
                   if (_showingIntro)
                     GameIntroCountdown(
                       gameId: 'character_id',
+                      levelNumber: provider.currentLevel.number,
                       onComplete: () {
                         setState(() => _showingIntro = false);
                         provider.startSpeedRound();
@@ -201,9 +192,9 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
               ),
             ),
             const SizedBox(height: AppSizes.spacingLarge),
-            ElevatedButton(
+            SecondaryButton(
+              label: 'Retry',
               onPressed: () => provider.loadCharacterData(),
-              child: const Text('Retry'),
             ),
           ],
         ),
@@ -376,21 +367,24 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
         final showColourHint = provider.isLevel1;
 
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             for (int i = 0; i < choices.length; i++) ...[
               if (i > 0) const SizedBox(width: AppSizes.spacingMedium),
               Expanded(
-                child: _buildColorButton(
-                  colorName: choices[i],
-                  isSelected: provider.selectedAnswer == choices[i],
-                  isCorrect: provider.gameState == CharacterIdGameState.correct &&
-                      provider.selectedAnswer == choices[i],
-                  isWrong: provider.gameState == CharacterIdGameState.wrong &&
-                      provider.selectedAnswer == choices[i],
-                  isDisabled: isDisabled,
-                  showColourHint: showColourHint,
-                  onPressed: () => provider.selectLevel1Answer(choices[i]),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: _buildColorButton(
+                    colorName: choices[i],
+                    isSelected: provider.selectedAnswer == choices[i],
+                    isCorrect: provider.gameState == CharacterIdGameState.correct &&
+                        provider.selectedAnswer == choices[i],
+                    isWrong: provider.gameState == CharacterIdGameState.wrong &&
+                        provider.selectedAnswer == choices[i],
+                    isDisabled: isDisabled,
+                    showColourHint: showColourHint,
+                    onPressed: () => provider.selectLevel1Answer(choices[i]),
+                  ),
                 ),
               ),
             ],
@@ -743,9 +737,9 @@ class _CharacterIdScreenState extends State<CharacterIdScreen> {
                 name,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'ComicRelief',
+                  fontFamily: 'Quicksand',
                   fontSize: AppSizes.fontSizeLarge,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: textColor,
                 ),
               ),
@@ -959,9 +953,9 @@ class _FeedbackOverlayState extends State<_FeedbackOverlay> {
                 Text(
                   _isCorrect ? 'Correct!' : 'Try again!',
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: AppSizes.fontSizeLarge,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),

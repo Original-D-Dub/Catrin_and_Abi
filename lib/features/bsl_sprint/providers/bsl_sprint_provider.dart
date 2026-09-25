@@ -185,10 +185,6 @@ class BslSprintProvider extends ChangeNotifier {
     lastResult = null;
     _remainingWords = List.from(_activeWordPool)..shuffle(_rng);
     _nextWord();
-    if (_currentLevel.number == 0) {
-      final word = currentWord;
-      Future(() => AudioService.speak(word));
-    }
     notifyListeners();
   }
 
@@ -418,8 +414,7 @@ class BslSprintProvider extends ChangeNotifier {
           return;
         } else {
           item.collected = true;
-          //AudioService.playWrong('bsl_sprint');
-          AudioService.speak('Oops');
+          AudioService.playWrong('bsl_sprint');
           // All levels except Training penalise a wrong letter.
           if (_currentLevel.number != 0) {
             score -= 10;
@@ -493,12 +488,10 @@ class BslSprintProvider extends ChangeNotifier {
 
       _nextWord();
 
-      // Say "Well Done!" then the new word to collect.
-      final newWord = currentWord;
+      // Play the recorded "Well Done!" clip for the current locale.
       Future(() async {
         await letterAudio;
-        await AudioService.speakAndWait('Well Done!');
-        await AudioService.speak(newWord);
+        await AudioService.playSuccess('bsl_sprint', locale: locale);
       });
     } else {
       letterAudio.ignore();

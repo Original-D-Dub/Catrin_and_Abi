@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../services/video_asset_service.dart';
 
 /// A circular video player widget that auto-plays on creation and replays on tap.
 ///
@@ -69,9 +70,17 @@ class _CircularVideoContainerState extends State<CircularVideoContainer> {
     });
     previous?.dispose();
 
-    if (widget.videoAssetPath == null) return;
+    final requestedPath = widget.videoAssetPath;
+    if (requestedPath == null) return;
 
-    final controller = VideoPlayerController.asset(widget.videoAssetPath!);
+    final VideoPlayerController controller;
+    if (VideoAssetService.isRemote(requestedPath)) {
+      final file = await VideoAssetService.resolveLocalFile(requestedPath);
+      if (!mounted || widget.videoAssetPath != requestedPath) return;
+      controller = VideoPlayerController.file(file);
+    } else {
+      controller = VideoPlayerController.asset(requestedPath);
+    }
     setState(() => _controller = controller);
 
     await controller.initialize();
@@ -115,9 +124,9 @@ class _CircularVideoContainerState extends State<CircularVideoContainer> {
           widget.label,
           style: TextStyle(
             color: Colors.white,
-            fontFamily: 'ComicRelief',
+            fontFamily: 'Quicksand',
             fontSize: widget.size * 0.09,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
           textAlign: TextAlign.center,
         ),

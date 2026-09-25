@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -49,8 +51,21 @@ class SettingsProvider extends ChangeNotifier {
   /// Whether spoken/audio game instructions play.
   bool get instructionsEnabled => _instructionsEnabled;
 
+  late final StreamSubscription<AuthState> _authSubscription;
+
   SettingsProvider() {
     _load();
+    // Reload whenever the signed-in account changes (sign in, sign out,
+    // switch to/from a guest session) so settings reflect the *current*
+    // account instead of whatever was last loaded in memory.
+    _authSubscription =
+        Supabase.instance.client.auth.onAuthStateChange.listen((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -186,14 +201,16 @@ class SettingsProvider extends ChangeNotifier {
     if (user != null && !user.isAnonymous) {
       try {
         await Supabase.instance.client.auth.updateUser(
-          UserAttributes(data: {
-            _langKey: _language,
-            _categoryKey: _gameCategory.toPrefsString(),
-            _ageGroupKey: _ageGroup.toPrefsString(),
-            _signSystemKey: _signSystem.toPrefsString(),
-            _soundEffectsEnabledKey: _soundEffectsEnabled,
-            _instructionsEnabledKey: _instructionsEnabled,
-          }),
+          UserAttributes(
+            data: {
+              _langKey: _language,
+              _categoryKey: _gameCategory.toPrefsString(),
+              _ageGroupKey: _ageGroup.toPrefsString(),
+              _signSystemKey: _signSystem.toPrefsString(),
+              _soundEffectsEnabledKey: _soundEffectsEnabled,
+              _instructionsEnabledKey: _instructionsEnabled,
+            },
+          ),
         );
       } catch (_) {
         // Non-critical — local preference already saved.

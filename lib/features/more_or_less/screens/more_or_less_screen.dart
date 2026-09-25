@@ -36,7 +36,6 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
   @override
   void initState() {
     super.initState();
-    AudioService.playTitle('more_or_less', locale: widget.locale);
   }
 
   @override
@@ -172,9 +171,9 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
                   '${localizer('more_or_less.round_label')} ${provider.roundNumber} '
                   '${localizer('more_or_less.of_label')} ${MoreOrLessProvider.totalRounds}',
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
@@ -251,9 +250,9 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
         : 'more_or_less.less_than';
 
     final textStyle = TextStyle(
-      fontFamily: 'ComicRelief',
+      fontFamily: 'Quicksand',
       fontSize: AppSizes.fontSizeLarge * scale,
-      fontWeight: FontWeight.bold,
+      fontWeight: FontWeight.w600,
       color: AppColors.textPrimary,
     );
 
@@ -344,9 +343,9 @@ class _YesNoButton extends StatelessWidget {
               child: Text(
                 label,
                 style: const TextStyle(
-                  fontFamily: 'ComicRelief',
+                  fontFamily: 'Quicksand',
                   fontSize: 28,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.accentWhite,
                 ),
               ),

@@ -179,4 +179,10 @@ class AppSizes {
 
   /// Card letter text size
   static const double fontSizeCardLetter = 36.0;
+
+  /// Extra large text size
+  static const double fontSizeExtraLarge = 40.0;
+
+  /// Extra extra large text size
+  static const double fontSizeExtraExtraLarge = 60.0;
 }

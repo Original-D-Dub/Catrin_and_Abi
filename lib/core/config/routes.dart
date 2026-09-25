@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../features/splash/screens/splash_screen.dart';
 import '../../features/welcome/screens/welcome_screen.dart';
 import '../../features/home/screens/home_screen.dart';
+import '../../features/home/screens/learn_bsl_trail_screen.dart';
 import '../../features/home/screens/welsh_home_screen.dart';
 import '../../features/card_matching/screens/card_game_screen.dart';
 import '../../features/card_matching/providers/card_game_provider.dart';
@@ -27,6 +28,8 @@ import '../../features/character_id/screens/character_id_screen.dart';
 import '../../features/letter_bingo/screens/letter_bingo_screen.dart';
 import '../../features/letter_bingo/screens/animal_collection_screen.dart';
 import '../../features/letter_bingo/providers/letter_bingo_provider.dart';
+import '../../features/letter_bingo/providers/bingo_collection_provider.dart';
+import '../../shared/services/auth_provider.dart';
 import '../../features/counting_game/screens/counting_game_screen.dart';
 import '../../features/counting_game/providers/counting_game_provider.dart';
 import '../../features/number_line/screens/number_line_screen.dart';
@@ -44,6 +47,7 @@ import '../../features/privacy/screens/privacy_policy_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/videos_screen.dart';
 import '../../features/profile/screens/scores_screen.dart';
+import '../../features/profile/providers/scores_provider.dart';
 import '../../features/profile/screens/profile_settings_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/word_whirl/providers/word_whirl_provider.dart';
@@ -202,6 +206,10 @@ class AppRoutes {
   /// App settings (language, etc.)
   static const String settings = '/settings';
 
+  /// "Learn BSL"/"Learn IAC" guided trail — chains specific levels of
+  /// existing games into one ordered, partly-branching sequence.
+  static const String learnBslTrail = '/learn-bsl-trail';
+
   /// Initial route when app launches
   static const String initial = splash;
 }
@@ -246,13 +254,25 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.cardMatching:
-      final cardMatchingLocale = settings.arguments as String? ?? 'en';
+      final cardMatchingArgs = settings.arguments;
+      final cardMatchingLocale = cardMatchingArgs is Map
+          ? (cardMatchingArgs['locale'] ?? 'en')
+          : (cardMatchingArgs as String? ?? 'en');
+      final cardMatchingLevel = cardMatchingArgs is Map
+          ? int.tryParse(cardMatchingArgs['level'] ?? '')
+          : null;
+      final cardMatchingTrailNode =
+          cardMatchingArgs is Map ? cardMatchingArgs['trailNode'] as String? : null;
       return MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider(
           create: (context) => CardGameProvider(
             signSystem: context.read<SettingsProvider>().signSystem,
+            initialLevelNumber: cardMatchingLevel,
           ),
-          child: CardGameScreen(locale: cardMatchingLocale),
+          child: CardGameScreen(
+            locale: cardMatchingLocale,
+            trailNodeId: cardMatchingTrailNode,
+          ),
         ),
         settings: settings,
       );
@@ -260,13 +280,25 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case AppRoutes.bubblePop:
       // Provide BubblePopProvider scoped to this route, with the player's
       // current locale and sign-system (BSL/IAC) preference.
-      final bubblePopLocale = settings.arguments as String? ?? 'en';
+      final bubblePopArgs = settings.arguments;
+      final bubblePopLocale = bubblePopArgs is Map
+          ? (bubblePopArgs['locale'] ?? 'en')
+          : (bubblePopArgs as String? ?? 'en');
+      final bubblePopLevel = bubblePopArgs is Map
+          ? int.tryParse(bubblePopArgs['level'] ?? '')
+          : null;
+      final bubblePopTrailNode =
+          bubblePopArgs is Map ? bubblePopArgs['trailNode'] as String? : null;
       return MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider(
           create: (context) => BubblePopProvider(
             signSystem: context.read<SettingsProvider>().signSystem,
+            initialLevelNumber: bubblePopLevel,
           ),
-          child: BubblePopScreen(locale: bubblePopLocale),
+          child: BubblePopScreen(
+            locale: bubblePopLocale,
+            trailNodeId: bubblePopTrailNode,
+          ),
         ),
         settings: settings,
       );
@@ -282,13 +314,21 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.vowelHand:
-      final vowelHandLocale = settings.arguments as String? ?? 'en';
+      final vowelHandArgs = settings.arguments;
+      final vowelHandLocale = vowelHandArgs is Map
+          ? (vowelHandArgs['locale'] ?? 'en')
+          : (vowelHandArgs as String? ?? 'en');
+      final vowelHandTrailNode =
+          vowelHandArgs is Map ? vowelHandArgs['trailNode'] as String? : null;
       return MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider(
           create: (context) => VowelHandProvider(
             signSystem: context.read<SettingsProvider>().signSystem,
           ),
-          child: VowelHandScreen(locale: vowelHandLocale),
+          child: VowelHandScreen(
+            locale: vowelHandLocale,
+            trailNodeId: vowelHandTrailNode,
+          ),
         ),
         settings: settings,
       );
@@ -388,13 +428,31 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case AppRoutes.letterBingo:
       // Letter Bingo game with provider, scoped with the player's current
       // locale and sign-system (BSL/IAC) preference.
-      final letterBingoLocale = settings.arguments as String? ?? 'en';
+      final letterBingoArgs = settings.arguments;
+      final letterBingoLocale = letterBingoArgs is Map
+          ? (letterBingoArgs['locale'] ?? 'en')
+          : (letterBingoArgs as String? ?? 'en');
+      final letterBingoLevel = letterBingoArgs is Map
+          ? int.tryParse(letterBingoArgs['level'] ?? '')
+          : null;
+      final letterBingoTrailNode = letterBingoArgs is Map
+          ? letterBingoArgs['trailNode'] as String?
+          : null;
       return MaterialPageRoute(
+        // `create` (unlike `builder`, which can re-run mid page-transition)
+        // is only ever invoked once, so LetterBingoProvider's constructor —
+        // not this closure — is where reward preloading is kicked off.
         builder: (context) => ChangeNotifierProvider(
           create: (context) => LetterBingoProvider(
             signSystem: context.read<SettingsProvider>().signSystem,
+            bingoCollection: context.read<BingoCollectionProvider>(),
+            playerId: context.read<AuthProvider>().userId,
+            initialLevelNumber: letterBingoLevel,
           ),
-          child: LetterBingoScreen(locale: letterBingoLocale),
+          child: LetterBingoScreen(
+            locale: letterBingoLocale,
+            trailNodeId: letterBingoTrailNode,
+          ),
         ),
         settings: settings,
       );
@@ -408,11 +466,24 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 
 
     case AppRoutes.countingGame:
-      final countingGameLocale = settings.arguments as String? ?? 'en';
+      final countingGameArgs = settings.arguments;
+      final countingGameLocale = countingGameArgs is Map
+          ? (countingGameArgs['locale'] ?? 'en')
+          : (countingGameArgs as String? ?? 'en');
+      final countingGameLevel = countingGameArgs is Map
+          ? int.tryParse(countingGameArgs['level'] ?? '')
+          : null;
+      final countingGameTrailNode = countingGameArgs is Map
+          ? countingGameArgs['trailNode'] as String?
+          : null;
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
-          create: (_) => CountingGameProvider(),
-          child: CountingGameScreen(locale: countingGameLocale),
+          create: (_) =>
+              CountingGameProvider(initialLevelNumber: countingGameLevel),
+          child: CountingGameScreen(
+            locale: countingGameLocale,
+            trailNodeId: countingGameTrailNode,
+          ),
         ),
         settings: settings,
       );
@@ -428,10 +499,11 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.countingBackGame:
+      final countingBackLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => CountingBackProvider(),
-          child: const CountingBackScreen(),
+          child: CountingBackScreen(locale: countingBackLocale),
         ),
         settings: settings,
       );
@@ -617,9 +689,17 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.profile:
-      final profileLocale = settings.arguments as String? ?? 'en';
+      final profileArgs = settings.arguments;
+      final profileLocale = profileArgs is Map
+          ? (profileArgs['locale'] ?? 'en')
+          : (profileArgs as String? ?? 'en');
+      final profileScrollToAccount =
+          profileArgs is Map && profileArgs['scrollToAccount'] == 'true';
       return MaterialPageRoute(
-        builder: (_) => ProfileScreen(locale: profileLocale),
+        builder: (_) => ProfileScreen(
+          locale: profileLocale,
+          scrollToAccount: profileScrollToAccount,
+        ),
         settings: settings,
       );
 
@@ -633,7 +713,10 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case AppRoutes.profileScores:
       final scoresLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
-        builder: (_) => ScoresScreen(locale: scoresLocale),
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => ScoresProvider(),
+          child: ScoresScreen(locale: scoresLocale),
+        ),
         settings: settings,
       );
 
@@ -648,6 +731,13 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       final locale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (_) => SettingsScreen(currentLocale: locale),
+        settings: settings,
+      );
+
+    case AppRoutes.learnBslTrail:
+      final trailLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => LearnBslTrailScreen(locale: trailLocale),
         settings: settings,
       );
 

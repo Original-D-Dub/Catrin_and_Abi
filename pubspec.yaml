@@ -31,7 +31,7 @@ dependencies:
   # Game engine for Letter Quest RPG game
   flame: ^1.23.0
   flame_audio: ^2.10.4
-  flame_svg: ^1.10.0
+  flame_svg: ^2.0.0
 
   # Rive animation runtime (files to be provided separately)
   rive: ^0.14.4
@@ -41,6 +41,13 @@ dependencies:
 
   # Video playback for BSL colour videos in the colouring game
   video_player: ^2.9.2
+
+  # Disk caching for BSL colour videos streamed from Supabase Storage, so
+  # they play back locally after the first download.
+  flutter_cache_manager: ^3.4.1
+
+  # Keychain/Keystore-backed storage for the Supabase auth session
+  flutter_secure_storage: ^11.1.1
 
 dev_dependencies:
   flutter_test:
@@ -86,11 +93,9 @@ flutter:
     - assets/catrin-wave.riv
     - assets/choose_a_game.riv
 
-    # BSL colour videos for the colouring game
-    - assets/colours_video/
-
-    # BSL colour videos for the word search game (level 2)
-    - assets/colours_video2/
+    # Note: BSL colour videos formerly at assets/colours_video/ and
+    # assets/colours_video2/ now live in the "game-videos" Supabase Storage
+    # bucket and are fetched/cached at runtime by VideoAssetService.
 
     # Game-specific assets
     - assets/games/bubble_pop/
@@ -178,3 +183,6 @@ flutter:
     - family: LuckiestGuy
       fonts:
         - asset: assets/fonts/LuckiestGuy-Regular.ttf
+    - family: Quicksand
+      fonts:
+        - asset: assets/fonts/Quicksand-VariableFont_wght.ttf

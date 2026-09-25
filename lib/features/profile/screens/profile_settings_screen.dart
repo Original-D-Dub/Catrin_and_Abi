@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/config/routes.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/services/settings_provider.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/settings_selection_tile.dart';
@@ -47,12 +48,7 @@ class ProfileSettingsScreen extends StatelessWidget {
         ),
         title: Text(
           t('profile_settings.title'),
-          style: const TextStyle(
-            fontFamily: 'ComicRelief',
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-          ),
+          style: AppTheme.title.copyWith(fontSize: 22, color: Colors.white),
         ),
         centerTitle: true,
       ),
@@ -141,16 +137,16 @@ class _ToggleTile extends StatelessWidget {
                 Text(
                   label,
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: 17,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
                 Text(
                   sublabel,
                   style: const TextStyle(
-                    fontFamily: 'ComicRelief',
+                    fontFamily: 'Quicksand',
                     fontSize: 13,
                     color: Colors.white60,
                   ),

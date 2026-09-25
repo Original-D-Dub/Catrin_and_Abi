@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/asset_paths.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Displays the Catrin & Abi logo with language awareness.
 ///
@@ -51,10 +52,7 @@ class AppLogo extends StatelessWidget {
           child: Center(
             child: Text(
               localizer('app.title'),
-              style: TextStyle(
-                fontSize: AppSizes.fontSizeHeading,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTheme.title.copyWith(fontSize: AppSizes.fontSizeHeading),
             ),
           ),
         );

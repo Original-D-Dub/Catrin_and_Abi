@@ -82,6 +82,7 @@ AvatarOption avatarById(String? id) {
 /// `.values` to enumerate automatically).
 const Set<String> _allGameIds = {
   GameIds.cardMatching,
+  GameIds.welshCardMatching,
   GameIds.bubblePop,
   GameIds.welshBubblePop,
   GameIds.colouring,
@@ -89,7 +90,9 @@ const Set<String> _allGameIds = {
   GameIds.welshVowels,
   GameIds.bslMaths,
   GameIds.letterQuest,
+  GameIds.welshLetterQuest,
   GameIds.letterBingo,
+  GameIds.welshLetterBingo,
   GameIds.characterId,
   GameIds.countingGame,
   GameIds.numberLineGame,
@@ -105,6 +108,9 @@ const Set<String> _allGameIds = {
 const Set<String> _iacGameIds = {
   GameIds.welshVowels,
   GameIds.welshBubblePop,
+  GameIds.welshCardMatching,
+  GameIds.welshLetterQuest,
+  GameIds.welshLetterBingo,
 };
 
 final Set<String> _bslGameIds =

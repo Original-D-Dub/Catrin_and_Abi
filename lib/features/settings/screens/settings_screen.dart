@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/config/routes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/services/settings_provider.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/settings_selection_tile.dart';
@@ -39,12 +40,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         title: Text(
           t('settings.title'),
-          style: const TextStyle(
-            fontFamily: 'ComicRelief',
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-          ),
+          style: AppTheme.title.copyWith(fontSize: 22, color: Colors.white),
         ),
         centerTitle: true,
       ),
@@ -186,9 +182,9 @@ class _AgeBadge extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-          fontFamily: 'ComicRelief',
+          fontFamily: 'Quicksand',
           fontSize: 12,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
       ),

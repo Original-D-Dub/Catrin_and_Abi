@@ -13,6 +13,60 @@ class AppTheme {
   // Private constructor to prevent instantiation
   AppTheme._();
 
+  /// Base style for page/section titles — the largest heading level.
+  ///
+  /// Carries only [fontFamily] and [fontWeight]; call sites layer their own
+  /// [TextStyle.copyWith] for size and color, the same way a CSS class
+  /// combines with per-element overrides.
+  static const TextStyle title = TextStyle(
+    fontFamily: 'Quicksand',
+    fontWeight: FontWeight.w700,
+  );
+
+  /// Base style for headings — a level below [title].
+  ///
+  /// Carries only [fontFamily] and [fontWeight]; call sites layer their own
+  /// [TextStyle.copyWith] for size and color.
+  static const TextStyle heading = TextStyle(
+    fontFamily: 'Quicksand',
+    fontWeight: FontWeight.w700,
+  );
+
+  /// Base style for celebratory/success messages — confetti overlays, BINGO
+  /// congratulations, reward reveals.
+  ///
+  /// Carries only [fontFamily]; call sites layer their own
+  /// [TextStyle.copyWith] for size, weight, and color.
+  static const TextStyle celebration = TextStyle(fontFamily: 'LuckiestGuy');
+
+  /// Width, in logical pixels, above which the default (unstyled) body text
+  /// in [lightTheme] grows from [narrowDeviceFontSize] to
+  /// [AppSizes.fontSizeBody].
+  static const double wideDeviceBreakpoint = 375.0;
+
+  /// Default body text size at or below [wideDeviceBreakpoint].
+  static const double narrowDeviceFontSize = 16.0;
+
+  /// [lightTheme] with its default body text sized for [width] —
+  /// [narrowDeviceFontSize] at or below [wideDeviceBreakpoint],
+  /// [AppSizes.fontSizeBody] above it.
+  ///
+  /// Only affects Text widgets that don't set their own fontSize (they
+  /// inherit [TextTheme.bodyLarge]/[TextTheme.bodyMedium]); explicit
+  /// `fontSize: AppSizes.xxx` usages elsewhere are untouched.
+  static ThemeData themeForWidth(double width) {
+    final bodyFontSize = width > wideDeviceBreakpoint
+        ? AppSizes.fontSizeBody
+        : narrowDeviceFontSize;
+    final theme = lightTheme;
+    return theme.copyWith(
+      textTheme: theme.textTheme.copyWith(
+        bodyLarge: theme.textTheme.bodyLarge?.copyWith(fontSize: bodyFontSize),
+        bodyMedium: theme.textTheme.bodyMedium?.copyWith(fontSize: bodyFontSize),
+      ),
+    );
+  }
+
   /// The main light theme for the application.
   static ThemeData get lightTheme {
     return ThemeData(
@@ -29,14 +83,13 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
 
       // AppBar theme
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: TextStyle(
+        titleTextStyle: title.copyWith(
           fontSize: AppSizes.fontSizeHeading,
-          fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
       ),
@@ -90,27 +143,25 @@ class AppTheme {
       ),
 
       // Text theme - child-friendly sizes
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(
+      textTheme: TextTheme(
+        displayLarge: title.copyWith(
           fontSize: AppSizes.fontSizeTitle,
-          fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
-        headlineMedium: TextStyle(
+        headlineMedium: heading.copyWith(
           fontSize: AppSizes.fontSizeHeading,
-          fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
-        titleLarge: TextStyle(
+        titleLarge: const TextStyle(
           fontSize: AppSizes.fontSizeLarge,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        bodyLarge: TextStyle(
+        bodyLarge: const TextStyle(
           fontSize: AppSizes.fontSizeBody,
           color: AppColors.textPrimary,
         ),
-        bodyMedium: TextStyle(
+        bodyMedium: const TextStyle(
           fontSize: AppSizes.fontSizeBody,
           color: AppColors.textSecondary,
         ),

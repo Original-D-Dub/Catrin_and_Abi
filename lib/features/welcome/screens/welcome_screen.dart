@@ -339,7 +339,6 @@ class _PulsingLanguageButtonsState extends State<_PulsingLanguageButtons>
           children: [
             _LanguageButton(
               label: 'Cymraeg',
-              sublabel: 'Gemau Cymraeg',
               color: AppColors.abiPink,
               onTap: widget.onWelshTap,
               scale: _activeIndex == 0 ? 1 + 0.02 * _pulse.value : 1.0,
@@ -348,7 +347,6 @@ class _PulsingLanguageButtonsState extends State<_PulsingLanguageButtons>
             const SizedBox(height: 20),
             _LanguageButton(
               label: 'English',
-              sublabel: 'English Games',
               color: AppColors.accentNavyBlue,
               onTap: widget.onEnglishTap,
               scale: _activeIndex == 1 ? 1 + 0.02 * _pulse.value : 1.0,
@@ -365,7 +363,6 @@ class _PulsingLanguageButtonsState extends State<_PulsingLanguageButtons>
 
 class _LanguageButton extends StatelessWidget {
   final String label;
-  final String sublabel;
   final Color color;
   final VoidCallback onTap;
   final double scale;
@@ -373,7 +370,6 @@ class _LanguageButton extends StatelessWidget {
 
   const _LanguageButton({
     required this.label,
-    required this.sublabel,
     required this.color,
     required this.onTap,
     this.scale = 1.0,
@@ -387,41 +383,31 @@ class _LanguageButton extends StatelessWidget {
       scale: scale,
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
-          decoration: BoxDecoration(
-            color: fillColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: 'ComicRelief',
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
+        child: Center(
+          child: Container(
+            width: 200,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            decoration: BoxDecoration(
+              color: fillColor,
+              borderRadius: BorderRadius.circular(36),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
+              ],
+            ),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Quicksand',
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
-              Text(
-                sublabel,
-                style: TextStyle(
-                  fontFamily: 'ComicRelief',
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white.withValues(alpha: 0.85),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -440,8 +426,8 @@ class _PressAndHoldButton extends StatelessWidget {
     return GestureDetector(
       onLongPress: onLongPress,
       child: Container(
-        width: 128,
-        height: 128,
+        width: 110,
+        height: 110,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.5),
@@ -449,12 +435,12 @@ class _PressAndHoldButton extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: const Text(
-          'Grown ups\nPress and hold',
+          'Grown ups\nPress and\nhold',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'ComicRelief',
+            fontFamily: 'Quicksand',
             fontSize: 14,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: Color(0xFF1A237E),
           ),
         ),

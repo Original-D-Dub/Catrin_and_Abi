@@ -96,9 +96,9 @@ class MiniPhotoCard extends StatelessWidget {
           Text(
             animalName,
             style: const TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: 22,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
             maxLines: 1,

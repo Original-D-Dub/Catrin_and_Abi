@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/routes.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_sizes.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/button.dart';
 import '../models/animal_model.dart';
 import '../services/animal_collection_service.dart';
+import 'animal_card.dart';
 
 /// Full-screen reward overlay shown after a logged-in player wins a round.
 ///
@@ -18,12 +23,16 @@ class AnimalRewardOverlay extends StatefulWidget {
   final String playerId;
   final VoidCallback onComplete;
 
+  /// UI locale ('en' or 'cy') used for all displayed text.
+  final String locale;
+
   const AnimalRewardOverlay({
     super.key,
     required this.animal,
     required this.levelNumber,
     required this.playerId,
     required this.onComplete,
+    this.locale = 'en',
   });
 
   @override
@@ -116,10 +125,11 @@ class _AnimalRewardOverlayState extends State<AnimalRewardOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final localizer = AppLocalizations(locale: widget.locale);
     return GestureDetector(
       onTap: _skip,
       child: Container(
-        color: const Color(0xFF002D97).withValues(alpha: 0.92),
+        color: AppColors.celebrationNavy.withValues(alpha: 0.92),
         child: SafeArea(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -128,14 +138,13 @@ class _AnimalRewardOverlayState extends State<AnimalRewardOverlay>
                 opacity: _isNew != null ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
                 child: Text(
-                  (_isNew ?? false)
-                      ? 'Congratulations!\nYou have a new friend.'
-                      : 'You have a friend!',
+                  localizer((_isNew ?? false)
+                      ? 'letter_bingo.new_friend'
+                      : 'letter_bingo.friend'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'LuckiestGuy',
+                  style: AppTheme.celebration.copyWith(
                     fontSize: 32,
-                    color: Color(0xFFFFC73A),
+                    color: const Color(0xFFFFC73A),
                   ),
                 ),
               ),
@@ -145,7 +154,7 @@ class _AnimalRewardOverlayState extends State<AnimalRewardOverlay>
                 position: _slideAnim,
                 child: FadeTransition(
                   opacity: _fadeAnim,
-                  child: _AnimalCard(animal: widget.animal),
+                  child: AnimalCard(animal: widget.animal),
                 ),
               ),
 
@@ -155,24 +164,12 @@ class _AnimalRewardOverlayState extends State<AnimalRewardOverlay>
                 opacity: _buttonFade,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 48),
-                  child: ElevatedButton.icon(
+                  child: SecondaryButton(
+                    label: localizer('letter_bingo.see_collection'),
+                    icon: Icons.grid_view,
+                    expanded: true,
                     onPressed: () => Navigator.pushNamed(
                         context, AppRoutes.animalCollection),
-                    icon: const Icon(Icons.grid_view),
-                    label: const Text('See your collection'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.abiPink,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      textStyle: const TextStyle(
-                        fontFamily: 'ComicRelief',
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                   ),
                 ),
               ),
@@ -181,80 +178,19 @@ class _AnimalRewardOverlayState extends State<AnimalRewardOverlay>
 
               FadeTransition(
                 opacity: _buttonFade,
-                child: TextButton(
+                child: TertiaryButton(
+                  label: localizer('general.skip'),
                   onPressed: _skip,
-                  child: const Text(
-                    'Skip',
-                    style: TextStyle(
-                      fontFamily: 'ComicRelief',
-                      fontSize: 14,
-                      color: Colors.white70,
-                      decoration: TextDecoration.underline,
-                      decorationColor: Colors.white70,
-                    ),
+                  fontSize: 14,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.paddingMedium,
+                    vertical: AppSizes.paddingSmall,
                   ),
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ── Animal card ──────────────────────────────────────────────────────────────
-
-class _AnimalCard extends StatelessWidget {
-  final Animal animal;
-
-  const _AnimalCard({required this.animal});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 220,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black38,
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            child: Image.asset(
-              animal.image,
-              width: 220,
-              height: 200,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                width: 220,
-                height: 200,
-                color: const Color(0xFFEEEEEE),
-                child: const Icon(Icons.pets, size: 80, color: Colors.grey),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              animal.name,
-              style: const TextStyle(
-                fontFamily: 'LuckiestGuy',
-                fontSize: 28,
-                color: Color(0xFF002D97),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

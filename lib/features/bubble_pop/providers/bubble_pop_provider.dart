@@ -243,9 +243,17 @@ class BubblePopProvider extends ChangeNotifier {
   final Random _random = Random();
   final GameStatsService _statsService = GameStatsService();
 
-  BubblePopProvider({SignSystem signSystem = SignSystem.bsl})
+  /// [initialLevelNumber], when set, skips level-select and prepares that
+  /// level directly (bubbles spawned, timer not yet running) — used when
+  /// launched from the "Learn BSL trail", so the screen can still show the
+  /// intro countdown before [startGame] actually starts the clock.
+  BubblePopProvider({SignSystem signSystem = SignSystem.bsl, int? initialLevelNumber})
       : _signSystem = signSystem,
-        _currentLevel = GameLevels.forSignSystem(signSystem).first;
+        _currentLevel = initialLevelNumber != null
+            ? GameLevels.getLevel(initialLevelNumber, signSystem)
+            : GameLevels.forSignSystem(signSystem).first {
+    if (initialLevelNumber != null) prepareForIntro();
+  }
 
   /// The sign system (BSL or IAC) this game instance uses.
   final SignSystem _signSystem;
@@ -318,6 +326,12 @@ class BubblePopProvider extends ChangeNotifier {
   String? _lastPoppedBubbleId;
   String? get lastPoppedBubbleId => _lastPoppedBubbleId;
 
+  /// Called once, with the final [_score], the moment the level ends. Set
+  /// by the screen when launched from the "Learn BSL trail" so it can
+  /// decide (score-gated, since this game has no other win condition)
+  /// whether to mark the trail node completed.
+  Function(int score)? onLevelComplete;
+
   /// Sets the game level and shows level selection.
   ///
   /// [levelNumber] must be between 1 and 6.
@@ -384,6 +398,8 @@ class BubblePopProvider extends ChangeNotifier {
     _countdownTimer?.cancel();
     _gameLoopTimer?.cancel();
     notifyListeners();
+
+    onLevelComplete?.call(_score);
 
     final gameId =
         _signSystem == SignSystem.iac ? GameIds.welshBubblePop : GameIds.bubblePop;

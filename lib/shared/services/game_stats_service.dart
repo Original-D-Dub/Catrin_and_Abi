@@ -5,6 +5,7 @@ class GameIds {
   GameIds._();
 
   static const String cardMatching = 'card_matching';
+  static const String welshCardMatching = 'welsh_card_matching';
   static const String bubblePop = 'bubble_pop';
   static const String welshBubblePop = 'welsh_bubble_pop';
   static const String colouring = 'colouring';
@@ -12,7 +13,9 @@ class GameIds {
   static const String welshVowels = 'iac_vowels';
   static const String bslMaths = 'bsl_maths';
   static const String letterQuest = 'letter_quest';
+  static const String welshLetterQuest = 'welsh_letter_quest';
   static const String letterBingo = 'letter_bingo';
+  static const String welshLetterBingo = 'welsh_letter_bingo';
   static const String characterId = 'character_id';
   static const String countingGame = 'counting_game';
   static const String numberLineGame = 'number_line_game';

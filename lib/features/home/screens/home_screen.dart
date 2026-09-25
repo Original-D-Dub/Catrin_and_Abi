@@ -10,6 +10,7 @@ import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/auth_provider.dart';
 import '../../../shared/services/settings_provider.dart';
+import '../../../shared/widgets/learn_sign_system_tile.dart';
 import '../../../shared/widgets/sign_system_toggle.dart';
 import '../models/home_game_entry.dart';
 
@@ -86,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            tooltip: 'Settings',
+            tooltip: localizer('profile.menu.settings'),
             icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 28),
             onPressed: () => Navigator.pushNamed(
               context,
@@ -96,7 +97,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Consumer<AuthProvider>(
             builder: (context, auth, _) => IconButton(
-              tooltip: auth.isAnonymous ? 'Save your scores' : 'Profile',
+              tooltip: auth.isAnonymous
+                  ? localizer('profile.save_scores_heading')
+                  : localizer('profile.title'),
               icon: Icon(
                 auth.isAnonymous ? Icons.person_outline : Icons.person,
                 color: Colors.white,
@@ -113,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Background image
           Positioned.fill(
             child: Image.asset(
-              'assets/backgrounds/home-screen-background.jpg',
+              'assets/backgrounds/background_purple.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -152,15 +155,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             localizer('home.sign_system_label'),
                             style: const TextStyle(
-                              fontFamily: 'ComicRelief',
+                              fontFamily: 'Quicksand',
                               fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               color: Colors.white,
                             ),
                           ),
                           const SizedBox(width: 8),
                           const SignSystemToggle(),
                         ],
+                      ),
+                      const SizedBox(height: AppSizes.spacingSmall),
+
+                      LearnSignSystemTile(
+                        locale: 'en',
+                        height: gameGridTileHeight(context, constraints.maxWidth),
                       ),
                       const SizedBox(height: AppSizes.spacingSmall),
 
@@ -185,14 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     return Builder(
       builder: (context) {
-        final mq = MediaQuery.of(context);
-        final isTabletLandscape =
-            mq.size.width >= 768 && mq.orientation == Orientation.landscape;
-        final crossAxisCount = isTabletLandscape
-            ? 4
-            : width < 400
-                ? 2
-                : 3;
+        final crossAxisCount = gameGridCrossAxisCount(context, width);
 
         // Every game is tagged with a category and the school-year bands it
         // suits. Adjust these sets here if the difficulty/topic of a game changes.
@@ -334,13 +336,13 @@ class _HomeScreenState extends State<HomeScreen> {
         final gameTiles = buildGameTiles(context, allGames, settings, localizer);
 
         if (gameTiles.isEmpty) {
-          return const SizedBox(
+          return SizedBox(
             height: 200,
             child: Center(
               child: Text(
-                'No games match the current filters.\nOpen Settings to adjust.',
-                style: TextStyle(
-                  fontFamily: 'ComicRelief',
+                localizer('home.no_games_match'),
+                style: const TextStyle(
+                  fontFamily: 'Quicksand',
                   fontSize: 16,
                   color: Colors.white70,
                 ),
@@ -366,9 +368,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return GridView.count(
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 0.85,
+          crossAxisSpacing: gameGridSpacing,
+          mainAxisSpacing: gameGridSpacing,
+          childAspectRatio: gameGridChildAspectRatio,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: gameTiles,

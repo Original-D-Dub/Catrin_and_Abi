@@ -25,7 +25,12 @@ const Map<String, String> translationsCy = {
   // Home Screen
   // -------------------------
   'home.title': 'Dewiswch Gêm',
+  'home.no_games_match':
+      "Does dim gemau'n cyd-fynd â'r hidlwyr presennol.\nAgorwch Gosodiadau i'w haddasu.",
   'home.sign_system_label': 'Iaith Arwyddion',
+  'home.learn_bsl_tile': 'Dysgwch BSL',
+  'home.learn_iac_tile': 'Dysgwch IAC',
+  'home.learn_trail_start_here': 'Dechreuwch yma',
   'card_matching.title': 'Paru',
   'card_matching.description': "Parwch arwyddion BSL gyda'r llythrennau",
   'bubble_pop.title': 'Popio Swigod',
@@ -33,14 +38,36 @@ const Map<String, String> translationsCy = {
   'letter_quest.title': 'Chwilio Llythrennau', 
   'bsl_vowels.title': 'llafariaid BSL',
   'iac_vowels.title': 'Llafariaid IAC',
-  'iac_vowels.intro': "Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llafariad Gymraeg: a, e, i, o, u, w, y.",
-  'iac_vowels.level2.intro': "Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd y llythyren goll yn y gair.",
-  'iac_vowels.level3.intro': "Nawr rhowch gynnig ar fwy o eiriau. Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd y llythyren goll yn y gair.",
-  'iac_vowels.level5.intro': "Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llythyren goll yn y gair.",
-  'iac_vowels.level6.intro': "Pwyntiau Mawr! Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llythyren. Sgoriwch bwyntiau am y geiriau rydych chi'n eu dyfalu'n gywir — po hiraf y gair, y mwyaf o bwyntiau rydych chi'n eu sgorio.",
   'clothes_line.title': 'Lein Ddillad',
   'colouring.title': 'Lliwio',
+  'colouring.level1.name': 'Lliwiau BSL',
+  'colouring.level1.description': "Tapiwch y lliw mae Miss Angela'n ei arwyddo",
+  'colouring.level2.name': 'Lliwio Llun',
+  'colouring.level2.description': 'Dewiswch lun a\'i liwio',
+  'colouring.colour.black': 'Du',
+  'colouring.colour.red': 'Coch',
+  'colouring.colour.orange': 'Oren',
+  'colouring.colour.yellow': 'Melyn',
+  'colouring.colour.green': 'Gwyrdd',
+  'colouring.colour.blue': 'Glas',
+  'colouring.colour.purple': 'Porffor',
+  'colouring.colour.pink': 'Pinc',
+  'colouring.colour.brown': 'Brown',
+  'colouring.colour.grey': 'Llwyd',
+  'colouring.colour.white': 'Gwyn',
+  'colouring.are_you_sure': "Ydych chi'n siŵr?",
+  'colouring.miss_angela_label': 'Miss Angela',
+  'colouring.choose_picture': 'Dewiswch lun',
+  'colouring.no_image_loaded': "Dim llun wedi'i lwytho",
   'counting.title': 'Cyfri',
+  'counting_back.title': 'Cyfri yn Ôl',
+  'counting_back.subtitle': "Cyfrwch yn ôl i ddod o hyd i'r ateb!",
+  'counting_back.round_label': 'Rownd',
+  'counting_back.of_label': 'o',
+  'counting_back.question': 'Beth yw {start} tynnu {takeaway}?',
+  'counting_back.level1.name': 'Tynnu 1',
+  'counting_back.level2.name': 'Tynnu hyd at 2',
+  'counting_back.level3.name': 'Tynnu hyd at 4',
   'number_line.title': 'Llinell Rhifau',
   'more_or_less.title': 'Mwy neu Lai',
   'bsl_maths.title': 'Maths BSL',
@@ -50,10 +77,37 @@ const Map<String, String> translationsCy = {
   'number_race.title': 'Ras Rifau',
 
   // -------------------------
+  // Learn BSL Trail 
+  // -------------------------
+
+  'trail.bsl.name': 'Dysgwch BSL',
+  'trail.iac.name': 'Dysgwch IAC',
+  'trail.level1.name': 'Llafariaid',
+  'trail.level2.name': 'Paru Llafariaid',
+  'trail.level3.name': 'darganfod llafariaid coll',
+  'trail.level4.name': 'paru a i e',
+  'trail.level5.name': 'popio swigod a i e',
+  'trail.level6.name': 'bingo a i e',
+  'trail.level7.name': 'popio swigod',
+  'trail.level8.name': 'paru',
+  'trail.level9.name': 'bingo',
+  'trail.level10.name': 'popio swigod',
+  'trail.section2.title': 'rhifau bsl',
+  'trail.section2.description': 'cyfrif i 10 mewn bsl',
+  'trail.level16.name': 'bingo a i i',
+  'trail.level17.name': 'bingo a i o',
+  'trail.section3.title': 'sillafu bysedd',
+  'trail.section3.description': 'dysgwch y llythrennau o a i o',
+  'trail.locked_message_previous': 'Mae angen i chi gwblhau lefel {level} yn gyntaf',
+  'trail.locked_message_generic': 'Gorffennwch y lefelau eraill i ddatgloi.',
+  'trail.level_name_fallback': 'Enw lefel',
+
+  // -------------------------
   // Bubble Pop Game
   // -------------------------
 
-  'bubble_pop.intro': 'Edrychwch ar arwydd y llythyren BSL. Popiwch y swigen sy\'n dangos y llythyren gywir!',
+  'bubble_pop.intro_heading': 'Popiwch swigod y llythrennau',
+  'bubble_pop.intro': 'Edrychwch ar yr arwydd BSL ar y brig a phopiwch y llythyren sy\'n cyfateb.',
   'bubble_pop.find_label': 'Dewch o hyd i\'r llythyren',
   'bubble_pop.bsl.level1.name': 'Llafariaid',
   'bubble_pop.bsl.level2.name': 'a i e',
@@ -71,7 +125,7 @@ const Map<String, String> translationsCy = {
   // -------------------------
   // Welsh (IAC) Bubble Pop intro
   // -------------------------
-  'welsh_bubble_pop.intro': 'Edrychwch ar arwydd y lythyren IAC. Popiwch y swigen sy\'n dangos y llythyren cywir!',
+  'welsh_bubble_pop.intro': 'Edrychwch ar yr arwydd IAC ar y brig a phopiwch y llythyren sy\'n cyfateb.',
 
   // -------------------------    
   // Clothes Line
@@ -100,11 +154,18 @@ const Map<String, String> translationsCy = {
   // Letter Bingo
   // -------------------------
 
-  'letter_bingo.bsl.intro': 'Paru\'r arwyddion BSL gyda\'r llythrennau a alwyd ar waelod y sgrin. Cwblhewch res am BINGO!',
-  'letter_bingo.iac.intro': 'Paru\'r arwyddion IAC gyda\'r llythrennau a alwyd ar waelod y sgrin. Cwblhewch res am BINGO!',
+  'letter_bingo.bsl.tap_first': "Parwch arwydd BSL gyda'r llythren ar waelod y sgrin",
+  'letter_bingo.iac.tap_first': "Parwch arwydd IAC gyda'r llythren ar waelod y sgrin",
+  'letter_bingo.tap_second': 'Cwblhewch res am BINGO!',
+  'letter_bingo.got_it': 'Iawn',
   'letter_bingo.bingo': 'Bingo!',
   'letter_bingo.friend': 'Mae gen ti ffrind',
     'letter_bingo.new_friend': 'Mae gen ti ffrind newydd',
+  'letter_bingo.see_collection': 'Tapiwch i weld dy gasgliad',
+  'letter_bingo.levels_button': 'Lefelau',
+  'letter_bingo.cards_label': 'Cardiau',
+  'letter_bingo.animals_header': 'Anifeiliaid',
+  'letter_bingo.find_letter': "Dewch o hyd i'r llythyren",
   'letter_bingo.bsl.level1.name': 'a i e',
   'letter_bingo.bsl.level2.name': 'a i i',
   'letter_bingo.bsl.level3.name': 'a i o',
@@ -135,10 +196,13 @@ const Map<String, String> translationsCy = {
   'general.play_again': 'Chwarae Eto',
   'general.next_level': 'Lefel Nesaf',
   'general.change_level': 'Newid Lefel',
+  'general.congratulations': 'Llongyfarchiadau!',
+  'general.close': 'Cau',
+  'general.skip': 'Hepgor',
   'general.you_scored': 'Sgoriaist ti {score}',
   'general.you_matched': 'Wnest ti baru {score}',
   'general.got_10_correct': 'Cest ti 10 yn gywir',
-  'general.personal_best': 'Record Personol! {score}{suffix}',
+  'general.personal_best': 'Record Personol!',
   'general.sign_in_to_save': 'Mewngofnodwch i gadw eich newidiadau',
   'general.sign_in_to_save_scores': 'Mewngofnodwch i gadw eich sgoriau',
   'general.level': 'Lefel',
@@ -225,11 +289,18 @@ const Map<String, String> translationsCy = {
   'vowel_hand.level6.intro': "Tapiwch y blaen bys cywir i wneud llafariad BSL sy'n cyfateb i'r llythyren goll. Dyfalu perffaith yn unig!",
   'vowel_hand.words_label': 'gair',
   'vowel_hand.words_completed': "Geiriau wedi'u cwblhau:",
+  'iac_vowels.intro': "Tapiwch y blaen bys neu'r arwydd cywir i gyfateb a llafariad Cymraeg: a, e, i, o, u, w, y.",
+  'iac_vowels.level2.intro': "Tapiwch y blaen bys neu'r arwydd sydd yn cyfateb a llythyren goll yn y gair.",
+  'iac_vowels.level3.intro': "Nawr rhowch gynnig ar fwy o eiriau. Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd y llythyren goll yn y gair.",
+  'iac_vowels.level5.intro': "Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llythyren goll yn y gair.",
+  'iac_vowels.level6.intro': "Pwyntiau Mawr! Tapiwch y blaen bys neu'r bathodyn cywir i wneud arwydd pob llythyren. Sgoriwch bwyntiau am y geiriau rydych chi'n eu dyfalu'n gywir — po hiraf y gair, y mwyaf o bwyntiau rydych chi'n eu sgorio.",
+  
 
   // -------------------------
   // Letter Quest
   // -------------------------
   'letter_quest.subtitle': "Symudwch Pero i ddod o hyd i'r llythrennau i sillafu'r gair!",
+  'letter_quest.jump_button': 'Naid',
   'letter_quest.level1.name': 'Ystafell Gyflwyno',
   'letter_quest.level2.name': 'Ystafell Syml',
   'letter_quest.level3_house.name': 'Yn y Llofft',
@@ -248,12 +319,13 @@ const Map<String, String> translationsCy = {
   // -------------------------
   'card_matching.tap_first': "Tapiwch gerdyn i'w droi!",
   'card_matching.tap_second': 'Tapiwch gerdyn arall i ddod o hyd yw bar',
+  'card_matching.got_it': 'Iawn',
   'card_matching.play_again': 'Chwarae Eto',
   'card_matching.home': 'Cartref',
-  'card_matching.moves_label': 'Symudiadau',
+  'card_matching.moves_label': 'Troeon',
   'card_matching.pairs_label': 'parau',
-  'card_matching.success_moves': 'Wnaethoch chi hi mewn {n} symudiad!',
-  'card_matching.moves_suffix': ' symudiad',
+  'card_matching.success_moves': 'Wnaethoch chi hi mewn {n} tro!',
+  'card_matching.moves_suffix': ' tro',
 
   'card_matching.bsl.intro': "Parwch arwyddion BSL gyda'u llythrennau!",
   'card_matching.bsl.level1.name': 'Llafariaid',
@@ -280,15 +352,19 @@ const Map<String, String> translationsCy = {
   'counting_game.level2.name': '1-7',
   'counting_game.level3.name': '1-10',
   'counting_game.level4.name': 'Amseru 1-10',
-  'counting_game.level5.name': '1-5',
-  'counting_game.level6.name': '1-7',
-  'counting_game.level7.name': '1-10',
-  'counting_game.level8.name': 'Amseru 1-10',
+  'counting_game.level5.name': 'Heb Rifau 1-5',
+  'counting_game.level6.name': 'Heb Rifau 1-7',
+  'counting_game.level7.name': 'Heb Rifau 1-10',
+  'counting_game.level8.name': 'Heb Rifau Amseru 1-10',
   'counting_game.level9.name': '1-5',
-  'counting_game.level10.name': '1-10',
+  'counting_game.level10.name': '1-7',
   'counting_game.level11.name': '1-10',
-  'counting_game.level12.name': 'Adio i 10',
-  'counting_game.level13.name': '10+',
+  'counting_game.level12.name': 'Amseru 1-10',
+  'counting_game.level13.name': '1-5',
+  'counting_game.level14.name': '1-10',
+  'counting_game.level15.name': '1-10',
+  'counting_game.level16.name': 'Adio i 10',
+  'counting_game.level17.name': '10+',
   'counting_game.round_label': 'Rownd',
   'counting_game.of_label': 'o',
   'counting_game.question_colour': 'Sawl cylch {colour}?',
@@ -370,9 +446,13 @@ const Map<String, String> translationsCy = {
   'bsl_maths.level3.name': 'Rhifau Arddeg',
   'bsl_maths.level4.name': 'Rhif Coll',
   'bsl_maths.level5.name': 'Cystadleuaeth',
-  'bsl_maths.level6.name': 'Tynnu i 5',
-  'bsl_maths.level7.name': 'Tynnu i 10',
-  'bsl_maths.level8.name': 'Tynnu i 20',
+  'bsl_maths.level6.name': 'Symiau i 10 (Arwyddion yn Unig)',
+  'bsl_maths.level7.name': 'Gwneud 10 (Arwyddion yn Unig)',
+  'bsl_maths.level8.name': 'Rhifau Arddeg (Arwyddion yn Unig)',
+  'bsl_maths.level9.name': 'Rhif Coll (Arwyddion yn Unig)',
+  'bsl_maths.level10.name': 'Cystadleuaeth (Arwyddion yn Unig)',
+  'bsl_maths.level11.name': 'Tynnu i 5',
+  'bsl_maths.level12.name': 'Tynnu i 10',
 
   // -------------------------
   // BSL Sprint
@@ -402,7 +482,6 @@ const Map<String, String> translationsCy = {
   'word_whirl.level2.name': 'Lliwiau',
   'word_whirl.level3.name': 'Tywydd',
   'word_whirl.video_coming_soon': 'Fideo ar y ffordd',
-  'word_whirl.clear': 'Clirio',
 
   // -------------------------
   // Zoo Adventure
@@ -430,6 +509,7 @@ const Map<String, String> translationsCy = {
   'zoo.aquarium': 'Acwariwm',
   'zoo.coming_soon': 'Mwy i\'w archwilio yma cyn bo hir!',
   'zoo.take_picture': 'Tynnu llun',
+  'zoo.too_far': 'Rwyt ti\'n rhy bell i ffwrdd — symuda o gwmpas i gael llun gwell!',
   'zoo.photos_label': 'Lluniau',
   'zoo.exit': 'Allanfa',
   'zoo.quiz.watch_sign': 'Gwylia\'r arwydd',
@@ -570,12 +650,49 @@ const Map<String, String> translationsCy = {
   'profile.menu.videos': 'Fideos',
   'profile.menu.settings': 'Gosodiadau',
   'profile.scores_title': 'Sgoriau',
+  'profile.scores_best_label': 'Gorau',
+  'profile.scores_animals_label': 'Anifail',
+  'profile.scores_levels_header': 'Lefelau',
+  'profile.scores_empty': "Does dim sgoriau uchel gennych chi eto — ewch i chwarae gêm!",
+  'profile.scores_sign_in_message':
+      "Mewngofnodwch i gadw eich sgoriau uchel a'u gweld yma.",
   'profile.account_section': 'Cyfrif',
   'profile.yes': 'Ie',
   'profile.delete_account_message':
       "Dileu eich cyfrif a'ch holl ddata sydd wedi'i gadw yn barhaol, gan gynnwys proffil, sgoriau gemau a chyflawniadau. Ni ellir dadwneud hyn.",
   'profile.delete_account_button': 'Dileu Cyfrif',
   'profile.delete_account_confirm': "Ni ellir dadwneud hyn. Ydych chi'n siŵr?",
+  'profile.delete_account_error':
+      "Methwyd dileu eich cyfrif. Gwiriwch eich cysylltiad a rhowch gynnig arall arni.",
+  'profile.account_deleted_snackbar':
+      "Mae eich cyfrif a'ch holl ddata wedi'u dileu.",
+  'profile.account_linked': "Cyfrif wedi'i gysylltu",
+  'profile.sign_out_button': 'Allgofnodi',
+  'profile.sign_out_error': 'Methwyd allgofnodi. Rhowch gynnig arall arni.',
+  'profile.signed_out_snackbar': 'Rydych wedi allgofnodi.',
+  'profile.save_scores_heading': 'Cadwch eich sgoriau',
+  'profile.hwb_sign_in_message': "Mewngofnodwch gyda'ch cyfrif Hwb ysgol.",
+  'profile.hwb_sign_in_button': 'Mewngofnodi gyda Hwb',
+  'profile.hwb_sign_in_error':
+      'Methwyd agor mewngofnodi Hwb. Rhowch gynnig arall arni.',
+  'profile.email_sign_in_heading': 'Neu mewngofnodwch gydag e-bost',
+  'profile.email_sign_in_message':
+      "Rhowch eich e-bost a byddwn yn anfon cod mewngofnodi atoch. Does dim angen cyfrinair.",
+  'profile.email_label': 'E-bost',
+  'profile.email_invalid': 'Rhowch e-bost dilys',
+  'profile.send_code_button': 'Anfon Cod',
+  'profile.send_code_error': 'Methwyd anfon y cod. Rhowch gynnig arall arni.',
+  'profile.check_email_heading': 'Gwiriwch eich e-bost',
+  'profile.otp_sent_message': 'Anfonwyd cod 6 digid at {email}.',
+  'profile.otp_code_label': 'Cod 6 digid',
+  'profile.otp_invalid': 'Rhowch y cod 6 digid',
+  'profile.verify_code_button': 'Gwirio Cod',
+  'profile.verify_code_error':
+      "Cod anghywir. Gwiriwch eich e-bost a rhowch gynnig arall arni.",
+  'profile.otp_verified_snackbar':
+      "Cyfrif wedi'i gadw! Bydd eich sgoriau bellach yn cael eu cofnodi.",
+  'profile.use_different_email': 'Defnyddiwch e-bost gwahanol',
+  'profile.resend_code': 'Ailanfon cod',
 
   // -------------------------
   // Profile Settings Screen (sound / instructions toggles)
@@ -585,5 +702,10 @@ const Map<String, String> translationsCy = {
   'profile_settings.sound_effects_sub': 'Synau ateb cywir ac anghywir',
   'profile_settings.instructions': 'Cyfarwyddiadau',
   'profile_settings.instructions_sub': 'Cyfarwyddiadau llafar y gemau',
+
+  // -------------------------
+  // Auth
+  // -------------------------
+  'auth.hwb_rejection_message': "Mewngofnodwch gyda'ch cyfrif Hwb",
 
 };

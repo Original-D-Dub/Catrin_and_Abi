@@ -135,18 +135,18 @@ class GameHeaderBar extends StatelessWidget {
                               Text(
                                 localizer('level_select.level_prefix'),
                                 style: TextStyle(
-                                  fontFamily: 'ComicRelief',
+                                  fontFamily: 'Quicksand',
                                   fontSize: 14,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
                               ),
                               Text(
                                 '$levelNumber',
                                 style: const TextStyle(
-                                  fontFamily: 'ComicRelief',
+                                  fontFamily: 'Quicksand',
                                   fontSize: 28,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
                               ),
@@ -196,18 +196,18 @@ class GameHeaderBar extends StatelessWidget {
                         Text(
                           scoreLabel.isEmpty ? localizer('general.score') : scoreLabel,
                           style: TextStyle(
-                            fontFamily: 'ComicRelief',
+                            fontFamily: 'Quicksand',
                             fontSize: scoreLabelFontSize,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
                         ),
                         Text(
                           scoreValue,
                           style: TextStyle(
-                            fontFamily: 'ComicRelief',
+                            fontFamily: 'Quicksand',
                             fontSize: scoreValueFontSize,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w600,
                             color: Colors.white,
                             height: 1.0,
                           ),
@@ -250,9 +250,9 @@ class GameTimerDisplay extends StatelessWidget {
         Text(
           localizer('general.time'),
           style: TextStyle(
-            fontFamily: 'ComicRelief',
+            fontFamily: 'Quicksand',
             fontSize: 14,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),
@@ -266,9 +266,9 @@ class GameTimerDisplay extends StatelessWidget {
           child: Text(
             formattedTime,
             style: const TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: 20,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),

@@ -5,8 +5,10 @@ import '../../../core/config/routes.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/services/auth_provider.dart';
 import '../../../shared/services/settings_provider.dart';
+import '../../../shared/widgets/learn_sign_system_tile.dart';
 import '../../../shared/widgets/sign_system_toggle.dart';
 import '../models/home_game_entry.dart';
 
@@ -29,17 +31,12 @@ class WelshHomeScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: Text(
           localizer('home.title'),
-          style: const TextStyle(
-            fontFamily: 'ComicRelief',
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-          ),
+          style: AppTheme.title.copyWith(fontSize: 22, color: Colors.white),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            tooltip: 'Settings',
+            tooltip: localizer('profile.menu.settings'),
             icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 28),
             onPressed: () => Navigator.pushNamed(
               context,
@@ -49,7 +46,9 @@ class WelshHomeScreen extends StatelessWidget {
           ),
           Consumer<AuthProvider>(
             builder: (context, auth, _) => IconButton(
-              tooltip: auth.isAnonymous ? 'Save your scores' : 'Proffil',
+              tooltip: auth.isAnonymous
+                  ? localizer('profile.save_scores_heading')
+                  : localizer('profile.title'),
               icon: Icon(
                 auth.isAnonymous ? Icons.person_outline : Icons.person,
                 color: Colors.white,
@@ -69,7 +68,7 @@ class WelshHomeScreen extends StatelessWidget {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/backgrounds/home-screen-background.jpg',
+              'assets/backgrounds/background_purple.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -78,14 +77,10 @@ class WelshHomeScreen extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final mq = MediaQuery.of(context);
-                  final isTabletLandscape = mq.size.width >= 768 &&
-                      mq.orientation == Orientation.landscape;
-                  final crossAxisCount = isTabletLandscape
-                      ? 4
-                      : constraints.maxWidth < 400
-                          ? 2
-                          : 3;
+                  final crossAxisCount =
+                      gameGridCrossAxisCount(context, constraints.maxWidth);
+                  final learnTileHeight =
+                      gameGridTileHeight(context, constraints.maxWidth);
 
                   final allGames = <HomeGameEntry>[
                     homeGameEntry(
@@ -224,9 +219,9 @@ class WelshHomeScreen extends StatelessWidget {
                       Text(
                         localizer('home.sign_system_label'),
                         style: const TextStyle(
-                          fontFamily: 'ComicRelief',
+                          fontFamily: 'Quicksand',
                           fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
                       ),
@@ -241,13 +236,15 @@ class WelshHomeScreen extends StatelessWidget {
                         children: [
                           signSystemRow,
                           const SizedBox(height: AppSizes.spacingSmall),
-                          const SizedBox(
+                          LearnSignSystemTile(locale: 'cy', height: learnTileHeight),
+                          const SizedBox(height: AppSizes.spacingSmall),
+                          SizedBox(
                             height: 200,
                             child: Center(
                               child: Text(
-                                'No games match the current filters.\nOpen Settings to adjust.',
-                                style: TextStyle(
-                                  fontFamily: 'ComicRelief',
+                                localizer('home.no_games_match'),
+                                style: const TextStyle(
+                                  fontFamily: 'Quicksand',
                                   fontSize: 16,
                                   color: Colors.white70,
                                 ),
@@ -269,7 +266,7 @@ class WelshHomeScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.all(AppSizes.paddingSmall),
                           child: Image.asset(
-                            'assets/logos/welsh/catacabi_font_colour_cym.png',
+                            'assets/logos/english/Catrin_Abi_Logo_Eng_600x600.png',
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -282,11 +279,13 @@ class WelshHomeScreen extends StatelessWidget {
                       children: [
                         signSystemRow,
                         const SizedBox(height: AppSizes.spacingSmall),
+                        LearnSignSystemTile(locale: 'cy', height: learnTileHeight),
+                        const SizedBox(height: AppSizes.spacingSmall),
                         GridView.count(
                           crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 0.85,
+                          crossAxisSpacing: gameGridSpacing,
+                          mainAxisSpacing: gameGridSpacing,
+                          childAspectRatio: gameGridChildAspectRatio,
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           children: gameTiles,

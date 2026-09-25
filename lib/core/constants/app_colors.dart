@@ -44,6 +44,7 @@ class AppColors {
   static const Color accentOrange = Color(0xFFFF6F00);
   static const Color accentYellow = Color(0xFFFDD835);
   static const Color accentLimeGreen = Color(0xFF7CB342);
+  static const Color accentDarkGreen = Color(0xFF137100);
   static const Color accentNavyBlue = Color(0xFF1565C0);
   static const Color accentPurple = Color(0xFF8E24AA);
   static const Color accentWhite = Color(0xFFFFFFFF);
@@ -167,6 +168,25 @@ class AppColors {
   
 
   // -------------------------
+  // Celebration Colors
+  // -------------------------
+
+  /// Deep navy scrim behind the BINGO celebration / reward overlays, also
+  /// the text colour for animal names on the blue collector card.
+  static const Color celebrationNavy = Color(0xFF002D97);
+
+  /// Star gold used for celebration headings and twinkling stars.
+  static const Color celebrationGold = Color(0xFFFFC73A);
+
+  /// Returns [color] with its HSL lightness shifted by [delta], clamped to
+  /// the 0–1 range. Useful for deriving darker borders / lighter fills from
+  /// a single brand colour (e.g. `withAdjustedLightness(catrinBlue, -0.3)`).
+  static Color withAdjustedLightness(Color color, double delta) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl.withLightness((hsl.lightness + delta).clamp(0.0, 1.0)).toColor();
+  }
+
+  // -------------------------
   // UI Colors
   // -------------------------
 
@@ -190,6 +210,37 @@ class AppColors {
 
   /// Button primary color
   static const Color buttonPrimary = abiPink;
+
+  /// Primary button background - green
+  static const Color buttonPrimaryGreen = Color(0xFF00B01D);
+
+  /// Primary button gradient stroke (light → dark green)
+  static const Color buttonPrimaryStrokeStart = Color(0xFF12E557);
+  static const Color buttonPrimaryStrokeEnd = Color(0xFF0A7F30);
+
+  /// Secondary button gradient stroke (dark → light pink)
+  static const Color buttonSecondaryStrokeStart = Color(0xFFFF297E);
+  static const Color buttonSecondaryStrokeEnd = Color(0xFFC6004F);
+
+  /// Primary button label text stroke/drop-shadow colour
+  static const Color buttonPrimaryTextStroke = Color(0xFF0D4720);
+
+  /// Secondary button label text stroke/drop-shadow colour
+  static const Color buttonSecondaryTextStroke = Color(0xFF890137);
+
+  /// Tertiary button gradient stroke (light blue → Catrin blue)
+  static const Color buttonTertiaryStrokeStart = catrinBlue;
+  static const Color buttonTertiaryStrokeEnd = bslBlueOutline;
+
+  /// Tertiary button label text stroke/drop-shadow colour
+  static const Color buttonTertiaryTextStroke = Color(0xFF063A98);
+
+  /// Warning button gradient stroke (light → dark red)
+  static const Color buttonWarningStrokeStart = Color(0xFFFF6B6B);
+  static const Color buttonWarningStrokeEnd = Color(0xFFB71C1C);
+
+  /// Warning button label text stroke/drop-shadow colour
+  static const Color buttonWarningTextStroke = Color(0xFF7F0000);
 
   /// Button text color
   static const Color buttonText = accentWhite;
@@ -226,5 +277,15 @@ class AppColors {
     static const Color bslSilverOutline = Color(0xFF555599);
     static const Color bslWhiteOutline = Color(0xFF453123);
     static const Color bslYellowOutline = Color(0xFF554a23);
+
+  // -------------------------
+  // Alphabet/Number Sign SVG Colors
+  // -------------------------
+
+  /// Default fill colour for alphabet/number sign SVGs (hex string for inline SVG attributes)
+  static const String svgSkin = '#ffd8bf';
+
+  /// Default stroke colour for alphabet/number sign SVGs (hex string for inline SVG attributes)
+  static const String svgStroke = '#9b6258';
 
 }

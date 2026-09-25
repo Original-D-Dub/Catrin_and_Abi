@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/routes.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/settings_provider.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
+import '../../../shared/widgets/button.dart';
 import '../widgets/zoo_screen_chrome.dart';
 
 /// Entry screen for the zoo game: heading, intro instructions, centre
@@ -25,7 +25,6 @@ class _ZooStartScreenState extends State<ZooStartScreen> {
   @override
   void initState() {
     super.initState();
-    AudioService.playTitle('zoo_start', locale: widget.locale);
     AudioService.playIntro('zoo', locale: widget.locale);
   }
 
@@ -57,7 +56,7 @@ class _ZooStartScreenState extends State<ZooStartScreen> {
               localizer('zoo.start.intro'),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'Quicksand',
                 fontSize: 16,
                 color: Colors.white,
                 shadows: [
@@ -74,9 +73,8 @@ class _ZooStartScreenState extends State<ZooStartScreen> {
                 ),
               ),
             ),
-            ZooActionButton(
+            PrimaryButton(
               label: localizer('general.play'),
-              color: AppColors.schoolGreen,
               onPressed: () {
                 final lastCharacter =
                     context.read<SettingsProvider>().lastZooCharacter;

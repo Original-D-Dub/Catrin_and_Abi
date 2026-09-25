@@ -5,6 +5,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/button.dart';
 import '../providers/letter_quest_provider.dart';
 
 /// Full-screen victory overlay shown when all 5 words are collected.
@@ -77,9 +79,8 @@ class VictoryOverlay extends StatelessWidget {
                     // Title
                     Text(
                       localizer('general.welldone'),
-                      style: const TextStyle(
+                      style: AppTheme.title.copyWith(
                         fontSize: AppSizes.fontSizeHeading,
-                        fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
                     ),
@@ -117,42 +118,20 @@ class VictoryOverlay extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         // Play Again
-                        ElevatedButton.icon(
+                        PrimaryButton(
+                          label: localizer('general.play_again'),
+                          icon: Icons.replay,
                           onPressed: onPlayAgain,
-                          icon: const Icon(Icons.replay),
-                          label: Text(localizer('general.play_again')),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.abiPink,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSizes.paddingMedium,
-                              vertical: AppSizes.paddingSmall,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppSizes.borderRadiusMedium,
-                              ),
-                            ),
-                          ),
                         ),
 
                         // Home
-                        ElevatedButton.icon(
+                        TertiaryButton(
+                          label: localizer('general.home'),
+                          icon: Icons.home,
                           onPressed: onHome,
-                          icon: const Icon(Icons.home),
-                          label: Text(localizer('general.home')),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.catrinBlue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSizes.paddingMedium,
-                              vertical: AppSizes.paddingSmall,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppSizes.borderRadiusMedium,
-                              ),
-                            ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.paddingMedium,
+                            vertical: AppSizes.paddingSmall,
                           ),
                         ),
                       ],
@@ -175,23 +154,11 @@ class VictoryOverlay extends StatelessWidget {
                       const SizedBox(height: AppSizes.spacingMedium),
 
                       // Play Level 4 button
-                      ElevatedButton.icon(
+                      PrimaryButton(
+                        label: localizer('letter_quest.play_level4'),
+                        icon: Icons.park,
+                        expanded: true,
                         onPressed: onPlayLevel4,
-                        icon: const Icon(Icons.park),
-                        label: Text(localizer('letter_quest.play_level4')),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingLarge,
-                            vertical: AppSizes.paddingSmall,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.borderRadiusMedium,
-                            ),
-                          ),
-                        ),
                       ),
                     ],
                   ],

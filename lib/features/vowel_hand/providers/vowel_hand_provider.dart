@@ -196,6 +196,12 @@ class VowelHandProvider extends ChangeNotifier {
   /// Called after answer checking with `true` for correct, `false` for wrong.
   Function(bool isCorrect)? onAnswerResult;
 
+  /// Called once, with the final [_score], the moment the level ends. Set
+  /// by the screen when launched from the "Learn BSL trail" so it can
+  /// decide (score-gated, since this game has no other win condition)
+  /// whether to mark the trail node completed.
+  Function(int score)? onLevelComplete;
+
   /// Random number generator for selecting vowels/words
   final Random _random = Random();
 
@@ -364,6 +370,8 @@ class VowelHandProvider extends ChangeNotifier {
     _isInputLocked = false;
     _lastResult = null;
     notifyListeners();
+
+    onLevelComplete?.call(_score);
 
     final resultFuture = _signSystem == SignSystem.iac
         ? _statsService.recordGameResult(GameIds.welshVowels, _score)

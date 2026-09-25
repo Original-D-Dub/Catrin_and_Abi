@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../shared/services/audio_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/circular_video_container.dart';
 import '../../../shared/widgets/game_app_bar.dart';
@@ -117,28 +117,16 @@ class _ColouringScreenState extends State<ColouringScreen> {
     return 'assets/colours_video/$name.mov';
   }
 
-  static String _label(Color colour) {
+  static String _label(Color colour, AppLocalizations localizer) {
     final name = _videoName[colour];
-    if (name == null) return 'Miss Angela';
-    return name[0].toUpperCase() + name.substring(1);
+    if (name == null) return localizer('colouring.miss_angela_label');
+    return localizer('colouring.colour.$name');
   }
 
   double _scale(BuildContext context) =>
       MediaQuery.of(context).size.width >= _kTabletBreakpoint
           ? _kTabletScale
           : 1.0;
-
-  bool _titlePlayed = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_titlePlayed) {
-      _titlePlayed = true;
-      AudioService.playTitle('colouring',
-          locale: AppLocalizations.of(context).locale);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,10 +145,11 @@ class _ColouringScreenState extends State<ColouringScreen> {
   // ── Level select ──────────────────────────────────────────────────────────
 
   Widget _buildLevelSelect(ColouringProvider provider) {
+    final localizer = AppLocalizations.of(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: GameAppBar(
-        title: AppLocalizations.of(context)('colouring.title'),
+        title: localizer('colouring.title'),
         onBack: () => Navigator.pop(context),
       ),
       body: Container(
@@ -172,10 +161,11 @@ class _ColouringScreenState extends State<ColouringScreen> {
         ),
         child: SafeArea(
           child: LevelSelectScreen(
+            locale: localizer.locale,
             levels: ColouringLevel.values.map((level) => LevelSelectItem(
               number: level.number,
-              name: level.name,
-              description: level.description,
+              name: localizer(level.name),
+              description: localizer(level.description),
               color: levelColor(level.number - 1),
               onTap: () => provider.startLevel(level),
             )).toList(),
@@ -188,6 +178,7 @@ class _ColouringScreenState extends State<ColouringScreen> {
   // ── Level 1: BSL Colours ──────────────────────────────────────────────────
 
   Widget _buildLevel1(ColouringProvider provider, double scale) {
+    final localizer = AppLocalizations.of(context);
     final target = provider.currentBslColour;
     final videoPath = 'assets/colours_video/${target.videoName}.mov';
     final l1Colours = bslColourList.map((c) => c.colour).toList();
@@ -211,13 +202,13 @@ class _ColouringScreenState extends State<ColouringScreen> {
                       onBack: provider.showLevelSelection,
                       scoreValue: '${provider.score}',
                       levelNumber: ColouringLevel.bslColours.number,
-                      centerContent: const Center(
+                      centerContent: Center(
                         child: Text(
-                          'BSL Colours',
-                          style: TextStyle(
-                            fontFamily: 'ComicRelief',
+                          localizer('colouring.level1.name'),
+                          style: const TextStyle(
+                            fontFamily: 'Quicksand',
                             fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
                           textAlign: TextAlign.center,
@@ -253,10 +244,11 @@ class _ColouringScreenState extends State<ColouringScreen> {
                     // Wrong-guess message
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
-                      child: provider.wrongGuessMessage != null
+                      child: provider.wrongGuessMessageKey != null
                           ? _WrongGuessMessage(
-                              key: ValueKey(provider.wrongGuessMessage),
-                              message: provider.wrongGuessMessage!,
+                              key: ValueKey(provider.wrongGuessMessageKey),
+                              messageKey: provider.wrongGuessMessageKey!,
+                              localizer: localizer,
                             )
                           : const SizedBox(height: 0),
                     ),
@@ -275,7 +267,7 @@ class _ColouringScreenState extends State<ColouringScreen> {
                   key: ValueKey(provider.colourChangeGeneration),
                   size: _kCircleSize * scale,
                   videoAssetPath: videoPath,
-                  label: target.name,
+                  label: localizer(target.name),
                   autoPlay: true,
                 ),
               ),
@@ -306,11 +298,10 @@ class _ColouringScreenState extends State<ColouringScreen> {
           icon: const BackArrowIcon(),
           onPressed: provider.showLevelSelection,
         ),
-        title: const Text(
-          'Choose a picture',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)('colouring.choose_picture'),
+          style: AppTheme.title.copyWith(
             fontSize: AppSizes.fontSizeLarge,
-            fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
           ),
         ),
@@ -349,8 +340,9 @@ class _ColouringScreenState extends State<ColouringScreen> {
   }
 
   Widget _buildFreeColourCanvas(ColouringProvider provider, double scale) {
+    final localizer = AppLocalizations.of(context);
     final videoPath = _videoPath(provider.selectedColour);
-    final label = _label(provider.selectedColour);
+    final label = _label(provider.selectedColour, localizer);
 
     return Scaffold(
       body: Container(
@@ -373,11 +365,11 @@ class _ColouringScreenState extends State<ColouringScreen> {
                       levelNumber: ColouringLevel.freeColour.number,
                       centerContent: Center(
                         child: Text(
-                          provider.currentPage?.name ?? 'Colouring',
+                          provider.currentPage?.name ?? localizer('colouring.title'),
                           style: const TextStyle(
-                            fontFamily: 'ComicRelief',
+                            fontFamily: 'Quicksand',
                             fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
                           textAlign: TextAlign.center,
@@ -446,8 +438,8 @@ class _ColouringScreenState extends State<ColouringScreen> {
             Icon(Icons.image_not_supported,
                 size: AppSizes.iconXLarge, color: AppColors.textSecondary),
             const SizedBox(height: AppSizes.spacingMedium),
-            const Text('No image loaded',
-                style: TextStyle(
+            Text(AppLocalizations.of(context)('colouring.no_image_loaded'),
+                style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: AppSizes.fontSizeBody)),
           ],
@@ -513,9 +505,9 @@ class _ThumbnailCard extends StatelessWidget {
                 page.name,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontFamily: 'ComicRelief',
+                  fontFamily: 'Quicksand',
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -530,12 +522,17 @@ class _ThumbnailCard extends StatelessWidget {
 // ── Wrong-guess message banner ────────────────────────────────────────────────
 
 class _WrongGuessMessage extends StatelessWidget {
-  final String message;
-  const _WrongGuessMessage({super.key, required this.message});
+  final String messageKey;
+  final AppLocalizations localizer;
+  const _WrongGuessMessage({
+    super.key,
+    required this.messageKey,
+    required this.localizer,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isAreYouSure = message == 'Are you sure?';
+    final isAreYouSure = messageKey == 'colouring.are_you_sure';
     final colour = isAreYouSure ? AppColors.accentOrange : AppColors.accentRed;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -555,11 +552,11 @@ class _WrongGuessMessage extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            message,
+            localizer(messageKey),
             style: TextStyle(
-              fontFamily: 'ComicRelief',
+              fontFamily: 'Quicksand',
               fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: colour,
             ),
           ),

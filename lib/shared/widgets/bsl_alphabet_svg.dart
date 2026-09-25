@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../core/constants/asset_paths.dart';
 import '../../core/constants/game_filters.dart';
 
@@ -20,10 +21,10 @@ class BslAlphabetSvg extends StatefulWidget {
   final BoxFit fit;
   final SignSystem signSystem;
 
-  /// Override the fill colour for cls-1 (default: #ffd8bf).
+  /// Override the fill colour for cls-1 (default: [AppColors.svgSkin]).
   final String? fillColor;
 
-  /// Override the stroke colour for cls-1 and cls-2 (default: #000000).
+  /// Override the stroke colour for cls-1 and cls-2 (default: [AppColors.svgStroke]).
   final String? strokeColor;
 
   const BslAlphabetSvg({
@@ -81,8 +82,8 @@ class _BslAlphabetSvgState extends State<BslAlphabetSvg> {
 
   static String _applyStyles(
       String svg, String? fillColor, String? strokeColor) {
-    final fill = fillColor ?? '#ffd8bf';
-    final stroke = strokeColor ?? '#000000';
+    final fill = fillColor ?? AppColors.svgSkin;
+    final stroke = strokeColor ?? AppColors.svgStroke;
 
     svg = svg.replaceAll(
       RegExp(r'\bclass="cls-1"'),

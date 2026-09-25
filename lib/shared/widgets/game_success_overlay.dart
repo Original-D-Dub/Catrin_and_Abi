@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,9 +9,12 @@ import '../../core/config/routes.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import '../../shared/services/audio_service.dart';
 import '../services/auth_provider.dart';
 import 'back_arrow_icon.dart';
+import 'button.dart';
+import 'falling_confetti_layer.dart';
 import 'sign_in_banner_button.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,9 +51,11 @@ enum SuccessScoreStyle {
 /// - Personal best badge (optional, shown when [showPersonalBest] && result is PB)
 /// - Sign-in banner (shown automatically for anonymous users)
 /// - [extraContent] — arbitrary widget slot (e.g. Letter Quest word list)
-/// - [Play Again] — full width green button
+/// - [Play Again] — full width green button (hidden when [onPlayAgain] is null)
 /// - [Next Level] — full width pink button (hidden when [onNextLevel] is null)
-/// - [Change Level] — white text link with grid_view icon
+///
+/// The back arrow in the top-left corner (wired to [onChangeLevel]) is the
+/// way back to the level select.
 ///
 /// Plays a success sound on first display via [AudioService.playSuccess].
 /// Pass [gameId] matching [GameIds] to use a game-specific custom sound, or
@@ -71,6 +77,14 @@ class GameSuccessOverlay extends StatefulWidget {
 
   /// Used when [scoreStyle] is [SuccessScoreStyle.custom].
   final String? customScoreLine;
+
+  // ── spoken score readout ─────────────────────────────────────────────────
+  /// When [scoreAudioNumber] is non-null, plays [scoreAudioPrefix] (a bare
+  /// speech-file name), then the recorded number, then [scoreAudioSuffix],
+  /// once the success chime finishes — see [AudioService.playCountResult].
+  final String? scoreAudioPrefix;
+  final int? scoreAudioNumber;
+  final String? scoreAudioSuffix;
 
   // ── personal best ────────────────────────────────────────────────────────
   final bool showPersonalBest;
@@ -105,17 +119,6 @@ class GameSuccessOverlay extends StatefulWidget {
   /// When null, "Well Done!" is spoken via TTS.
   final String? gameId;
 
-  // ── change-level button style ─────────────────────────────────────────────
-  /// When true, renders [onChangeLevel] as a full [ElevatedButton] instead of
-  /// the default underlined text link. Use together with a custom [changeLevelLabel]
-  /// and [changeLevelIcon]. When [onNextLevel] is also set the two buttons are
-  /// shown side by side on screens wider than 600 px and stacked on narrower ones.
-  final bool changeLevelIsButton;
-
-  /// Defaults to the localized "Change Level" string for [locale] when null.
-  final String? changeLevelLabel;
-  final IconData changeLevelIcon;
-
   // ── localization ─────────────────────────────────────────────────────────
   /// UI locale ('en' or 'cy') used for all displayed text.
   final String locale;
@@ -128,6 +131,9 @@ class GameSuccessOverlay extends StatefulWidget {
     this.scoreStyle = SuccessScoreStyle.none,
     this.score,
     this.customScoreLine,
+    this.scoreAudioPrefix,
+    this.scoreAudioNumber,
+    this.scoreAudioSuffix,
     this.showPersonalBest = false,
     this.isNewPersonalBest = false,
     this.personalBest,
@@ -137,9 +143,6 @@ class GameSuccessOverlay extends StatefulWidget {
     this.extraContent,
     this.centerExtraContent = false,
     this.gameId,
-    this.changeLevelIsButton = false,
-    this.changeLevelLabel,
-    this.changeLevelIcon = Icons.grid_view,
     this.locale = 'en',
   });
 
@@ -147,9 +150,12 @@ class GameSuccessOverlay extends StatefulWidget {
   State<GameSuccessOverlay> createState() => _GameSuccessOverlayState();
 }
 
-class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
+class _GameSuccessOverlayState extends State<GameSuccessOverlay>
+    with TickerProviderStateMixin {
   static const Color _gold = Color(0xFFFFC73A);
-  static const Color _green = Color(0xFF4CAF50);
+  static const Color _goldLight = Color(0xFFFFE08A);
+  static const Color _orange = Color(0xFFFF6F00);
+  static const Color _pbTextColor = Color(0xE6000000); // black @ 0.9 opacity
   static const Color _pink = Color(0xFFEE009B);
   static const Color _darkBlue = Color(0xFF002D97);
 
@@ -164,12 +170,87 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
 
   static const Duration _entryDelay = Duration(milliseconds: 1500);
 
+  // ── personal-best celebration (only allocated when isNewPersonalBest) ────
+  AnimationController? _pbPulseController;
+  Animation<double>? _pbPulseAnimation;
+
+  // ── sign-in link pulse (only allocated when the link is shown) ───────────
+  AnimationController? _signInPulseController;
+  Animation<double>? _signInPulseAnimation;
+  AnimationController? _sparkleController;
+  List<_StarData> _sparkleStars = const [];
+  final List<ConfettiController> _fireworkControllers = [];
+  final List<Timer> _fireworkTimers = [];
+  static const List<double> _fireworkXFractions = [0.22, 0.5, 0.78];
+
+  bool get _celebratePersonalBest =>
+      widget.showPersonalBest && widget.isNewPersonalBest;
+
+  static List<_StarData> _buildSparkleStars() {
+    final rng = Random();
+    return List.generate(7, (_) {
+      return _StarData(
+        x: rng.nextDouble(),
+        y: rng.nextDouble(),
+        size: 14.0 + rng.nextDouble() * 18,
+        phase: rng.nextDouble(),
+      );
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-    AudioService.playSuccess(widget.gameId ?? '', locale: widget.locale);
+    Future<void> audioChain = AudioService.playSuccess(
+      widget.gameId ?? '',
+      locale: widget.locale,
+      messageName: _successAudioName(),
+    );
+
+    // Spoken score readout (e.g. "You did it in 42 moves!") once the
+    // success chime finishes.
+    if (widget.scoreAudioNumber != null) {
+      audioChain = audioChain.then((_) {
+        if (!mounted) return null;
+        return AudioService.playCountResult(
+          widget.scoreAudioPrefix ?? '',
+          widget.scoreAudioNumber!,
+          widget.scoreAudioSuffix ?? '',
+          locale: widget.locale,
+        );
+      });
+    }
+
+    // Gentle pulse on the underlined "Sign in to save" link (background
+    // image mode only — the banner button pulses itself). Only allocated
+    // when the player is anonymous so the link is actually rendered.
+    if (widget.backgroundImage != null &&
+        context.read<AuthProvider>().isAnonymous) {
+      _signInPulseController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 800),
+      )..repeat(reverse: true);
+      _signInPulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+        CurvedAnimation(
+          parent: _signInPulseController!,
+          curve: Curves.easeInOut,
+        ),
+      );
+      // Read the link aloud once the success chime (and score readout, if
+      // any) finishes.
+      audioChain.then((_) {
+        if (mounted) {
+          AudioService.playSpeechMp3('sign_in_to_save', locale: widget.locale);
+        }
+      });
+    }
+
+    if (_celebratePersonalBest) _startPersonalBestCelebration();
+
     _entryTimer = Timer(_entryDelay, () {
-      if (mounted) setState(() => _visible = true);
+      if (!mounted) return;
+      setState(() => _visible = true);
+      if (_celebratePersonalBest) _fireFireworks();
     });
     if (widget.backgroundImage != null && widget.extraContent != null) {
       _extraContentTimer = Timer(const Duration(seconds: 5), () {
@@ -181,25 +262,250 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
   }
 
   @override
+  void didUpdateWidget(covariant GameSuccessOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The personal-best result (isNewPersonalBest) is often unknown at
+    // mount time — callers fetch it asynchronously (e.g. after a
+    // recordGameResult call) and rebuild this overlay once it arrives. When
+    // that happens after initState already ran with isNewPersonalBest still
+    // false, the celebration controllers were never created; start them now
+    // so the badge doesn't end up frozen on a stopped animation.
+    if (_celebratePersonalBest && _pbPulseController == null) {
+      _startPersonalBestCelebration();
+      if (_visible) _fireFireworks();
+    }
+  }
+
+  /// Creates the pulse/sparkle/firework controllers and starts the
+  /// continuously-repeating ones (pulse, sparkle). Safe to call more than
+  /// once — a no-op after the first successful call.
+  void _startPersonalBestCelebration() {
+    if (_pbPulseController != null) return;
+
+    // Double pulse (two quick beats) every 3 s, then hold flat until the
+    // next cycle — a single continuous reverse-repeat was too subtle to
+    // read as a "pulse" at only 10% scale.
+    _pbPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
+    _pbPulseAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.0,
+          end: 1.1,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 200,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.1,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 200,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.0,
+          end: 1.1,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 200,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.1,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 200,
+      ),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 2200),
+    ]).animate(_pbPulseController!);
+
+    _sparkleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _sparkleStars = _buildSparkleStars();
+
+    for (var i = 0; i < _fireworkXFractions.length; i++) {
+      _fireworkControllers.add(
+        ConfettiController(duration: const Duration(milliseconds: 800)),
+      );
+    }
+  }
+
+  /// Fires the staggered firework bursts. Only meaningful once the overlay
+  /// is visible and [_startPersonalBestCelebration] has run.
+  void _fireFireworks() {
+    for (var i = 0; i < _fireworkControllers.length; i++) {
+      _fireworkTimers.add(
+        Timer(Duration(milliseconds: i * 250), () {
+          if (mounted) _fireworkControllers[i].play();
+        }),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _entryTimer?.cancel();
     _extraContentTimer?.cancel();
+    _signInPulseController?.dispose();
+    _pbPulseController?.dispose();
+    _sparkleController?.dispose();
+    for (final controller in _fireworkControllers) {
+      controller.dispose();
+    }
+    for (final timer in _fireworkTimers) {
+      timer.cancel();
+    }
     super.dispose();
   }
 
   String _headingText(AppLocalizations localizer) =>
       (widget.score != null && widget.score! < 3)
-          ? localizer('general.play_again')
-          : localizer('general.welldone');
+      ? localizer('general.play_again')
+      : localizer('general.welldone');
+
+  /// Bare `general_`-prefixed clip name (see [AudioService.playSuccess]) for
+  /// the spoken message that opens the overlay's audio, picked in the same
+  /// priority a personal best takes over a plain win: a new personal best
+  /// speaks `'personal_best'`; otherwise a good score (the same condition
+  /// [_headingText] uses for "Well Done!") speaks `'congratulations'`; a low
+  /// score (which shows "Play Again" instead) speaks `'well_done'`.
+  String _successAudioName() {
+    if (_celebratePersonalBest) return 'personal_best';
+    if (widget.score != null && widget.score! < 3) return 'well_done';
+    return 'congratulations';
+  }
+
+  /// Shared size for every trophy layer in the badge stack — matches the
+  /// original (unchanged) top icon, so all layers line up on the same
+  /// centre point instead of needing different offsets per size.
+  static const double _pbIconSize = 30;
+
+  /// Renders [icon] as stroke-only outline text, using the same
+  /// Paint-stroke trick as the "Well Done!" heading above — Material icons
+  /// are just glyphs in the MaterialIcons font, so a stroked [Text] gives an
+  /// outlined icon where a plain [Icon] (fill-only) cannot.
+  ///
+  /// Wrapped in the same `SizedBox(size, size) > Center` structure [Icon]
+  /// uses internally, so its glyph lines up exactly with a plain [Icon] of
+  /// the same [size] rather than being sized to the raw text metrics.
+  Widget _strokedIcon(
+    IconData icon, {
+    required double size,
+    required Color color,
+    required double strokeWidth,
+  }) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Center(
+        child: Text(
+          String.fromCharCode(icon.codePoint),
+          style: TextStyle(
+            fontSize: size,
+            fontFamily: icon.fontFamily,
+            package: icon.fontPackage,
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = strokeWidth
+              ..color = color,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _personalBestBadge(AppLocalizations localizer) {
+    final pill = Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: _goldLight,
+        borderRadius: BorderRadius.circular(AppSizes.borderRadiusXLarge),
+        border: Border.all(color: _orange, width: 3),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.paddingLarge,
+          vertical: AppSizes.spacingMedium + 4,
+        ),
+        decoration: BoxDecoration(
+          color: _gold,
+          borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
+          border: Border.all(color: _orange, width: 2),
+        ),
+        child: Text(
+          localizer('general.personal_best'),
+          textAlign: TextAlign.center,
+          style: AppTheme.celebration.copyWith(
+            fontSize: AppSizes.fontSizeLarge,
+            fontWeight: FontWeight.bold,
+            color: _pbTextColor,
+          ),
+        ),
+      ),
+    );
+
+    // All layers share [_pbIconSize] and the same top offset, so they sit
+    // centred on exactly the same point, straddling the pill's top edge.
+    const top = -_pbIconSize / 2;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        // Bottom layer: orange-outlined trophy behind the whole pill, with
+        // a thick 12px outer border so it peeks out around the pill's edges.
+        Positioned(
+          top: top,
+          child: _strokedIcon(
+            Icons.emoji_events,
+            size: _pbIconSize,
+            color: _orange,
+            strokeWidth: 12,
+          ),
+        ),
+        pill,
+        // Middle layer: gold trophy with its own 8px orange outline, sitting
+        // in front of the pill.
+        Positioned(
+          top: top,
+          child: _strokedIcon(
+            Icons.emoji_events,
+            size: _pbIconSize,
+            color: _orange,
+            strokeWidth: 8,
+          ),
+        ),
+        const Positioned(
+          top: top,
+          child: Icon(Icons.emoji_events, color: _gold, size: _pbIconSize),
+        ),
+        // Top layer: unchanged.
+        const Positioned(
+          top: top,
+          child: Icon(
+            Icons.emoji_events,
+            color: _pbTextColor,
+            size: _pbIconSize,
+          ),
+        ),
+      ],
+    );
+  }
 
   String? _scoreLine(AppLocalizations localizer) {
     switch (widget.scoreStyle) {
       case SuccessScoreStyle.youScored:
-        return localizer('general.you_scored')
-            .replaceAll('{score}', '${widget.score}');
+        return localizer(
+          'general.you_scored',
+        ).replaceAll('{score}', '${widget.score}');
       case SuccessScoreStyle.youMatched:
-        return localizer('general.you_matched')
-            .replaceAll('{score}', '${widget.score}');
+        return localizer(
+          'general.you_matched',
+        ).replaceAll('{score}', '${widget.score}');
       case SuccessScoreStyle.got10Correct:
         return localizer('general.got_10_correct');
       case SuccessScoreStyle.custom:
@@ -214,14 +520,12 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
     final localizer = AppLocalizations(locale: widget.locale);
     final headingText = _headingText(localizer);
     final scoreLine = _scoreLine(localizer);
-    final changeLevelLabel =
-        widget.changeLevelLabel ?? localizer('general.change_level');
     return IgnorePointer(
       ignoring: !_visible,
       child: AnimatedOpacity(
         opacity: _visible ? 1.0 : 0.0,
         duration: const Duration(milliseconds: 300),
-        child: _buildContent(context, localizer, headingText, scoreLine, changeLevelLabel),
+        child: _buildContent(context, localizer, headingText, scoreLine),
       ),
     );
   }
@@ -231,9 +535,8 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
     AppLocalizations localizer,
     String headingText,
     String? scoreLine,
-    String changeLevelLabel,
   ) {
-    return Container(
+    final content = Container(
       decoration: widget.backgroundImage != null
           ? BoxDecoration(
               image: DecorationImage(
@@ -241,442 +544,387 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay> {
                 fit: BoxFit.cover,
               ),
             )
-          : const BoxDecoration(color: Color(0xFF002D97)),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Heading row: back arrow | "Well Done!" | balance spacer ──
-            Padding(
-              padding: const EdgeInsets.only(top: AppSizes.paddingLarge),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: widget.onChangeLevel,
-                    child: const SizedBox(
-                      width: 72,
-                      height: 72,
-                      child: Center(
-                        child: BackArrowIcon(size: 48),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: widget.backgroundImage != null
-                        ? Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Dark-blue 2 px stroke behind the white fill
-                              Text(
-                                headingText,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontFamily: 'LuckiestGuy',
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  foreground: Paint()
-                                    ..style = PaintingStyle.stroke
-                                    ..strokeWidth = 4
-                                    ..color = _darkBlue,
-                                ),
-                              ),
-                              Text(
-                                headingText,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontFamily: 'LuckiestGuy',
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Text(
-                            headingText,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontFamily: 'LuckiestGuy',
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                  ),
-                  const SizedBox(width: 72),
+          : BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFF94E0FF).withValues(alpha: 0.93),
+                  const Color(0xFF00A8F3).withValues(alpha: 0.93),
                 ],
               ),
             ),
-
-            // ── Score sub-line ──────────────────────────────────────────
-            if (scoreLine != null) ...[
-              const SizedBox(height: AppSizes.spacingMedium),
-              Text(
-                scoreLine,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'ComicRelief',
-                  fontSize: AppSizes.fontSizeTitle,
-                  fontWeight: FontWeight.bold,
-                  color: widget.backgroundImage != null ? _darkBlue : _gold,
-                ),
-              ),
-            ],
-
-            // ── Sign-in link (backgroundImage mode only, below score) ───
-            if (widget.backgroundImage != null &&
-                context.watch<AuthProvider>().isAnonymous) ...[
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.profile),
-                child: Text(
-                  localizer('general.sign_in_to_save'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'ComicRelief',
-                    fontSize: 16,
-                    color: _darkBlue,
-                    decoration: TextDecoration.underline,
-                    decorationColor: _darkBlue,
-                  ),
-                ),
-              ),
-            ],
-
-            // ── Centre slot — image, or extraContent when backgroundImage
-            // is set (pins buttons to bottom of screen)
-            Expanded(
-              child: widget.backgroundImage != null
-                  ? (widget.extraContent != null
-                      ? AnimatedOpacity(
-                          opacity: _showExtraContent ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 600),
-                          // Full-area tap detector — tapping outside the box dismisses it
-                          child: GestureDetector(
-                            onTap: () => setState(() => _showExtraContent = false),
-                            behavior: HitTestBehavior.opaque,
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSizes.paddingLarge,
-                                  vertical: AppSizes.spacingMedium,
-                                ),
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    // Box content — absorbs taps so they don't reach the outer dismisser
-                                    GestureDetector(
-                                      onTap: () {},
-                                      child: widget.extraContent!,
-                                    ),
-                                    // Close button — top-right corner of the box
-                                    Positioned(
-                                      top: -14,
-                                      right: -14,
-                                      child: GestureDetector(
-                                        onTap: () => setState(
-                                            () => _showExtraContent = false),
-                                        child: Container(
-                                          width: 28,
-                                          height: 28,
-                                          decoration: const BoxDecoration(
-                                            color: _darkBlue,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(Icons.close,
-                                              color: Colors.white, size: 18),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink())
-                  : (widget.imageAsset != null
-                      ? Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingLarge,
-                            vertical: AppSizes.spacingMedium,
-                          ),
-                          child: Image.asset(
-                            widget.imageAsset!,
-                            fit: BoxFit.contain,
-                          ),
-                        )
-                      : (widget.centerExtraContent && widget.extraContent != null
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSizes.paddingLarge,
-                                  vertical: AppSizes.spacingMedium,
-                                ),
-                                child: widget.extraContent!,
-                              ),
-                            )
-                          : const SizedBox.shrink())),
-            ),
-
-            // ── Bottom elements ─────────────────────────────────────────
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 680),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingLarge,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
+      child: SafeArea(
+        child: Stack(
+          children: [
+            const FallingConfettiLayer(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ── Heading row: back arrow | "Well Done!" | balance spacer ──
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSizes.paddingLarge),
+                  child: Row(
                     children: [
-                      // Personal best badge
-                      if (widget.showPersonalBest && widget.isNewPersonalBest) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingLarge,
-                            vertical: AppSizes.spacingMedium,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _gold,
-                            borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.emoji_events, color: Colors.white, size: 22),
-                              const SizedBox(width: 8),
-                              Text(
-                                localizer('general.personal_best')
-                                    .replaceAll(
-                                        '{score}', '${widget.personalBest}')
-                                    .replaceAll('{suffix}',
-                                        widget.personalBestSuffix),
-                                style: const TextStyle(
-                                  fontFamily: 'ComicRelief',
-                                  fontSize: AppSizes.fontSizeBody,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
+                      GestureDetector(
+                        onTap: widget.onChangeLevel,
+                        child: const SizedBox(
+                          width: 72,
+                          height: 72,
+                          child: Center(child: BackArrowIcon(size: 48)),
                         ),
-                        const SizedBox(height: AppSizes.spacingMedium),
-                      ],
-
-                      // Extra content — only here when no backgroundImage and
-                      // not already shown in the Expanded centre slot above.
-                      if (widget.extraContent != null &&
-                          widget.backgroundImage == null &&
-                          !widget.centerExtraContent) ...[
-                        widget.extraContent!,
-                        const SizedBox(height: AppSizes.spacingMedium),
-                      ],
-
-                      // Sign-in banner
-                      if (context.watch<AuthProvider>().isAnonymous &&
-                          widget.backgroundImage == null)
-                        const SignInBannerButton(),
-                      if (context.watch<AuthProvider>().isAnonymous)
-                        const SizedBox(height: AppSizes.spacingMedium),
-
-                      // Buttons — responsive layout when changeLevelIsButton is true
-                      if (widget.changeLevelIsButton) ...[
-                        // Play Again — hidden when onPlayAgain is null
-                        if (widget.onPlayAgain != null) ...[
-                          ElevatedButton.icon(
-                            onPressed: widget.onPlayAgain,
-                            icon: const Icon(Icons.replay),
-                            label: Text(localizer('general.play_again')),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _green,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(52),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                              ),
-                              textStyle: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: AppSizes.fontSizeLarge,
+                      ),
+                      Expanded(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Dark-blue 2 px stroke + solid drop shadow
+                            // (2 px right, 4 px down) behind the white fill.
+                            Text(
+                              headingText,
+                              textAlign: TextAlign.center,
+                              style: AppTheme.celebration.copyWith(
+                                fontSize: 48,
                                 fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2
+                                  ..color = _darkBlue,
+                                shadows: const [
+                                  Shadow(
+                                    color: _darkBlue,
+                                    offset: Offset(2, 4),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                          const SizedBox(height: AppSizes.spacingMedium),
-                        ],
-                        Builder(builder: (context) {
-                          final isWide = MediaQuery.of(context).size.width > 600;
-                          final homeBtn = ElevatedButton.icon(
-                            onPressed: widget.onChangeLevel,
-                            icon: Icon(widget.changeLevelIcon),
-                            label: Text(changeLevelLabel),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white24,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(52),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                              ),
-                              textStyle: const TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: AppSizes.fontSizeLarge,
+                            Text(
+                              headingText,
+                              textAlign: TextAlign.center,
+                              style: AppTheme.celebration.copyWith(
+                                fontSize: 48,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
-                          );
-                          final nextBtn = widget.onNextLevel != null
-                              ? ElevatedButton.icon(
-                                  onPressed: widget.onNextLevel,
-                                  icon: const Icon(Icons.arrow_forward),
-                                  label: Text(localizer('general.next_level')),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _pink,
-                                    foregroundColor: Colors.white,
-                                    minimumSize: const Size.fromHeight(52),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontFamily: 'ComicRelief',
-                                      fontSize: AppSizes.fontSizeLarge,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                )
-                              : null;
-
-                          if (nextBtn == null) return homeBtn;
-
-                          if (isWide) {
-                            return Row(
-                              children: [
-                                Expanded(child: homeBtn),
-                                const SizedBox(width: AppSizes.spacingMedium),
-                                Expanded(child: nextBtn),
-                              ],
-                            );
-                          } else {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                homeBtn,
-                                const SizedBox(height: AppSizes.spacingMedium),
-                                nextBtn,
-                              ],
-                            );
-                          }
-                        }),
-                        const SizedBox(height: AppSizes.spacingSmall),
-                      ] else ...[
-                        // Play Again + Next Level — side by side in landscape
-                        Builder(builder: (context) {
-                          final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-
-                          final playAgainBtn = widget.onPlayAgain != null
-                              ? ElevatedButton.icon(
-                                  onPressed: widget.onPlayAgain,
-                                  icon: const Icon(Icons.replay),
-                                  label: Text(localizer('general.play_again')),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _green,
-                                    foregroundColor: Colors.white,
-                                    minimumSize: const Size.fromHeight(52),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontFamily: 'ComicRelief',
-                                      fontSize: AppSizes.fontSizeLarge,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                )
-                              : null;
-
-                          final nextLevelBtn = widget.onNextLevel != null
-                              ? ElevatedButton.icon(
-                                  onPressed: widget.onNextLevel,
-                                  icon: const Icon(Icons.arrow_forward),
-                                  label: Text(localizer('general.next_level')),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _pink,
-                                    foregroundColor: Colors.white,
-                                    minimumSize: const Size.fromHeight(52),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontFamily: 'ComicRelief',
-                                      fontSize: AppSizes.fontSizeLarge,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                )
-                              : null;
-
-                          if (playAgainBtn == null && nextLevelBtn == null) {
-                            return const SizedBox.shrink();
-                          }
-
-                          if (playAgainBtn != null && nextLevelBtn != null && isLandscape) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(child: playAgainBtn),
-                                    const SizedBox(width: AppSizes.spacingMedium),
-                                    Expanded(child: nextLevelBtn),
-                                  ],
-                                ),
-                                const SizedBox(height: AppSizes.spacingMedium),
-                              ],
-                            );
-                          }
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (playAgainBtn != null) ...[
-                                playAgainBtn,
-                                const SizedBox(height: AppSizes.spacingMedium),
-                              ],
-                              if (nextLevelBtn != null) ...[
-                                nextLevelBtn,
-                                const SizedBox(height: AppSizes.spacingMedium),
-                              ],
-                            ],
-                          );
-                        }),
-
-                        // Change Level link
-                        TextButton.icon(
-                          onPressed: widget.onChangeLevel,
-                          icon: Icon(widget.changeLevelIcon, color: Colors.white),
-                          label: Text(
-                            changeLevelLabel,
-                            style: const TextStyle(
-                              fontFamily: 'ComicRelief',
-                              fontSize: AppSizes.fontSizeBody,
-                              color: Colors.white,
-                              decoration: TextDecoration.underline,
-                              decorationColor: Colors.white,
-                            ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(height: AppSizes.spacingSmall),
-                      ],
+                      ),
+                      const SizedBox(width: 72),
                     ],
                   ),
                 ),
-              ),
+
+                // ── Score sub-line ──────────────────────────────────────────
+                if (scoreLine != null) ...[
+                  const SizedBox(height: AppSizes.spacingMedium),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Stroke + white drop shadow, behind the solid fill.
+                      Text(
+                        scoreLine,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Quicksand',
+                          fontSize: AppSizes.fontSizeTitle,
+                          fontWeight: FontWeight.w600,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 1
+                            ..color = _darkBlue,
+                          shadows: [
+                            Shadow(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        scoreLine,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: 'Quicksand',
+                          fontSize: AppSizes.fontSizeTitle,
+                          fontWeight: FontWeight.w600,
+                          color: _darkBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+
+                // ── Sign-in link (backgroundImage mode only, below score) ───
+                if (widget.backgroundImage != null &&
+                    context.watch<AuthProvider>().isAnonymous) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.profile,
+                      arguments: widget.locale,
+                    ),
+                    child: ScaleTransition(
+                      scale:
+                          _signInPulseAnimation ??
+                          const AlwaysStoppedAnimation<double>(1.0),
+                      child: Text(
+                        localizer('general.sign_in_to_save'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: 'Quicksand',
+                          fontSize: 14,
+                          color: _darkBlue,
+                          decoration: TextDecoration.underline,
+                          decorationColor: _darkBlue,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
+                // ── Centre slot — image, or extraContent when backgroundImage
+                // is set (pins buttons to bottom of screen)
+                Expanded(
+                  child: widget.backgroundImage != null
+                      ? (widget.extraContent != null
+                            ? AnimatedOpacity(
+                                opacity: _showExtraContent ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 600),
+                                // Full-area tap detector — tapping outside the box dismisses it
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      setState(() => _showExtraContent = false),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSizes.paddingLarge,
+                                        vertical: AppSizes.spacingMedium,
+                                      ),
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          // Box content — absorbs taps so they don't reach the outer dismisser
+                                          GestureDetector(
+                                            onTap: () {},
+                                            child: widget.extraContent!,
+                                          ),
+                                          // Close button — top-right corner of the box
+                                          Positioned(
+                                            top: -14,
+                                            right: -14,
+                                            child: GestureDetector(
+                                              onTap: () => setState(
+                                                () => _showExtraContent = false,
+                                              ),
+                                              child: Container(
+                                                width: 28,
+                                                height: 28,
+                                                decoration: const BoxDecoration(
+                                                  color: _darkBlue,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                  size: 18,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink())
+                      : (widget.imageAsset != null
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSizes.paddingLarge,
+                                  vertical: AppSizes.spacingMedium,
+                                ),
+                                child: Image.asset(
+                                  widget.imageAsset!,
+                                  fit: BoxFit.contain,
+                                ),
+                              )
+                            : (widget.centerExtraContent &&
+                                      widget.extraContent != null
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppSizes.paddingLarge,
+                                          vertical: AppSizes.spacingMedium,
+                                        ),
+                                        child: widget.extraContent!,
+                                      ),
+                                    )
+                                  : const SizedBox.shrink())),
+                ),
+
+                // ── Bottom elements ─────────────────────────────────────────
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 680),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.paddingLarge,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Personal best badge — double border like GameHeaderBar,
+                          // pulsing 10% in size when it's a new personal best.
+                          //
+                          // Taken out of the stretched Column flow: a hidden
+                          // same-size placeholder reserves the layout space, while
+                          // the real badge is absolutely positioned over it via
+                          // Align/Positioned so ScaleTransition can freely pulse
+                          // without the CrossAxisAlignment.stretch width lock or
+                          // any clipping restricting it.
+                          if (widget.showPersonalBest &&
+                              widget.isNewPersonalBest) ...[
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Visibility(
+                                  maintainSize: true,
+                                  maintainAnimation: true,
+                                  maintainState: true,
+                                  visible: false,
+                                  child: _personalBestBadge(localizer),
+                                ),
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: ScaleTransition(
+                                      scale:
+                                          _pbPulseAnimation ??
+                                          const AlwaysStoppedAnimation<double>(
+                                            1.0,
+                                          ),
+                                      child: _personalBestBadge(localizer),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSizes.spacingMedium),
+                          ],
+
+                          // Extra content — only here when no backgroundImage and
+                          // not already shown in the Expanded centre slot above.
+                          if (widget.extraContent != null &&
+                              widget.backgroundImage == null &&
+                              !widget.centerExtraContent) ...[
+                            widget.extraContent!,
+                            const SizedBox(height: AppSizes.spacingMedium),
+                          ],
+
+                          // Sign-in banner — 14 px label; pulses itself.
+                          if (context.watch<AuthProvider>().isAnonymous &&
+                              widget.backgroundImage == null)
+                            SignInBannerButton(locale: widget.locale),
+                          if (context.watch<AuthProvider>().isAnonymous)
+                            const SizedBox(height: AppSizes.spacingMedium),
+
+                          // Buttons — same layout as the Letter Bingo
+                          // celebration: Play Again full width, then Next
+                          // Level full width below it. The header's back
+                          // arrow is the way back to the level select.
+                          if (widget.onPlayAgain != null) ...[
+                            PrimaryButton(
+                              label: localizer('general.play_again'),
+                              icon: Icons.replay,
+                              expanded: true,
+                              onPressed: widget.onPlayAgain,
+                            ),
+                            const SizedBox(height: AppSizes.spacingMedium),
+                          ],
+                          if (widget.onNextLevel != null)
+                            SecondaryButton(
+                              label: localizer('general.next_level'),
+                              expanded: true,
+                              onPressed: widget.onNextLevel,
+                            ),
+                          const SizedBox(height: AppSizes.spacingSmall),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
+    );
+
+    if (!_celebratePersonalBest) return content;
+
+    return Stack(
+      children: [
+        content,
+        IgnorePointer(child: _buildSparkleLayer(context)),
+        IgnorePointer(child: _buildFireworksLayer(context)),
+      ],
+    );
+  }
+
+  /// Twinkling gold stars scattered over the top half of the screen.
+  Widget _buildSparkleLayer(BuildContext context) {
+    final controller = _sparkleController;
+    if (controller == null) return const SizedBox.shrink();
+    final size = MediaQuery.of(context).size;
+    return Stack(
+      children: _sparkleStars.map((s) {
+        return AnimatedBuilder(
+          animation: controller,
+          builder: (_, _) {
+            final t = (controller.value + s.phase) % 1.0;
+            final opacity = (0.3 + 0.7 * (t < 0.5 ? t * 2 : 2 - t * 2)).clamp(
+              0.15,
+              1.0,
+            );
+            return Positioned(
+              left: s.x * size.width - s.size / 2,
+              top: s.y * size.height * 0.5,
+              child: Opacity(
+                opacity: opacity,
+                child: Icon(Icons.star, color: _gold, size: s.size),
+              ),
+            );
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  /// Staggered firework-style confetti bursts, fired once when the
+  /// personal-best badge appears.
+  Widget _buildFireworksLayer(BuildContext context) {
+    if (_fireworkControllers.isEmpty) return const SizedBox.shrink();
+    final size = MediaQuery.of(context).size;
+    return Stack(
+      children: List.generate(_fireworkControllers.length, (i) {
+        return Positioned(
+          left: size.width * _fireworkXFractions[i],
+          top: size.height * 0.16,
+          child: ConfettiWidget(
+            confettiController: _fireworkControllers[i],
+            blastDirectionality: BlastDirectionality.explosive,
+            shouldLoop: false,
+            numberOfParticles: 18,
+            maxBlastForce: 12,
+            minBlastForce: 5,
+            gravity: 0.25,
+            colors: const [_gold, _orange, Colors.white, _pink],
+          ),
+        );
+      }),
     );
   }
 }
@@ -694,11 +942,15 @@ class BingoSuccessOverlay extends StatefulWidget {
   final VoidCallback onChangeLevel;
   final VoidCallback? onNextLevel;
 
+  /// UI locale ('en' or 'cy') used for all displayed text.
+  final String locale;
+
   const BingoSuccessOverlay({
     super.key,
     required this.onPlayAgain,
     required this.onChangeLevel,
     this.onNextLevel,
+    this.locale = 'en',
   });
 
   @override
@@ -756,6 +1008,7 @@ class _BingoSuccessOverlayState extends State<BingoSuccessOverlay>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final localizer = AppLocalizations(locale: widget.locale);
     return Container(
       color: const Color(0xFF002D97).withValues(alpha: 0.88),
       child: SafeArea(
@@ -803,90 +1056,74 @@ class _BingoSuccessOverlayState extends State<BingoSuccessOverlay>
                     constraints: const BoxConstraints(maxWidth: 680),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.paddingLarge),
+                        horizontal: AppSizes.paddingLarge,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (context.watch<AuthProvider>().isAnonymous) ...[
-                            const SignInBannerButton(),
+                            SignInBannerButton(locale: widget.locale),
                             const SizedBox(height: AppSizes.spacingMedium),
                           ],
 
-                          Builder(builder: (context) {
-                            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+                          Builder(
+                            builder: (context) {
+                              final isLandscape =
+                                  MediaQuery.of(context).orientation ==
+                                  Orientation.landscape;
 
-                            final playAgainBtn = ElevatedButton.icon(
-                              onPressed: widget.onPlayAgain,
-                              icon: const Icon(Icons.replay),
-                              label: const Text('Play Again'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4CAF50),
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size.fromHeight(52),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontFamily: 'ComicRelief',
-                                  fontSize: AppSizes.fontSizeLarge,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
+                              final playAgainBtn = PrimaryButton(
+                                label: localizer('general.play_again'),
+                                icon: Icons.replay,
+                                expanded: true,
+                                onPressed: widget.onPlayAgain,
+                              );
 
-                            final nextLevelBtn = widget.onNextLevel != null
-                                ? ElevatedButton.icon(
-                                    onPressed: widget.onNextLevel,
-                                    icon: const Icon(Icons.arrow_forward),
-                                    label: const Text('Next Level'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFEE009B),
-                                      foregroundColor: Colors.white,
-                                      minimumSize: const Size.fromHeight(52),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-                                      ),
-                                      textStyle: const TextStyle(
-                                        fontFamily: 'ComicRelief',
-                                        fontSize: AppSizes.fontSizeLarge,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              final nextLevelBtn = widget.onNextLevel != null
+                                  ? SecondaryButton(
+                                      label: localizer('general.next_level'),
+                                      icon: Icons.arrow_forward,
+                                      expanded: true,
+                                      onPressed: widget.onNextLevel,
+                                    )
+                                  : null;
+
+                              if (nextLevelBtn != null && isLandscape) {
+                                return Row(
+                                  children: [
+                                    Expanded(child: playAgainBtn),
+                                    const SizedBox(
+                                      width: AppSizes.spacingMedium,
                                     ),
-                                  )
-                                : null;
+                                    Expanded(child: nextLevelBtn),
+                                  ],
+                                );
+                              }
 
-                            if (nextLevelBtn != null && isLandscape) {
-                              return Row(
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Expanded(child: playAgainBtn),
-                                  const SizedBox(width: AppSizes.spacingMedium),
-                                  Expanded(child: nextLevelBtn),
+                                  playAgainBtn,
+                                  if (nextLevelBtn != null) ...[
+                                    const SizedBox(
+                                      height: AppSizes.spacingMedium,
+                                    ),
+                                    nextLevelBtn,
+                                  ],
                                 ],
                               );
-                            }
-
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                playAgainBtn,
-                                if (nextLevelBtn != null) ...[
-                                  const SizedBox(height: AppSizes.spacingMedium),
-                                  nextLevelBtn,
-                                ],
-                              ],
-                            );
-                          }),
+                            },
+                          ),
 
                           const SizedBox(height: AppSizes.spacingMedium),
-                          TextButton.icon(
-                            onPressed: widget.onChangeLevel,
-                            icon: const Icon(Icons.grid_view, color: Colors.white),
-                            label: const Text(
-                              'Change Level',
-                              style: TextStyle(
-                                fontFamily: 'ComicRelief',
-                                fontSize: AppSizes.fontSizeBody,
-                                color: Colors.white,
+                          Center(
+                            child: TertiaryButton(
+                              label: localizer('general.change_level'),
+                              icon: Icons.grid_view,
+                              onPressed: widget.onChangeLevel,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSizes.paddingLarge,
+                                vertical: AppSizes.paddingSmall,
                               ),
                             ),
                           ),
@@ -913,7 +1150,7 @@ class _BingoText extends StatelessWidget {
     AppColors.catrinBlue,
     AppColors.accentLimeGreen,
     AppColors.accentOrange,
-    AppColors.accentPurple
+    AppColors.accentPurple,
   ];
 
   @override
@@ -924,20 +1161,52 @@ class _BingoText extends StatelessWidget {
         return Text(
           _letters[i],
           style: TextStyle(
-            fontFamily: 'ComicRelief',
+            fontFamily: 'Quicksand',
             fontSize: 80,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w600,
             color: _colors[i],
             shadows: [
               // White outer stroke simulation via layered shadows
-              const Shadow(color: Colors.white, offset: Offset(-2, -2), blurRadius: 0),
-              const Shadow(color: Colors.white, offset: Offset(2, -2), blurRadius: 0),
-              const Shadow(color: Colors.white, offset: Offset(-2, 2), blurRadius: 0),
-              const Shadow(color: Colors.white, offset: Offset(2, 2), blurRadius: 0),
-              const Shadow(color: Colors.white, offset: Offset(4, 0), blurRadius: 0),
-              const Shadow(color: Colors.white, offset: Offset(-4, 0), blurRadius: 0),
-              const Shadow(color: Colors.white, offset: Offset(0, 4), blurRadius: 0),
-              const Shadow(color: Colors.white, offset: Offset(0, -4), blurRadius: 0),
+              const Shadow(
+                color: Colors.white,
+                offset: Offset(-2, -2),
+                blurRadius: 0,
+              ),
+              const Shadow(
+                color: Colors.white,
+                offset: Offset(2, -2),
+                blurRadius: 0,
+              ),
+              const Shadow(
+                color: Colors.white,
+                offset: Offset(-2, 2),
+                blurRadius: 0,
+              ),
+              const Shadow(
+                color: Colors.white,
+                offset: Offset(2, 2),
+                blurRadius: 0,
+              ),
+              const Shadow(
+                color: Colors.white,
+                offset: Offset(4, 0),
+                blurRadius: 0,
+              ),
+              const Shadow(
+                color: Colors.white,
+                offset: Offset(-4, 0),
+                blurRadius: 0,
+              ),
+              const Shadow(
+                color: Colors.white,
+                offset: Offset(0, 4),
+                blurRadius: 0,
+              ),
+              const Shadow(
+                color: Colors.white,
+                offset: Offset(0, -4),
+                blurRadius: 0,
+              ),
               // Black drop shadow for depth
               // const Shadow(color: Colors.black38, offset: Offset(4, 4), blurRadius: 8),
             ],
@@ -953,5 +1222,10 @@ class _StarData {
   final double y;
   final double size;
   final double phase;
-  const _StarData({required this.x, required this.y, required this.size, required this.phase});
+  const _StarData({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.phase,
+  });
 }

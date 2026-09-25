@@ -123,6 +123,7 @@ class _GameCardState extends State<GameCard> {
   /// Builds the front of the card (face-up state).
   Widget _buildCardFront() {
     return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingMedium),
       decoration: BoxDecoration(
         color: AppColors.accentWhite,
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
@@ -138,55 +139,47 @@ class _GameCardState extends State<GameCard> {
           ),
         ],
       ),
-      child: Center(
-        child: widget.card.type == CardType.bslSign
-            ? _buildBslSignContent()
-            : _buildLetterContent(),
-      ),
+      child: widget.card.type == CardType.bslSign
+          ? _buildBslSignContent()
+          : Center(child: _buildLetterContent()),
     );
   }
 
   /// Builds the BSL sign image content.
   ///
-  /// Scaled via [Transform.scale] rather than a [FittedBox], which would
-  /// instead stretch the sign to fill the entire card. Only applied on wide
-  /// devices (>600px).
+  /// Deliberately has no [Center]/[FittedBox] of its own. [Container]'s
+  /// `padding` deflates its tight constraints (the card's actual rendered
+  /// size) by a fixed inset and passes the rest straight through to
+  /// [BslAlphabetSvg], whose underlying SvgPicture fills exactly that box
+  /// and scales the artwork via its own internal `BoxFit.contain` — so the
+  /// sign grows and shrinks directly with the card's size. A [Center] here
+  /// would loosen those constraints, which only ever shrinks an oversized
+  /// sign and never grows an undersized one.
   Widget _buildBslSignContent() {
-    final isWideDevice = MediaQuery.of(context).size.width > 600;
-    final svg = BslAlphabetSvg(
+    return BslAlphabetSvg(
       letter: widget.card.value,
       signSystem: widget.signSystem,
     );
-
-    if (!isWideDevice) return svg;
-
-    return Transform.scale(scaleX: 1.6, scaleY: 1.6, child: svg);
   }
 
   /// Builds the letter text content.
   ///
-  /// Uses [FittedBox] so the letter scales with the card size
-  /// instead of being a fixed font size. On wide devices (>600px) the
-  /// padding around the letter is removed and the base font size doubled
-  /// so it fills more of the card.
+  /// Uses [FittedBox] so the letter scales with the card size instead of
+  /// being a fixed font size. On wide devices (>600px) the base font size
+  /// is doubled so it fills more of the card.
   Widget _buildLetterContent() {
     final isWideDevice = MediaQuery.of(context).size.width > 600;
 
     return FittedBox(
       fit: BoxFit.contain,
-      child: Padding(
-        padding: isWideDevice
-            ? EdgeInsets.zero
-            : const EdgeInsets.all(AppSizes.paddingSmall),
-        child: Text(
-          widget.card.value.toLowerCase(),
-          style: TextStyle(
-            fontSize: isWideDevice
-                ? AppSizes.fontSizeCardLetter * 1.4
-                : AppSizes.fontSizeCardLetter,
-            fontWeight: FontWeight.bold,
-            color: widget.card.pairColor,
-          ),
+      child: Text(
+        widget.card.value.toLowerCase(),
+        style: TextStyle(
+          fontSize: isWideDevice
+              ? AppSizes.fontSizeCardLetter * 1.4
+              : AppSizes.fontSizeCardLetter,
+          fontWeight: FontWeight.bold,
+          color: widget.card.pairColor,
         ),
       ),
     );

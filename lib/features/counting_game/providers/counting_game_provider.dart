@@ -81,6 +81,11 @@ class CircleColourPair {
   /// and the score is simply "how many right in 1 minute".
   final bool isTimed;
 
+  /// When false, the answer buttons show only the BSL hand sign — no
+  /// digit label underneath — for levels that drill sign recognition
+  /// without the numeral as a crutch.
+  final bool showAnswerNumerals;
+
   const CircleColourPair({
     required this.colorA,
     required this.colorB,
@@ -96,6 +101,7 @@ class CircleColourPair {
     this.fixedTotal,
     this.isTeenGrid = false,
     this.isTimed = false,
+    this.showAnswerNumerals = true,
   });
 
   /// True when this level shows circles in a single colour only.
@@ -148,10 +154,54 @@ const List<CircleColourPair> countingColourPairs = [
     useDicePattern: true,
     isTimed: true,
   ),
+  // Levels 5-8: duplicates of levels 1-4 with the answer buttons' digit
+  // labels hidden, so the sign itself has to be read instead of the numeral.
+  CircleColourPair(
+    colorA: Color(0xFFE53935),
+    colorB: Color(0xFFE53935),
+    name: 'counting_game.level5.name',
+    nameA: 'red',
+    nameB: 'red',
+    questionOrder: [QuestionType.total],
+    useDicePattern: true,
+    showAnswerNumerals: false,
+  ),
+  CircleColourPair(
+    colorA: Color.fromARGB(255, 112, 67, 160),
+    colorB: Color.fromARGB(255, 112, 67, 160),
+    name: 'counting_game.level6.name',
+    nameA: 'purple',
+    nameB: 'purple',
+    questionOrder: [QuestionType.total],
+    useDicePattern: true,
+    showAnswerNumerals: false,
+  ),
+  CircleColourPair(
+    colorA: Color(0xFF1E88E5),
+    colorB: Color(0xFF1E88E5),
+    name: 'counting_game.level7.name',
+    nameA: 'blue',
+    nameB: 'blue',
+    questionOrder: [QuestionType.total],
+    useDicePattern: true,
+    showAnswerNumerals: false,
+  ),
+  // Level 8: timed duplicate of level 7 — how many right in 1 minute.
+  CircleColourPair(
+    colorA: Color(0xFF1E88E5),
+    colorB: Color(0xFF1E88E5),
+    name: 'counting_game.level8.name',
+    nameA: 'blue',
+    nameB: 'blue',
+    questionOrder: [QuestionType.total],
+    useDicePattern: true,
+    isTimed: true,
+    showAnswerNumerals: false,
+  ),
   CircleColourPair(
     colorA: Color(0xFFFF6F00),
     colorB: Color(0xFFFF6F00),
-    name: 'counting_game.level5.name',
+    name: 'counting_game.level9.name',
     nameA: 'orange',
     nameB: 'orange',
     questionOrder: [QuestionType.total],
@@ -159,7 +209,7 @@ const List<CircleColourPair> countingColourPairs = [
   CircleColourPair(
     colorA: Color(0xFFFDD835),
     colorB: Color(0xFFFDD835),
-    name: 'counting_game.level6.name',
+    name: 'counting_game.level10.name',
     nameA: 'yellow',
     nameB: 'yellow',
     questionOrder: [QuestionType.total],
@@ -167,16 +217,16 @@ const List<CircleColourPair> countingColourPairs = [
   CircleColourPair(
     colorA: Color(0xFF43A047),
     colorB: Color(0xFF43A047),
-    name: 'counting_game.level7.name',
+    name: 'counting_game.level11.name',
     nameA: 'green',
     nameB: 'green',
     questionOrder: [QuestionType.total],
   ),
-  // Level 8: timed duplicate of level 7 — how many right in 1 minute.
+  // Level 12: timed duplicate of level 11 — how many right in 1 minute.
   CircleColourPair(
     colorA: Color(0xFF43A047),
     colorB: Color(0xFF43A047),
-    name: 'counting_game.level8.name',
+    name: 'counting_game.level12.name',
     nameA: 'green',
     nameB: 'green',
     questionOrder: [QuestionType.total],
@@ -185,44 +235,44 @@ const List<CircleColourPair> countingColourPairs = [
   CircleColourPair(
     colorA: Color(0xFFEE009B),
     colorB: Color(0xFFcca815),
-    name: 'counting_game.level9.name',
+    name: 'counting_game.level13.name',
     nameA: 'pink',
     nameB: 'yellow',
   ),
   CircleColourPair(
     colorA: Color(0xFF1E88E5),
     colorB: Color(0xFFE53935),
-    name: 'counting_game.level10.name',
+    name: 'counting_game.level14.name',
     nameA: 'blue',
     nameB: 'red',
   ),
   CircleColourPair(
     colorA: Color(0xFF43A047),
     colorB: Color.fromARGB(255, 112, 67, 160),
-    name: 'counting_game.level11.name',
+    name: 'counting_game.level15.name',
     nameA: 'green',
     nameB: 'purple',
   ),
-  // Level 12: two groups that always add up to 10, in the same grid
+  // Level 16: two groups that always add up to 10, in the same grid
   // pattern as levels 1-3. colorA/colorB/nameA/nameB are unused — each
   // group is coloured by its own count via numberColours (usesNumberColours).
   CircleColourPair(
     colorA: Color(0xFFE53935),
     colorB: Color(0xFF43A047),
-    name: 'counting_game.level12.name',
+    name: 'counting_game.level16.name',
     nameA: 'red',
     nameB: 'green',
     useDicePattern: true,
     fixedTotal: 10,
   ),
-  // Level 13: a fixed group of 10 beside a second group of 1-10 — teen
+  // Level 17: a fixed group of 10 beside a second group of 1-10 — teen
   // numbers as "10 and some more". colorA/colorB/nameA/nameB are unused —
   // each group is coloured by its own count via numberColours
   // (usesNumberColours).
   CircleColourPair(
     colorA: Color(0xFF1E88E5),
     colorB: Color(0xFFFF6F00),
-    name: 'counting_game.level13.name',
+    name: 'counting_game.level17.name',
     nameA: 'blue',
     nameB: 'orange',
     questionOrder: [QuestionType.total],
@@ -447,7 +497,7 @@ class CountingGameProvider extends ChangeNotifier {
 
   /// Maximum total circle count per level.
   static const List<int> _maxTotals = [
-    5, 7, 10, 10, 5, 7, 10, 10, 5, 10, 20, 10, 20,
+    5, 7, 10, 10, 5, 7, 10, 10, 5, 7, 10, 10, 5, 10, 20, 10, 20,
   ];
 
   int get _maxTotal => _maxTotals[_levelIndex];
@@ -501,10 +551,25 @@ class CountingGameProvider extends ChangeNotifier {
   int _secondsRemaining = 0;
   int get secondsRemaining => _secondsRemaining;
 
+  /// Called with the final score whenever a level ends (won or, for timed
+  /// levels, timeUp) — set by the trail flow to gate node completion on
+  /// [TrailNode.minScore]. Unused outside the trail.
+  Function(int score)? onLevelComplete;
+
   // ── lifecycle ──────────────────────────────────────────────────────────────
 
-  CountingGameProvider() {
-    showLevelSelection();
+  /// [initialLevelNumber], when set, skips level-select and starts directly
+  /// on that level — used when launched from the "Learn BSL trail". Timed
+  /// levels are the exception: they stay unstarted so the screen can show
+  /// the intro countdown first (same as normal timed-level play) instead
+  /// of the clock silently already running underneath it.
+  CountingGameProvider({int? initialLevelNumber}) {
+    if (initialLevelNumber != null &&
+        !countingColourPairs[initialLevelNumber - 1].isTimed) {
+      startGame(initialLevelNumber - 1);
+    } else {
+      showLevelSelection();
+    }
   }
 
   void showLevelSelection() {
@@ -531,6 +596,7 @@ class CountingGameProvider extends ChangeNotifier {
           _state = CountingGameState.timeUp;
           _lastResult = null;
           notifyListeners();
+          onLevelComplete?.call(_score);
           _statsService
               .recordGameResult(GameIds.countingGame, _score, level: levelNumber)
               .then((result) {
@@ -612,6 +678,7 @@ class CountingGameProvider extends ChangeNotifier {
     _state = CountingGameState.won;
     _lastResult = null;
     notifyListeners();
+    onLevelComplete?.call(_score);
     _statsService
         .recordGameResult(GameIds.countingGame, _score, level: levelNumber)
         .then((result) {

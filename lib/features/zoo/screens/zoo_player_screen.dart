@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/routes.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/settings_provider.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
+import '../../../shared/widgets/button.dart';
 import '../models/zoo_character.dart';
 import '../widgets/zoo_screen_chrome.dart';
 
@@ -77,9 +77,8 @@ class ZooPlayerScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ZooActionButton(
+                SecondaryButton(
                   label: localizer('zoo.change_player'),
-                  color: AppColors.abiPink,
                   onPressed: () => Navigator.pushReplacementNamed(
                     context,
                     AppRoutes.zooPickPlayer,
@@ -87,9 +86,8 @@ class ZooPlayerScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 20),
-                ZooActionButton(
+                PrimaryButton(
                   label: localizer('zoo.choose'),
-                  color: AppColors.schoolGreen,
                   onPressed: () {
                     context
                         .read<SettingsProvider>()

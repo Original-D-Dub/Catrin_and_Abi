@@ -207,10 +207,15 @@ class LetterQuestProvider extends ChangeNotifier {
   /// Gary's room) rather than finishing words sequentially as in Level 3.
   void forceVictory() {
     _phase = LetterQuestPhase.victory;
-    _statsService.recordGameResult(GameIds.letterQuest, wordsCompleted,
-        level: 2);
+    _statsService.recordGameResult(_gameId, wordsCompleted, level: 2);
     notifyListeners();
   }
+
+  /// The `player_stats` game id to record under — separate ids for BSL and
+  /// IAC so each sign system's scores are tracked independently.
+  String get _gameId => signSystem == SignSystem.iac
+      ? GameIds.welshLetterQuest
+      : GameIds.letterQuest;
 
   /// Advances to the next word after word completion celebration.
   ///
@@ -222,7 +227,7 @@ class LetterQuestProvider extends ChangeNotifier {
     if (_currentWordIndex >= _words.length - 1) {
       // All words collected — game won!
       _phase = LetterQuestPhase.victory;
-      _statsService.recordGameResult(GameIds.letterQuest, wordsCompleted);
+      _statsService.recordGameResult(_gameId, wordsCompleted);
     } else {
       // Move to next word
       _currentWordIndex++;

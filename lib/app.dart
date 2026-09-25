@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'core/config/route_observers.dart';
 import 'core/config/routes.dart';
 import 'core/theme/app_theme.dart';
+import 'features/home/providers/trail_provider.dart';
+import 'features/letter_bingo/providers/bingo_collection_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
 import 'shared/services/audio_service.dart';
 import 'shared/services/auth_provider.dart';
@@ -33,6 +36,8 @@ class CatrinAbiApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => TrailProvider()),
+        ChangeNotifierProvider(create: (_) => BingoCollectionProvider()),
       ],
       child: MaterialApp(
         title: 'Catrin & Abi BSL',
@@ -41,10 +46,18 @@ class CatrinAbiApp extends StatelessWidget {
         // Theme
         theme: AppTheme.lightTheme,
 
+        // Re-themes for the device's current width on every build (screen
+        // rotation, window resize) so the default body text size can react
+        // to it — see AppTheme.themeForWidth.
+        builder: (context, child) => Theme(
+          data: AppTheme.themeForWidth(MediaQuery.sizeOf(context).width),
+          child: child!,
+        ),
+
         // Navigation
         initialRoute: AppRoutes.initial,
         onGenerateRoute: generateRoute,
-        navigatorObservers: [_AudioStopObserver()],
+        navigatorObservers: [_AudioStopObserver(), trailRouteObserver],
       ),
     );
   }

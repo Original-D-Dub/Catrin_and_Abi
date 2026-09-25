@@ -70,6 +70,17 @@ class CardGameProvider extends ChangeNotifier {
   /// Set by the screen to play correct/wrong audio without coupling the provider to audio.
   Function(bool isMatch)? onAnswerResult;
 
+  /// Called the moment the player flips the second card of a pair-matching
+  /// attempt, before the match result is known. Set by the screen to
+  /// permanently dismiss the instruction bubble — by this point the player
+  /// has shown they know how to play.
+  VoidCallback? onSecondCardFlipped;
+
+  /// Called once, with [_moveCount], the moment the level is won. Set by the
+  /// screen when launched from the "Learn BSL trail" so it can mark the
+  /// trail node completed without coupling the provider to trail state.
+  Function(int score)? onLevelComplete;
+
   /// Number of successful matches made
   int _matchCount = 0;
   int get matchCount => _matchCount;
@@ -83,9 +94,15 @@ class CardGameProvider extends ChangeNotifier {
   int get totalPairs => _level.totalPairs;
 
   /// Creates the provider and initializes the first level for [signSystem].
-  CardGameProvider({SignSystem signSystem = SignSystem.bsl})
+  ///
+  /// [initialLevelNumber], when set, skips level-select and starts directly
+  /// at that level — used when launched from the "Learn BSL trail".
+  CardGameProvider({SignSystem signSystem = SignSystem.bsl, int? initialLevelNumber})
       : _signSystem = signSystem {
     _initializeGame(GameLevel.forSignSystem(_signSystem).first);
+    if (initialLevelNumber != null) {
+      startLevel(levels[initialLevelNumber - 1]);
+    }
   }
 
   /// Initializes a new game with the specified level.
@@ -148,6 +165,7 @@ class CardGameProvider extends ChangeNotifier {
     } else if (_secondSelection == null) {
       // Second card selected
       _secondSelection = _cards[cardIndex];
+      onSecondCardFlipped?.call();
       await _checkForMatch();
     }
   }
@@ -215,9 +233,13 @@ class CardGameProvider extends ChangeNotifier {
     );
     if (_hasWon) {
       _lastResult = null;
+      onLevelComplete?.call(_moveCount);
+      final gameId = _signSystem == SignSystem.iac
+          ? GameIds.welshCardMatching
+          : GameIds.cardMatching;
       _statsService
           .recordGameResult(
-            GameIds.cardMatching,
+            gameId,
             _moveCount,
             level: _level.levelNumber,
             higherIsBetter: false,

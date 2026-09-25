@@ -14,7 +14,7 @@ import '../providers/enclosure_walk_provider.dart';
 import '../widgets/bsl_question_video.dart';
 import '../widgets/captured_photo_card.dart';
 import '../widgets/photo_gallery.dart';
-import '../widgets/zoo_camera_button.dart';
+import '../widgets/zoo_too_far_message.dart';
 import 'zoo_level_select_screen.dart';
 
 /// Screen for a side-scrolling enclosure walk building (aquarium,
@@ -24,9 +24,10 @@ import 'zoo_level_select_screen.dart';
 /// Plays the same BSL video quiz as the zoo's map levels: hosts the Flame
 /// [GameWidget] for [EnclosureWalkGame] with the current question's video
 /// below the header bar. The player walks to the matching enclosure and
-/// presses Take a Picture; a correct picture reveals a photo of the
-/// animal and plays the next video. After three correct answers the
-/// success overlay celebrates.
+/// taps it to take a picture; a correct picture reveals a photo of the
+/// animal and plays the next video; tapping while not stopped in front of
+/// an enclosure shows a "too far away" message. After three correct
+/// answers the success overlay celebrates.
 class EnclosureWalkScreen extends StatefulWidget {
   const EnclosureWalkScreen({super.key});
 
@@ -44,14 +45,32 @@ class _EnclosureWalkScreenState extends State<EnclosureWalkScreen> {
 
   bool _showSuccess = false;
 
+  /// Whether the "too far away" message is up, after tapping the map
+  /// outside any enclosure window.
+  bool _showFarMessage = false;
+
   @override
   void initState() {
     super.initState();
+    final provider = context.read<EnclosureWalkProvider>();
     _game = EnclosureWalkGame(
-      provider: context.read<EnclosureWalkProvider>(),
+      provider: provider,
       // Exit door after the last enclosure: back to the zoo map.
       onExitTapped: () => Navigator.of(context).pop(),
+      onMapTapped: () => _onMapTapped(provider),
     );
+  }
+
+  void _onMapTapped(EnclosureWalkProvider provider) {
+    if (_showingCapture || _showSuccess) return;
+    if (provider.activeEnclosure == null) {
+      setState(() => _showFarMessage = true);
+      Future.delayed(const Duration(milliseconds: 1800), () {
+        if (mounted) setState(() => _showFarMessage = false);
+      });
+      return;
+    }
+    _takePicture(provider);
   }
 
   Future<void> _takePicture(EnclosureWalkProvider provider) async {
@@ -143,28 +162,17 @@ class _EnclosureWalkScreenState extends State<EnclosureWalkScreen> {
               );
             },
           ),
-          // Take a Picture button — visible while the player is stopped
-          // in front of an enclosure with a question outstanding.
-          if (!_showSuccess && !_showingCapture)
-            Consumer<EnclosureWalkProvider>(
-              builder: (context, provider, _) {
-                if (provider.activeEnclosure == null || provider.isComplete) {
-                  return const SizedBox.shrink();
-                }
-                return Align(
-                  alignment: Alignment.bottomRight,
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: ZooCameraButton(
-                        key: ValueKey(provider.activeEnclosure!.id),
-                        tooltip: localizer('zoo.take_picture'),
-                        onPressed: () => _takePicture(provider),
-                      ),
-                    ),
-                  ),
-                );
-              },
+          // "Too far away" message — shown briefly after tapping the map
+          // outside any enclosure window.
+          if (_showFarMessage)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ZooTooFarMessage(message: localizer('zoo.too_far')),
+                ),
+              ),
             ),
           // Photo reveal for the enclosure just captured.
           if (_showingCapture)
@@ -232,7 +240,6 @@ class _EnclosureWalkScreenState extends State<EnclosureWalkScreen> {
                   : null,
               onChangeLevel: () => Navigator.popUntil(
                   context, ModalRoute.withName(AppRoutes.zooLevels)),
-              changeLevelLabel: localizer('level_select.title'),
             ),
         ],
       ),

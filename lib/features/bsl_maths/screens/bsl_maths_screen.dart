@@ -22,12 +22,9 @@ import '../widgets/bsl_number_display.dart';
 ///
 /// Displays:
 /// - AppBar with level name and score badge
-/// - Question display: [BSL operand1] + [BSL operand2] = [answer slot(s)]
+/// - Question display: [BSL operand1] + [BSL operand2] = [answer slot]
 /// - Feedback area: "Correct!" with green tick or "Try again!" message
-/// - BSL number keyboard with C (clear) button
-///
-/// Level 1: Single answer slot (sums 2-10)
-/// Level 2: Two answer slots for tens/units (sums 2-20)
+/// - BSL number keyboard — tapping a key directly submits the answer
 ///
 /// Uses [Consumer<BslMathsProvider>] to rebuild when game state changes.
 class BslMathsScreen extends StatefulWidget {
@@ -41,8 +38,21 @@ class BslMathsScreen extends StatefulWidget {
 }
 
 class _BslMathsScreenState extends State<BslMathsScreen> {
-  static const double _questionSvgSize = 80.0;
-  static const double _answerSlotSize = 80.0;
+  // Sized up from 80 (and the keyboard's key-relative SVG size trimmed
+  // down slightly) so the BSL signs read as similarly sized in both areas.
+  static const double _questionSvgSize = 96.0;
+  static const double _answerSlotSize = 96.0;
+
+  /// Fixed-height chrome above/around the question card and keyboard:
+  /// top gap (8) + GameHeaderBar (88) + mid gap (12) + bottom gap (8).
+  /// Keep in sync with the SizedBox/GameHeaderBar heights in
+  /// [_buildGameContent].
+  static const double _fixedChromeHeight = 8 + 88 + 12 + 8;
+
+  /// Smallest the question card is ever allowed to shrink to, so the
+  /// keyboard (sized from available width — see [BslKeyboard]) never
+  /// squeezes it into overflow on short screens.
+  static const double _minQuestionCardHeight = 86.0;
 
   bool _showingIntro = false;
 
@@ -53,7 +63,6 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    AudioService.playTitle('bsl_maths', locale: widget.locale);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BslMathsProvider>().onAnswerResult = (isCorrect) {
         if (isCorrect) {
@@ -103,6 +112,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                 if (_showingIntro)
                   GameIntroCountdown(
                     gameId: 'bsl_maths',
+                    levelNumber: provider.currentLevel.number,
                     locale: widget.locale,
                     onComplete: () {
                       setState(() => _showingIntro = false);
@@ -190,6 +200,27 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
   /// Builds the main game content.
   Widget _buildGameContent(BuildContext context, BslMathsProvider provider, AppLocalizations localizer) {
     final scale = MediaQuery.of(context).size.width >= 600 ? 1.4 : 1.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Cap how tall the (width-driven, always-square) keyboard is
+        // allowed to grow, so it never squeezes the question card below
+        // its minimum on short screens.
+        final maxKeyboardHeight = (constraints.maxHeight -
+                _fixedChromeHeight -
+                _minQuestionCardHeight * scale)
+            .clamp(0.0, double.infinity);
+        return _buildGameColumn(context, provider, localizer, scale, maxKeyboardHeight);
+      },
+    );
+  }
+
+  Widget _buildGameColumn(
+    BuildContext context,
+    BslMathsProvider provider,
+    AppLocalizations localizer,
+    double scale,
+    double maxKeyboardHeight,
+  ) {
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -204,11 +235,12 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
               : provider.currentLevel.name.isNotEmpty
                   ? Center(
                       child: Text(
-                        localizer(provider.currentLevel.name),
+                        localizer(provider.currentLevel.name)
+                            .replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), ''),
                         style: const TextStyle(
-                          fontFamily: 'ComicRelief',
+                          fontFamily: 'Quicksand',
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
                         textAlign: TextAlign.center,
@@ -218,12 +250,14 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
         ),
         const SizedBox(height: 12),
 
-        // Question + feedback in glass container
+        // Question + feedback in glass container. Padding here is kept
+        // tight so as much room as possible goes to the actual question
+        // display — see _questionSvgSize/_answerSlotSize.
         Expanded(
           //flex: 2,
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.paddingSmall,
+              horizontal: AppSizes.spacingXSmall,
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
@@ -231,7 +265,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                 filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    vertical: AppSizes.paddingSmall,
+                    vertical: AppSizes.spacingXSmall,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.4),
@@ -243,7 +277,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                   ),
                   child: Column(
                     children: [
-                      const SizedBox(height: AppSizes.paddingMedium),
+                      const SizedBox(height: AppSizes.spacingXSmall),
 
                       // Question display area (BSL SVG operands + answer slot(s))
                       Expanded(
@@ -256,7 +290,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                         child: _buildFeedback(provider, scale, localizer),
                       ),
 
-                      const SizedBox(height: AppSizes.spacingSmall),
+                      const SizedBox(height: AppSizes.spacingXSmall),
                     ],
                   ),
                 ),
@@ -265,25 +299,21 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
           ),
         ),
 
-        const Spacer(),
-
-        // BSL number keyboard — height doubles on wide screens
-        SizedBox(
-          height: MediaQuery.of(context).size.width >= 600 ? 480.0 : 360.0,
+        // BSL number keyboard — sizes itself from the available width so
+        // keys stay perfectly square (see BslKeyboard), up to
+        // maxKeyboardHeight. The question card above is Expanded, so on
+        // taller/wider screens it absorbs whatever space the keyboard
+        // doesn't need rather than the keyboard being squeezed to fit;
+        // on short screens the height cap keeps keys from pushing the
+        // card into overflow (see _minQuestionCardHeight).
+        ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxKeyboardHeight),
           child: BslKeyboard(
             onKeyPressed: (number) => provider.enterDigit(number),
-            onClearPressed: () => provider.clearAnswer(),
-            onSubmitPressed: () => provider.submitAnswer(),
             isDisabled: provider.isInputLocked,
             enteredAnswer: provider.enteredAnswer,
-            isCorrect: provider.gameState == BslMathsGameState.correct
-                ? true
-                : provider.gameState == BslMathsGameState.wrong
-                    ? false
-                    : null,
-            showZeroKey: provider.requiresTwoDigitInput,
             showTeenKeys: provider.useTeenKeys,
-            showNumbers: !provider.isCompetitionLevel,
+            showNumbers: !provider.isCompetitionLevel && !provider.currentLevel.hideDigits,
           ),
         ),
 
@@ -300,10 +330,10 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
   }
 
 
-  /// Builds the question display showing BSL SVG operands and answer slot(s).
+  /// Builds the question display showing BSL SVG operands and answer slot.
   ///
   /// Normal levels: operand1 + operand2 = [?]
-  /// Missing operand level (Level 3): operand1 + [?] = answer
+  /// Missing operand levels: operand1 + [?] = answer
   Widget _buildQuestionDisplay(BslMathsProvider provider, double scale) {
     final question = provider.currentQuestion;
     if (question == null) return const SizedBox.shrink();
@@ -349,10 +379,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                 ),
               ),
             ),
-            if (provider.requiresTwoDigitInput)
-              _buildTwoDigitAnswerSlots(provider, scale)
-            else
-              _buildSingleAnswerSlot(provider, scale),
+            _buildSingleAnswerSlot(provider, scale),
           ],
         ),
       ),
@@ -411,7 +438,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
     );
   }
 
-  /// Builds a single answer slot for Level 1 (answers 2-10).
+  /// Builds the single answer slot showing the entered digit, if any.
   Widget _buildSingleAnswerSlot(BslMathsProvider provider, double scale) {
     final slotSize = _answerSlotSize * scale;
     if (provider.unitsDigit == null) {
@@ -465,62 +492,6 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
     );
   }
 
-  /// Builds two answer slots for Level 2 (tens column left, units column right).
-  Widget _buildTwoDigitAnswerSlots(BslMathsProvider provider, double scale) {
-    final isCorrect = provider.gameState == BslMathsGameState.correct;
-    final isWrong = provider.gameState == BslMathsGameState.wrong;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildDigitSlot(digit: provider.tensDigit, isCorrect: isCorrect, isWrong: isWrong, scale: scale),
-        const SizedBox(width: AppSizes.spacingSmall),
-        _buildDigitSlot(digit: provider.unitsDigit, isCorrect: isCorrect, isWrong: isWrong, scale: scale),
-      ],
-    );
-  }
-
-  /// Builds a single digit slot for two-digit answers.
-  Widget _buildDigitSlot({
-    required int? digit,
-    required bool isCorrect,
-    required bool isWrong,
-    required double scale,
-  }) {
-    final hasDigit = digit != null;
-    final color = isCorrect
-        ? AppColors.success
-        : isWrong
-            ? AppColors.accentRed
-            : AppColors.accentWhite;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      width: _answerSlotSize * 0.8 * scale,
-      height: _answerSlotSize * scale,
-      decoration: BoxDecoration(
-        color: hasDigit
-            ? color.withValues(alpha: 0.2)
-            : AppColors.mathBackground.withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
-        border: Border.all(
-          color: hasDigit ? AppColors.textPrimary : AppColors.accentWhite.withValues(alpha: 0.4),
-          width: hasDigit ? 3 : 2,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          hasDigit ? '$digit' : '?',
-          style: TextStyle(
-            fontSize: AppSizes.fontSizeTitle * scale,
-            fontWeight: FontWeight.bold,
-            color: hasDigit ? AppColors.textPrimary : AppColors.textPrimary,
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Builds the feedback text area below the question display.
   Widget _buildFeedback(BslMathsProvider provider, double scale, AppLocalizations localizer) {
     if (provider.gameState == BslMathsGameState.correct) {
@@ -558,28 +529,6 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
         ],
       );
     }
-
-    // // Playing state - show hint for Level 2
-    // if (provider.requiresTwoDigitInput && provider.enteredAnswer != null) {
-    //   return Row(
-    //     mainAxisAlignment: MainAxisAlignment.center,
-    //     children: [
-    //       const Icon(
-    //         Icons.touch_app,
-    //         color: AppColors.textSecondary,
-    //         size: AppSizes.iconMedium,
-    //       ),
-    //       const SizedBox(width: AppSizes.spacingSmall),
-    //       Text(
-    //         'Tap = to submit (${provider.enteredAnswer})',
-    //         style: const TextStyle(
-    //           fontSize: AppSizes.fontSizeBody,
-    //           color: AppColors.textSecondary,
-    //         ),
-    //       ),
-    //     ],
-    //   );
-    // }
 
     return const SizedBox.shrink();
   }

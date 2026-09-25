@@ -71,7 +71,7 @@ class _Level2QuestScreenState extends State<Level2QuestScreen> {
                             Text(
                               localizer('letter_quest.words_found'),
                               style: const TextStyle(
-                                fontFamily: 'ComicRelief',
+                                fontFamily: 'Quicksand',
                                 fontSize: AppSizes.fontSizeBody,
                                 color: Colors.white70,
                               ),

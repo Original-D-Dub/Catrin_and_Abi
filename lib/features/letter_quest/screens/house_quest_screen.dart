@@ -2,6 +2,8 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/localization/app_localizations.dart';
+import '../../../shared/widgets/button.dart';
 import '../game/house_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
@@ -41,16 +43,10 @@ class _HouseQuestScreenState extends State<HouseQuestScreen> {
               alignment: Alignment.bottomLeft,
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 100, left: 20),
-                child: SizedBox(
-                  width: 128,
-                  height: 128,
-                  child: FloatingActionButton(
-                    heroTag: 'jump',
-                    shape: const CircleBorder(),
-                    onPressed: () => game.player.jump(),
-                    backgroundColor: Colors.green,
-                    child: const Text('Jump', style: TextStyle(color: Colors.white, fontFamily: 'ComicRelief', fontWeight: FontWeight.w700, fontSize: 18)),
-                  ),
+                child: PrimaryButton(
+                  label:
+                      AppLocalizations(locale: widget.locale)('letter_quest.jump_button'),
+                  onPressed: () => game.player.jump(),
                 ),
               ),
             );

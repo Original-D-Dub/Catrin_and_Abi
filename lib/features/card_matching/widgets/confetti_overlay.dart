@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/button.dart';
 
 /// Confetti celebration overlay shown when player wins.
 ///
@@ -132,9 +134,8 @@ class _ConfettiOverlayState extends State<ConfettiOverlay> {
                   // Well done message
                   Text(
                     widget.message,
-                    style: const TextStyle(
+                    style: AppTheme.title.copyWith(
                       fontSize: AppSizes.fontSizeTitle,
-                      fontWeight: FontWeight.bold,
                       color: AppColors.abiPink,
                     ),
                     textAlign: TextAlign.center,
@@ -150,46 +151,35 @@ class _ConfettiOverlayState extends State<ConfettiOverlay> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Play Again button
-                      ElevatedButton.icon(
+                      PrimaryButton(
+                        label: widget.playAgainLabel,
+                        icon: Icons.replay,
+                        expanded: true,
                         onPressed: widget.onPlayAgain,
-                        icon: const Icon(Icons.replay),
-                        label: Text(widget.playAgainLabel),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          foregroundColor: AppColors.accentWhite,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingLarge,
-                            vertical: AppSizes.paddingMedium,
-                          ),
-                        ),
                       ),
                       const SizedBox(height: AppSizes.spacingMedium),
 
                       // Home button
-                      ElevatedButton.icon(
+                      TertiaryButton(
+                        label: widget.homeLabel,
+                        icon: Icons.home,
+                        expanded: true,
                         onPressed: widget.onHome,
-                        icon: const Icon(Icons.home),
-                        label: Text(widget.homeLabel),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.catrinBlue,
-                          foregroundColor: AppColors.textPrimary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingLarge,
-                            vertical: AppSizes.paddingMedium,
-                          ),
-                        ),
                       ),
 
                       // Change Level button (optional)
                       if (widget.onChangeLevel != null) ...[
                         const SizedBox(height: AppSizes.spacingMedium),
-                        TextButton.icon(
-                          onPressed: widget.onChangeLevel,
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.catrinBlue,
+                        Center(
+                          child: TertiaryButton(
+                            label: 'Change Level',
+                            icon: Icons.grid_view,
+                            onPressed: widget.onChangeLevel,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSizes.paddingLarge,
+                              vertical: AppSizes.paddingSmall,
+                            ),
                           ),
-                          icon: const Icon(Icons.grid_view),
-                          label: const Text('Change Level'),
                         ),
                       ],
                     ],

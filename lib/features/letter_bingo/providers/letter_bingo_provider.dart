@@ -1,13 +1,13 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/game_stats_service.dart';
 import '../models/animal_model.dart';
 import '../models/letter_bingo_level.dart';
+import 'bingo_collection_provider.dart';
 
 /// Game phases for Letter Bingo.
 enum LetterBingoPhase {
@@ -35,14 +35,37 @@ enum LetterBingoPhase {
 class LetterBingoProvider extends ChangeNotifier {
   final GameStatsService _statsService = GameStatsService();
 
-  LetterBingoProvider({SignSystem signSystem = SignSystem.bsl})
-      : _signSystem = signSystem {
-    _loadAnimals();
+  /// [initialLevelNumber], when set, skips level-select and starts directly
+  /// at that level — used when launched from the "Learn BSL trail".
+  ///
+  /// [bingoCollection] is the app-wide reward cache (see
+  /// [BingoCollectionProvider]). Its `preload` is kicked off right here,
+  /// the moment the game is entered — this constructor runs exactly once
+  /// per game session (via `ChangeNotifierProvider.create` in routes.dart),
+  /// unlike the route's `builder`, which can re-run mid-transition — so by
+  /// the time a round is won [_selectRewardAnimal] can read the reward list
+  /// straight from the cache without a fresh fetch.
+  LetterBingoProvider({
+    SignSystem signSystem = SignSystem.bsl,
+    required BingoCollectionProvider bingoCollection,
+    String? playerId,
+    int? initialLevelNumber,
+  })  : _signSystem = signSystem,
+        _bingoCollection = bingoCollection {
+    unawaited(
+      _bingoCollection.preload(signSystem: _signSystem, playerId: playerId),
+    );
+    if (initialLevelNumber != null) {
+      startLevel(levelNumber: initialLevelNumber);
+    }
   }
 
   /// The sign system (BSL or IAC) this game instance uses.
   final SignSystem _signSystem;
   SignSystem get signSystem => _signSystem;
+
+  /// Shared app-wide reward cache — see the constructor doc.
+  final BingoCollectionProvider _bingoCollection;
 
   /// Levels available for the current sign system.
   List<LetterBingoLevel> get levels =>
@@ -76,6 +99,12 @@ class LetterBingoProvider extends ChangeNotifier {
   /// Called when the player taps a tile that doesn't match the called letter.
   VoidCallback? onWrongTap;
 
+  /// Called once, with the number of tiles revealed, the moment BINGO is
+  /// achieved. Set by the screen when launched from the "Learn BSL trail"
+  /// so it can mark the trail node completed without coupling the provider
+  /// to trail state.
+  Function(int score)? onLevelComplete;
+
   /// Overrides how many tiles are generated for Level 1 (null = use all).
   int? _tileCountOverride;
 
@@ -89,21 +118,7 @@ class LetterBingoProvider extends ChangeNotifier {
   Animal? _rewardAnimal;
   Animal? get rewardAnimal => _rewardAnimal;
 
-  /// All animals loaded from assets/data/animals.json.
-  List<Animal> _allAnimals = [];
-
   final _rng = Random();
-
-  Future<void> _loadAnimals() async {
-    try {
-      final json = await rootBundle.loadString('assets/data/animals.json');
-      final list = jsonDecode(json) as List<dynamic>;
-      _allAnimals =
-          list.map((e) => Animal.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (e) {
-      debugPrint('LetterBingoProvider: failed to load animals.json — $e');
-    }
-  }
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -169,11 +184,16 @@ class LetterBingoProvider extends ChangeNotifier {
     notifyListeners();
 
     if (_checkWin()) {
+      final revealedCount = _tiles.where((t) => t.isRevealed).length;
+      final gameId = _signSystem == SignSystem.iac
+          ? GameIds.welshLetterBingo
+          : GameIds.letterBingo;
       _statsService.recordGameResult(
-        GameIds.letterBingo,
-        _tiles.where((t) => t.isRevealed).length,
+        gameId,
+        revealedCount,
         level: _currentLevel!.number,
       );
+      onLevelComplete?.call(revealedCount);
       _rewardAnimal = _selectRewardAnimal();
       _phase = LetterBingoPhase.bingo;
       notifyListeners();
@@ -215,7 +235,8 @@ class LetterBingoProvider extends ChangeNotifier {
   /// - L4: a–o (1×), p–u (2×)
   /// - L5: a–u (1×), v–z (2×)
   Animal? _selectRewardAnimal() {
-    if (_allAnimals.isEmpty ||
+    final allAnimals = _bingoCollection.rewardsFor(_signSystem);
+    if (allAnimals.isEmpty ||
         _currentLevel == null ||
         _tappedLetters.isEmpty) {
       return null;
@@ -224,7 +245,7 @@ class LetterBingoProvider extends ChangeNotifier {
     final level = _currentLevel!.number;
     final pool = <Animal>[];
 
-    for (final animal in _allAnimals) {
+    for (final animal in allAnimals) {
       final letter = animal.letter.toLowerCase();
       if (!_tappedLetters.contains(letter)) continue;
       final weight = _weightForLetter(letter, level);
