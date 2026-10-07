@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -98,6 +100,23 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
         }
       };
     });
+  }
+
+  bool _imagesPrecached = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Decode the hand and pointer images up front so they are ready when
+    // the intro ends / on the first touch, instead of popping in a frame late.
+    if (!_imagesPrecached) {
+      _imagesPrecached = true;
+      precacheImage(const AssetImage(AssetPaths.vowelHandOpen), context);
+      precacheImage(const AssetImage(AssetPaths.vowelHandPointer), context);
+      for (final vowel in const ['w', 'y']) {
+        precacheImage(AssetImage(AssetPaths.vowelHandBadge(vowel)), context);
+      }
+    }
   }
 
   @override
@@ -370,15 +389,35 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     return l.translate('vowel_hand.level$number.$field');
   }
 
-  /// Builds the letter (Level 1) or word (Level 2) display shown below the header bar.
+  /// Height of the letter/word slot below the header: 13% of the screen
+  /// height, kept between 64 and 128px. It depends only on the screen size,
+  /// so it is the same before and during play and the game area below never
+  /// resizes or moves when the letter or word appears.
+  double _topSlotHeight(BuildContext context) =>
+      (MediaQuery.sizeOf(context).height * 0.13).clamp(64.0, 128.0);
+
+  /// Builds the letter (Level 1) or word (Level 2) display shown below the
+  /// header bar. Always exactly [_topSlotHeight] tall; content is scaled down
+  /// to fit (never up), so long words, thumbnails or large accessibility
+  /// text sizes can't make the slot grow.
   Widget _buildTopLetterDisplay(VowelHandProvider provider) {
-    if (provider.gameState != VowelHandGameState.playing) {
-      return const SizedBox.shrink();
-    }
+    final content = _buildTopLetterContent(provider);
+    return SizedBox(
+      height: _topSlotHeight(context),
+      child: content == null
+          ? null
+          : FittedBox(fit: BoxFit.scaleDown, child: content),
+    );
+  }
+
+  /// The letter badge or word display for the current level, or null when
+  /// there is nothing to show yet (e.g. during the intro countdown).
+  Widget? _buildTopLetterContent(VowelHandProvider provider) {
+    if (provider.gameState != VowelHandGameState.playing) return null;
 
     if (provider.selectedLevel == VowelHandLevel.vowelWordsMulti ||
         provider.selectedLevel == VowelHandLevel.noMistakes) {
-      if (provider.currentMultiPuzzle == null) return const SizedBox.shrink();
+      if (provider.currentMultiPuzzle == null) return null;
       return MultiVowelWordDisplay(
         puzzle: provider.currentMultiPuzzle!,
         isCorrect: provider.isGuessCorrect,
@@ -386,7 +425,7 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     }
 
     if (provider.selectedLevel != VowelHandLevel.vowelMatch) {
-      if (provider.currentPuzzle == null) return const SizedBox.shrink();
+      if (provider.currentPuzzle == null) return null;
       // No thumbnail artwork exists for the Welsh CVC word list (IAC).
       final hasThumbnail = provider.selectedLevel == VowelHandLevel.vowelWords &&
           provider.signSystem == SignSystem.bsl;
@@ -399,42 +438,62 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     }
 
     final letter = provider.displayLetter;
-    if (letter.isEmpty) return const SizedBox.shrink();
+    if (letter.isEmpty) return null;
 
     final isScoring = provider.showScoreAnimation;
+    // IAC uses the Welsh palette so 'w'/'y' match their badge borders.
+    final vowelColors = provider.signSystem == SignSystem.iac
+        ? AppColors.welshVowelPairColors
+        : AppColors.vowelPairColors;
     final color = isScoring
         ? AppColors.success
-        : (AppColors.vowelPairColors[letter] ?? AppColors.abiPink);
+        : (vowelColors[letter] ?? AppColors.abiPink);
 
-    return Center(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.paddingLarge * 2,
-          vertical: AppSizes.paddingMedium,
-        ),
-        decoration: BoxDecoration(
-          color: isScoring
-              ? AppColors.success.withValues(alpha: 0.4)
-              : AppColors.background,
-          borderRadius: BorderRadius.circular(AppSizes.borderRadiusXLarge),
-          border: Border.all(color: color, width: 5),
-        ),
-        child: Text(
-          letter,
-          style: TextStyle(
-            fontSize: AppSizes.fontSizeTitle * 2,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.paddingLarge * 2,
+        vertical: AppSizes.paddingMedium,
+      ),
+      decoration: BoxDecoration(
+        color: isScoring
+            ? AppColors.success.withValues(alpha: 0.4)
+            : AppColors.background,
+        borderRadius: BorderRadius.circular(AppSizes.borderRadiusXLarge),
+        border: Border.all(color: color, width: 5),
+      ),
+      child: Text(
+        letter,
+        style: TextStyle(
+          fontSize: AppSizes.fontSizeTitle * 2,
+          fontWeight: FontWeight.bold,
+          color: color,
         ),
       ),
     );
   }
 
+  /// Size of the open hand box: 95% of the screen width (80% for IAC, leaving
+  /// room for the W/Y badges) at the image's aspect ratio. Derived purely from
+  /// the screen size, so it is known up front and never changes as content
+  /// elsewhere on the screen appears.
+  Size _handSizeFor(BuildContext context, VowelHandProvider provider) {
+    final widthFraction = provider.signSystem == SignSystem.iac ? 0.8 : 0.95;
+    final width = MediaQuery.sizeOf(context).width * widthFraction;
+    return Size(
+      width,
+      width * VowelHandConstants.imageHeight / VowelHandConstants.imageWidth,
+    );
+  }
+
   /// Builds the main game area with hand display and touch detection.
   Widget _buildGameArea(BuildContext context, VowelHandProvider provider) {
-    // Playing state - show hand with touch detection
+    // Calculated synchronously so the cursor and hit-testing use the correct
+    // size from the first frame, with no post-layout rebuild.
+    final handSize = _handSizeFor(context, provider);
+    _handSize = handSize;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+
     return GestureDetector(
       key: _gestureKey,
       onPanStart: (details) => _handleTouch(details.localPosition, provider),
@@ -442,17 +501,44 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
       onPanEnd: (details) => _handleTouchEnd(provider),
       child: Stack(
         children: [
-          // Hand display centered
-          Center(
-            child: HandDisplay(
-              key: _handKey,
-              sizeFactor: provider.signSystem == SignSystem.iac ? 0.7 : 1.0,
-              onSizeChanged: (size) {
-                setState(() {
-                  _handSize = size;
-                });
-              },
-            ),
+          // Hand display. Centred vertically when it fits; otherwise pinned
+          // to the top so the fingertips stay visible and the sleeve is
+          // clipped at the bottom of the game area. The game area's height
+          // is fixed for the session (see _topSlotHeight), so this position
+          // doesn't change when the game starts.
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // The rotation lifts the middle fingertip to the box's top
+              // edge, so keep a small gap above it to avoid clipping.
+              final minTop = handSize.height * 0.02;
+              // Shifted right 4% of the screen width.
+              final horizontalShift = screenWidth * 0.07;
+              return Stack(
+                children: [
+                  Positioned(
+                    left: (constraints.maxWidth - handSize.width) / 2 +
+                        horizontalShift,
+                    top: math.max(
+                        minTop, (constraints.maxHeight - handSize.height) / 2),
+                    width: handSize.width,
+                    height: handSize.height,
+                    // Rotated 15° anti-clockwise. The rotation sits above
+                    // _handKey, so globalToLocal on the hand's RenderBox
+                    // maps touches into the unrotated image space and the
+                    // fingertip outlines still line up.
+                    child: Transform.rotate(
+                      angle: -15 * math.pi / 180,
+                      child: HandDisplay(
+                        key: _handKey,
+                        // IAC: drop the sleeve below the cuff so it overlaps
+                        // the W/Y badges less.
+                        clipBelowCuff: provider.signSystem == SignSystem.iac,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
 
           // W and Y vowel badges (IAC only) — bottom corners
@@ -479,7 +565,7 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
           if (provider.isPointerVisible && provider.pointerPosition != null)
             PointyFingerCursor(
               position: _getGlobalToLocalPosition(provider.pointerPosition!),
-              handSize: _handSize,
+              handSize: handSize,
               isVisible: true,
             ),
         ],

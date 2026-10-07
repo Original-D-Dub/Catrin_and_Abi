@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../../../core/constants/game_constants.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/game_stats_service.dart';
+import '../../../shared/widgets/choose_character_grid.dart';
 import '../models/card_model.dart';
 import '../models/game_level.dart';
 import '../services/card_game_service.dart';
@@ -93,6 +94,42 @@ class CardGameProvider extends ChangeNotifier {
   /// Total number of pairs in the level
   int get totalPairs => _level.totalPairs;
 
+  /// Whether this is a two-player game — players take turns flipping two
+  /// cards, and whoever makes a pair scores it. Chosen on the level-select
+  /// tabs (players then pick characters before choosing a level); uses the
+  /// same levels as one-player.
+  bool _isTwoPlayer = false;
+  bool get isTwoPlayer => _isTwoPlayer;
+
+  /// Whose turn it is in a two-player game: 1 or 2.
+  int _currentPlayer = 1;
+  int get currentPlayer => _currentPlayer;
+
+  /// Pairs found by each player in a two-player game.
+  int _player1Score = 0;
+  int get player1Score => _player1Score;
+  int _player2Score = 0;
+  int get player2Score => _player2Score;
+
+  /// Characters chosen by each player for a two-player game. Kept across
+  /// Play Again / Next Level so players only pick once per session.
+  CharacterThumb? _player1Character;
+  CharacterThumb? get player1Character => _player1Character;
+  CharacterThumb? _player2Character;
+  CharacterThumb? get player2Character => _player2Character;
+
+  /// Which player (1 or 2) is currently choosing a character, or null when
+  /// the character select isn't showing.
+  int? _pickingPlayer;
+  int? get pickingPlayer => _pickingPlayer;
+
+  /// The winning player (1 or 2) of a finished two-player game, or null for
+  /// a draw.
+  int? get twoPlayerWinner {
+    if (_player1Score == _player2Score) return null;
+    return _player1Score > _player2Score ? 1 : 2;
+  }
+
   /// Creates the provider and initializes the first level for [signSystem].
   ///
   /// [initialLevelNumber], when set, skips level-select and starts directly
@@ -118,17 +155,58 @@ class CardGameProvider extends ChangeNotifier {
     _hasWon = false;
     _matchCount = 0;
     _moveCount = 0;
+    _currentPlayer = 1;
+    _player1Score = 0;
+    _player2Score = 0;
+  }
+
+  /// Records [character] for the player currently choosing, then moves on to
+  /// player 2. Once player 2 has chosen, the character select closes and the
+  /// level select shows again for the players to pick a level.
+  void pickCharacter(CharacterThumb character) {
+    if (_pickingPlayer == 1) {
+      _player1Character = character;
+      _pickingPlayer = 2;
+    } else {
+      _player2Character = character;
+      _pickingPlayer = null;
+    }
+    notifyListeners();
+  }
+
+  /// Steps back from the character select: player 2 → player 1 → level
+  /// select in one-player mode (the players never finished choosing).
+  void backFromCharacterSelect() {
+    if (_pickingPlayer == 2) {
+      _pickingPlayer = 1;
+    } else {
+      _pickingPlayer = null;
+      _isTwoPlayer = false;
+    }
+    notifyListeners();
+  }
+
+  /// Switches between one-player and two-player mode (from the level-select
+  /// tabs). Switching to two-player opens the character select for player 1;
+  /// the level is chosen afterwards.
+  void setTwoPlayer(bool value) {
+    if (_isTwoPlayer == value) return;
+    _isTwoPlayer = value;
+    _pickingPlayer = value ? 1 : null;
+    notifyListeners();
   }
 
   /// Shows the level selection screen.
   void showLevelSelection() {
     _showLevelSelect = true;
+    _pickingPlayer = null;
     notifyListeners();
   }
 
   /// Starts a game with the specified level.
   void startLevel(GameLevel level) {
     _showLevelSelect = false;
+    _pickingPlayer = null;
     _initializeGame(level);
     notifyListeners();
   }
@@ -194,6 +272,11 @@ class CardGameProvider extends ChangeNotifier {
       _handleMismatch();
     }
 
+    // Players alternate after every two-card attempt, match or not.
+    if (_isTwoPlayer && !_hasWon) {
+      _currentPlayer = _currentPlayer == 1 ? 2 : 1;
+    }
+
     // Clear selections
     _firstSelection = null;
     _secondSelection = null;
@@ -210,6 +293,13 @@ class CardGameProvider extends ChangeNotifier {
       }
     }
     _matchCount++;
+    if (_isTwoPlayer) {
+      if (_currentPlayer == 1) {
+        _player1Score++;
+      } else {
+        _player2Score++;
+      }
+    }
     onAnswerResult?.call(true);
     _checkWinCondition();
   }
@@ -231,7 +321,9 @@ class CardGameProvider extends ChangeNotifier {
       matchCount: _matchCount,
       totalPairs: totalPairs,
     );
-    if (_hasWon) {
+    // Two-player games aren't a personal score, so they don't feed stats,
+    // personal bests or the trail.
+    if (_hasWon && !_isTwoPlayer) {
       _lastResult = null;
       onLevelComplete?.call(_moveCount);
       final gameId = _signSystem == SignSystem.iac

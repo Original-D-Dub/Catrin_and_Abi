@@ -6,18 +6,18 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/settings_provider.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/button.dart';
-import '../models/zoo_character.dart';
+import '../../../shared/widgets/choose_character_grid.dart';
 import '../widgets/zoo_screen_chrome.dart';
 
 /// Character detail screen: the chosen character's name as the heading
 /// (back arrow to its left), a large portrait in the centre, and a button
 /// row — pink Change Player (back to pick-a-player) and green Choose
 /// (into the zoo's choose-a-level screen).
-class ZooPlayerScreen extends StatelessWidget {
+class ZooPlayerScreen extends StatefulWidget {
   /// UI language ('en' or 'cy').
   final String locale;
 
-  /// Which character this screen shows ([ZooCharacter.id]).
+  /// Which character this screen shows ([CharacterThumb.id]).
   final String characterId;
 
   const ZooPlayerScreen({
@@ -27,9 +27,39 @@ class ZooPlayerScreen extends StatelessWidget {
   });
 
   @override
+  State<ZooPlayerScreen> createState() => _ZooPlayerScreenState();
+}
+
+class _ZooPlayerScreenState extends State<ZooPlayerScreen> {
+  late final Future<CharacterThumb?> _character = _findCharacter();
+
+  String get locale => widget.locale;
+
+  @override
   Widget build(BuildContext context) {
+    return FutureBuilder<CharacterThumb?>(
+      future: _character,
+      builder: (context, snapshot) {
+        final character = snapshot.data;
+        if (character == null) {
+          return const ZooBackgroundScaffold(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return _buildScreen(context, character);
+      },
+    );
+  }
+
+  /// The character for [characterId], falling back to Abi — and then the
+  /// first character — if it no longer exists (e.g. an old saved pick).
+  Future<CharacterThumb?> _findCharacter() async =>
+      await CharacterThumb.find(widget.characterId) ??
+      await CharacterThumb.find('abi') ??
+      (await CharacterThumb.loadAll()).firstOrNull;
+
+  Widget _buildScreen(BuildContext context, CharacterThumb character) {
     final localizer = AppLocalizations(locale: locale);
-    final character = ZooCharacter.byId(characterId);
 
     return ZooBackgroundScaffold(
       child: Padding(
@@ -40,7 +70,7 @@ class ZooPlayerScreen extends StatelessWidget {
             Stack(
               alignment: Alignment.center,
               children: [
-                ZooHeading(localizer(character.nameKey)),
+                ZooHeading(character.name),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
@@ -52,24 +82,13 @@ class ZooPlayerScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            // Full portrait (<id>.png) straight on the background, falling
-            // back to the square thumb and then a placeholder icon while
-            // art is still to follow.
+            // Full portrait straight on the background, falling back to
+            // the framed thumbnail while art is still to follow.
             Expanded(
               child: Center(
                 child: Image.asset(
-                  character.fullAsset,
+                  character.fullAssetPath ?? character.assetPath,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => character.thumbAsset != null
-                      ? Image.asset(
-                          character.thumbAsset!,
-                          fit: BoxFit.contain,
-                        )
-                      : const Icon(
-                          Icons.person,
-                          size: 120,
-                          color: Colors.grey,
-                        ),
                 ),
               ),
             ),
@@ -89,16 +108,13 @@ class ZooPlayerScreen extends StatelessWidget {
                 PrimaryButton(
                   label: localizer('zoo.choose'),
                   onPressed: () {
-                    context
-                        .read<SettingsProvider>()
-                        .setLastZooCharacter(character.id);
+                    context.read<SettingsProvider>().setLastZooCharacter(
+                      character.id,
+                    );
                     Navigator.pushNamed(
                       context,
                       AppRoutes.zooLevels,
-                      arguments: {
-                        'locale': locale,
-                        'character': character.id,
-                      },
+                      arguments: {'locale': locale, 'character': character.id},
                     );
                   },
                 ),

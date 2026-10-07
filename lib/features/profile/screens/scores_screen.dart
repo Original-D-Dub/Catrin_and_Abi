@@ -142,17 +142,52 @@ const List<Color> _rowColors = [
   AppColors.catrinBlue,
 ];
 
-/// Below this width, rows switch to a table layout: a shared "Levels" /
-/// "Best" column header replaces each row's own icon+label, freeing up room
+/// Below this width, a row's score font shrinks slightly to leave more room
 /// for larger numbers on tight screens. Matches the tablet breakpoint used
 /// elsewhere (e.g. videos_screen.dart).
 const double _kTabletBreakpoint = 600;
 
-/// Widths shared between [_ScoresHeader] and each row's [_LevelSwiper] so
-/// their columns line up. [_scoreColumnWidth] is sized to comfortably fit
-/// "88 moves" — card matching's widest realistic value — without wrapping.
-const double _levelColumnWidth = 64;
+/// Width of the score value column, shared by every row's collapsed summary
+/// and the per-level lines inside its expanded table so scores line up in a
+/// single column down the page. Sized to comfortably fit "88 moves" — card
+/// matching's widest realistic value — without wrapping.
 const double _scoreColumnWidth = 132;
+
+/// Width reserved for the expand/collapse chevron. Every row reserves this
+/// space — even a row with nothing to expand leaves it empty — so the score
+/// column just before it lines up whether or not a chevron is drawn there.
+const double _chevronColumnWidth = 28;
+
+/// How long a row's level table takes to open/close.
+const Duration _kExpandDuration = Duration(milliseconds: 300);
+
+/// Renders a [_ScoreRow]'s collapsed summary value: "`<label>: <score><suffix>`"
+/// (with an optional icon), "`<score><suffix> <label>`" when there's no icon,
+/// or a bare "`<score><suffix>`" when [showPillLabel] is false (card
+/// matching — see [GameScoreEntry.showPillLabel]).
+Widget _scoreValue({
+  required LevelScore level,
+  required String pillLabel,
+  required IconData? pillIcon,
+  required String suffix,
+  required bool showPillLabel,
+  required TextStyle style,
+}) {
+  if (!showPillLabel) {
+    return Text('${level.score}$suffix', style: style);
+  }
+  if (pillIcon != null) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(pillIcon, color: style.color, size: 16),
+        const SizedBox(width: 6),
+        Text('$pillLabel: ${level.score}$suffix', style: style),
+      ],
+    );
+  }
+  return Text('${level.score}$suffix $pillLabel', style: style);
+}
 
 class _ScoresList extends StatelessWidget {
   final AppLocalizations t;
@@ -171,101 +206,32 @@ class _ScoresList extends StatelessWidget {
     final isCompact = MediaQuery.of(context).size.width < _kTabletBreakpoint;
     final levelLabel = t('level_select.level_prefix');
 
-    return Column(
-      children: [
-        if (isCompact)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSizes.paddingLarge,
-              AppSizes.paddingLarge,
-              AppSizes.paddingLarge,
-              AppSizes.spacingSmall,
-            ),
-            child: _ScoresHeader(
-              levelsLabel: t('profile.scores_levels_header'),
-              bestLabel: t('profile.scores_best_label'),
-            ),
-          ),
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(AppSizes.paddingLarge),
-            itemCount: entries.length,
-            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.spacingMedium),
-            itemBuilder: (_, i) {
-              final entry = entries[i];
-              return _ScoreRow(
-                title: t(entry.titleKey),
-                levels: entry.levels,
-                pillLabel: t(entry.pillLabelKey),
-                pillIcon: entry.pillIcon,
-                suffix: entry.suffixKey != null ? t(entry.suffixKey!) : '',
-                levelLabel: levelLabel,
-                color: _rowColors[i % _rowColors.length],
-                isCompact: isCompact,
-                // The shared header only speaks for the generic "Best"
-                // pill — a row with its own distinct label (e.g. Letter
-                // Bingo's "Animals") keeps showing it inline regardless of
-                // width, since there's no matching column header for it.
-                showPillLabel:
-                    !isCompact || entry.pillLabelKey != 'profile.scores_best_label',
-              );
-            },
-          ),
-        ),
-      ],
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppSizes.paddingLarge),
+      itemCount: entries.length,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSizes.spacingMedium),
+      itemBuilder: (_, i) {
+        final entry = entries[i];
+        return _ScoreRow(
+          title: t(entry.titleKey),
+          levels: entry.levels,
+          pillLabel: t(entry.pillLabelKey),
+          pillIcon: entry.pillIcon,
+          suffix: entry.suffixKey != null ? t(entry.suffixKey!) : '',
+          levelLabel: levelLabel,
+          showPillLabel: entry.showPillLabel,
+          color: _rowColors[i % _rowColors.length],
+          isCompact: isCompact,
+        );
+      },
     );
   }
 }
 
-/// Column headers shown above the list on narrow (compact) screens: a blank
-/// spacer over the game-title column, "Levels" over the level column, and
-/// the trophy icon + "Best" over the score column — replacing what each
-/// row's pill would otherwise show inline.
-class _ScoresHeader extends StatelessWidget {
-  final String levelsLabel;
-  final String bestLabel;
-
-  const _ScoresHeader({required this.levelsLabel, required this.bestLabel});
-
-  static const TextStyle _style = TextStyle(
-    fontFamily: 'Quicksand',
-    fontSize: 13,
-    fontWeight: FontWeight.w600,
-    color: Colors.white,
-    letterSpacing: 1.0,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: SizedBox.shrink()),
-        const SizedBox(width: AppSizes.spacingMedium),
-        SizedBox(
-          width: _levelColumnWidth,
-          child: Center(
-            child: Text(levelsLabel, textAlign: TextAlign.center, style: _style),
-          ),
-        ),
-        const SizedBox(width: AppSizes.spacingSmall),
-        SizedBox(
-          width: _scoreColumnWidth,
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.emoji_events, color: Colors.white, size: 16),
-                const SizedBox(width: 6),
-                Text(bestLabel, style: _style),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
+/// Widest the sign-in button is allowed to grow — narrow enough that
+/// [_SignInPrompt]'s message wraps onto two lines on its own, without a
+/// manual line break.
+const double _kSignInButtonMaxWidth = 280;
 
 /// Shown instead of the scores list for anonymous players. Tapping the
 /// message opens the profile screen scrolled to its account section, where
@@ -281,12 +247,13 @@ class _SignInPrompt extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingLarge),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.lock_outline, size: 56, color: Colors.white),
-            const SizedBox(width: AppSizes.spacingMedium),
-            Expanded(
+            const SizedBox(height: AppSizes.spacingMedium),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _kSignInButtonMaxWidth),
               child: TertiaryButton(
                 label: message,
                 icon: Icons.person_add,
@@ -334,10 +301,12 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// A single game's personal-best row. The level column on the right shows
-/// one [LevelScore] at a time — swipe up/down on it to move between a
-/// game's levels when it has more than one.
-class _ScoreRow extends StatelessWidget {
+/// A single game's personal-best row. Collapsed, it shows just the highest
+/// level the player has reached; tapping the row animates open a table of
+/// every level they've played (tapping again animates it shut). Rows with
+/// only one played level (e.g. Letter Bingo's single animal-count stat)
+/// aren't tappable — there's nothing more to show.
+class _ScoreRow extends StatefulWidget {
   final String title;
   final List<LevelScore> levels;
   final String pillLabel;
@@ -361,239 +330,165 @@ class _ScoreRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.paddingLarge,
-        vertical: AppSizes.paddingMedium,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.67),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontFamily: 'Quicksand',
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSizes.spacingMedium),
-          _LevelSwiper(
-            levels: levels,
-            pillLabel: pillLabel,
-            pillIcon: pillIcon,
-            suffix: suffix,
-            levelLabel: levelLabel,
-            isCompact: isCompact,
-            showPillLabel: showPillLabel,
-          ),
-        ],
-      ),
-    );
-  }
+  State<_ScoreRow> createState() => _ScoreRowState();
 }
 
-/// The level column for one [_ScoreRow]. Shows the score for one level at a
-/// time; a vertical swipe moves to the next/previous level when the game has
-/// more than one. Swiping up (finger moving toward the top of the screen)
-/// advances to the next level, mirroring a vertical feed.
-///
-/// On narrow (compact) screens ([isCompact]) the "Level N" text collapses to
-/// a bare number (a shared "Levels" column header — see [_ScoresHeader] —
-/// already says what it is) and, when [showPillLabel] is false, the pill's
-/// icon and label disappear too (replaced by the header's icon + "Best"),
-/// leaving more room for the number itself.
-class _LevelSwiper extends StatefulWidget {
-  final List<LevelScore> levels;
-  final String pillLabel;
-  final IconData? pillIcon;
-  final String suffix;
-  final String levelLabel;
-  final bool isCompact;
-  final bool showPillLabel;
+class _ScoreRowState extends State<_ScoreRow> {
+  bool _expanded = false;
 
-  const _LevelSwiper({
-    required this.levels,
-    required this.pillLabel,
-    required this.pillIcon,
-    required this.suffix,
-    required this.levelLabel,
-    required this.isCompact,
-    required this.showPillLabel,
-  });
+  bool get _expandable => widget.levels.length > 1;
 
-  @override
-  State<_LevelSwiper> createState() => _LevelSwiperState();
-}
-
-class _LevelSwiperState extends State<_LevelSwiper> {
-  int _index = 0;
-
-  /// Fixed score colour for every row — deliberately not tied to the
-  /// row's own container colour, so every best score reads the same.
-  static const Color _scoreColor = Colors.white;
-
-  @override
-  void didUpdateWidget(_LevelSwiper oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_index >= widget.levels.length) _index = 0;
+  void _toggle() {
+    if (!_expandable) return;
+    setState(() => _expanded = !_expanded);
   }
 
-  void _move(int delta) {
-    final next = _index + delta;
-    if (next < 0 || next >= widget.levels.length) return;
-    setState(() => _index = next);
-  }
+  /// The highest level the player has reached — shown alone while collapsed.
+  /// [levels] is sorted ascending by [ScoresProvider], so it's the last one.
+  LevelScore get _highest => widget.levels.last;
 
   @override
   Widget build(BuildContext context) {
-    final current = widget.levels[_index];
-    final canGoUp = _index < widget.levels.length - 1;
-    final canGoDown = _index > 0;
-
-    final upArrow = Icon(
-      Icons.keyboard_arrow_up,
-      size: 16,
-      color: canGoUp ? Colors.white70 : Colors.white24,
-    );
-    final downArrow = Icon(
-      Icons.keyboard_arrow_down,
-      size: 16,
-      color: canGoDown ? Colors.white70 : Colors.white24,
-    );
-
-    // Letter Bingo-style rows (a single stat with no per-level breakdown,
-    // shown with its own icon+label — see ScoresProvider) span the level
-    // column too, so the empty level slot they'd otherwise leave blank
-    // becomes extra room for their pill instead.
-    final spansColumns =
-        widget.isCompact && current.level == null && widget.showPillLabel;
-
-    // Fixed so every pill in the compact table lines up; wide/tablet mode
-    // keeps the pill sized to its content.
-    final double? pillWidth = !widget.isCompact
-        ? null
-        : spansColumns
-            ? _levelColumnWidth + AppSizes.spacingSmall + _scoreColumnWidth
-            : _scoreColumnWidth;
-
     final scoreTextStyle = TextStyle(
       fontFamily: 'Quicksand',
-      fontSize: widget.isCompact ? 18 : 15,
+      fontSize: widget.isCompact ? 18 : 16,
       fontWeight: FontWeight.w600,
-      color: _scoreColor,
+      color: Colors.white,
     );
 
-    // Letter Bingo's "Animals" pill has no icon (see ScoresProvider) and
-    // reads label-after-number ("5 Animals") instead of the usual
-    // "Best: 5" ordering used by every other pill.
-    final scoreNumber = !widget.showPillLabel
-        ? Text('${current.score}${widget.suffix}', style: scoreTextStyle)
-        : widget.pillIcon != null
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(widget.pillIcon, color: _scoreColor, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${widget.pillLabel}: ${current.score}${widget.suffix}',
-                    style: scoreTextStyle,
-                  ),
-                ],
-              )
-            : Text(
-                '${current.score}${widget.suffix} ${widget.pillLabel}',
-                style: scoreTextStyle,
-              );
+    final scoreValue = _scoreValue(
+      level: _highest,
+      pillLabel: widget.pillLabel,
+      pillIcon: widget.pillIcon,
+      suffix: widget.suffix,
+      showPillLabel: widget.showPillLabel,
+      style: scoreTextStyle,
+    );
 
-    // No boxed pill any more — the number sits directly on the row's own
-    // coloured container. [pillWidth] still fixes the column's width (for
-    // alignment with the header and other rows); numbers (and, for a
-    // spanning row like Letter Bingo's "Animals", their label too)
-    // right-align within it so digits line up down the column.
-    final pill = pillWidth == null
-        ? scoreNumber
-        : SizedBox(
-            width: pillWidth,
-            child: Align(alignment: Alignment.centerRight, child: scoreNumber),
-          );
-
-    final content = !widget.isCompact
-        ? Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: current.level == null
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.center,
-            children: [
-              upArrow,
-              if (current.level != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _toggle,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.paddingLarge,
+          vertical: AppSizes.paddingMedium,
+        ),
+        decoration: BoxDecoration(
+          color: widget.color.withValues(alpha: 0.67),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
                   child: Text(
-                    '${widget.levelLabel} ${current.level}',
+                    widget.title,
                     style: const TextStyle(
                       fontFamily: 'Quicksand',
-                      fontSize: 13,
+                      fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white70,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-              pill,
-              downArrow,
-            ],
-          )
-        : spansColumns
-            ? pill
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: _levelColumnWidth,
-                    child: current.level == null
-                        ? const SizedBox.shrink()
-                        : Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              upArrow,
-                              Text(
-                                '${current.level}',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontFamily: 'Quicksand',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              downArrow,
-                            ],
+                const SizedBox(width: AppSizes.spacingMedium),
+                SizedBox(
+                  width: _scoreColumnWidth,
+                  child: Align(alignment: Alignment.centerRight, child: scoreValue),
+                ),
+                const SizedBox(width: AppSizes.spacingSmall),
+                SizedBox(
+                  width: _chevronColumnWidth,
+                  child: _expandable
+                      ? AnimatedRotation(
+                          turns: _expanded ? 0.5 : 0,
+                          duration: _kExpandDuration,
+                          child: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.white70,
+                            size: 22,
                           ),
-                  ),
-                  const SizedBox(width: AppSizes.spacingSmall),
-                  pill,
-                ],
-              );
+                        )
+                      : null,
+                ),
+              ],
+            ),
+            AnimatedSize(
+              duration: _kExpandDuration,
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: _expandable && _expanded
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: AppSizes.spacingSmall),
+                      child: _LevelTable(
+                        levels: widget.levels.reversed.toList(),
+                        suffix: widget.suffix,
+                        levelLabel: widget.levelLabel,
+                      ),
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-    return GestureDetector(
-      onVerticalDragEnd: (details) {
-        final velocity = details.primaryVelocity ?? 0;
-        if (velocity < 0) {
-          _move(1);
-        } else if (velocity > 0) {
-          _move(-1);
-        }
-      },
-      child: content,
+/// The table revealed by expanding a [_ScoreRow]: one line per level the
+/// player has played, highest first, each showing that level's own best
+/// score right-aligned in the same [_scoreColumnWidth] column as the row's
+/// collapsed summary above, with a matching blank [_chevronColumnWidth]
+/// spacer after it so every score in the row lines up in one column.
+class _LevelTable extends StatelessWidget {
+  final List<LevelScore> levels;
+  final String suffix;
+  final String levelLabel;
+
+  const _LevelTable({
+    required this.levels,
+    required this.suffix,
+    required this.levelLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const rowStyle = TextStyle(
+      fontFamily: 'Quicksand',
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      color: Colors.white,
+    );
+
+    return Column(
+      children: [
+        const Divider(color: Colors.white24, height: AppSizes.spacingMedium),
+        for (final level in levels)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Text(
+                  '$levelLabel ${level.level}',
+                  style: rowStyle.copyWith(color: Colors.white70, fontSize: 14),
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: _scoreColumnWidth,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text('${level.score}$suffix', style: rowStyle),
+                  ),
+                ),
+                const SizedBox(width: AppSizes.spacingSmall),
+                const SizedBox(width: _chevronColumnWidth),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -6,7 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/bsl_alphabet_svg.dart';
 import '../../../shared/widgets/game_app_bar.dart';
@@ -33,9 +37,30 @@ const double _kGroundFrac = 0.90;
 /// X position of the vanishing point (centre of screen).
 const double _kVanishXFrac = 0.50;
 
+/// Left / right edges of the track at the bottom of the screen, as fractions
+/// of screen width. Track is 38% wider than the screen (19% beyond each edge).
+const double _kTrackLeftFrac = -0.19;
+const double _kTrackRightFrac = 1.19;
+
+/// Width of one lane at the bottom of the screen, as a fraction of width.
+const double _kLaneWidthFrac = (_kTrackRightFrac - _kTrackLeftFrac) / 3;
+
 /// Lane centres at the ground level, as fractions of screen width.
-/// Track is 20% wider than screen (extends 10% beyond each edge).
-const List<double> _kLaneBottomXFracs = [0.1, 0.5, 0.9];
+const List<double> _kLaneBottomXFracs = [
+  _kTrackLeftFrac + _kLaneWidthFrac * 0.5,
+  _kTrackLeftFrac + _kLaneWidthFrac * 1.5,
+  _kTrackLeftFrac + _kLaneWidthFrac * 2.5,
+];
+
+/// Size multiplier for items and the racer, matching the 15% wider track.
+const double _kTrackSizeScale = 1.15;
+
+/// The road is painted down to the bottom of the screen, but depth 1.0 maps
+/// to [_kGroundFrac]. This converts depth into the fraction of the way from
+/// the vanishing point to the painted bottom edge, so items and the racer
+/// sit centred in the painted lanes.
+const double _kGroundToBottomRatio =
+    (_kGroundFrac - _kHorizonFrac) / (1.0 - _kHorizonFrac);
 
 // ── Perspective helpers ────────────────────────────────────────────────────
 
@@ -47,7 +72,7 @@ double _perspY(double t, double gameH) =>
 double _perspX(int lane, double t, double gameW) {
   final vanishX = gameW * _kVanishXFrac;
   final laneBottomX = gameW * _kLaneBottomXFracs[lane];
-  return vanishX + t * (laneBottomX - vanishX);
+  return vanishX + t * _kGroundToBottomRatio * (laneBottomX - vanishX);
 }
 
 /// Perspective scale factor: items shrink toward the horizon.
@@ -64,6 +89,80 @@ double _responsiveScale(double gameAreaWidth) {
   if (gameAreaWidth >= 500) return 1.4;
   return 1.0;
 }
+
+// ── Racer run-cycle sprite ─────────────────────────────────────────────────
+
+/// Sky backdrop shown above the horizon.
+const String _kSkyAsset = 'assets/games/bsl_sprint/sky.jpg';
+
+// ── Roadside trees ─────────────────────────────────────────────────────────
+
+/// Tree images and their width / height aspect ratios.
+const List<String> _kTreeAssets = [
+  'assets/games/bsl_sprint/tree-1.png',
+  'assets/games/bsl_sprint/tree-2.png',
+];
+const List<double> _kTreeAspects = [476 / 500, 402 / 500];
+
+/// Number of trees scattered at the start of a game, and the most allowed
+/// at once. After the start, new trees only appear at the horizon.
+const int _kMinTrees = 3;
+const int _kMaxTrees = 7;
+
+/// Trees approach at this fraction of the track's speed (parallax).
+const double _kTreeParallax = 0.6;
+
+/// Tree height range relative to the racer (a child of roughly 1–1.7 m),
+/// measured when the tree is level with the racer.
+const double _kTreeMinHeightMultiple = 5.0;
+const double _kTreeMaxHeightMultiple = 10.0;
+
+/// Depth at which new trees appear, and beyond which they are removed.
+const double _kTreeSpawnT = 0.08;
+const double _kTreeExitT = 1.6;
+
+/// Maximum extra distance beyond the kerb (fraction of width at the bottom).
+const double _kTreeMaxGap = 0.3;
+
+/// A decorative tree on the grass beside the track. Screen-only; it has no
+/// effect on gameplay.
+class _SideTree {
+  final int variant; // index into _kTreeAssets / _kTreeAspects
+  final bool leftSide;
+
+  /// Extra distance beyond the kerb, as a fraction of width at the bottom.
+  final double gap;
+
+  /// Height as a multiple of the racer's height at the same depth.
+  final double heightMultiple;
+
+  /// Normalised depth, as for track items (0 = horizon, 1 = ground).
+  double t;
+
+  _SideTree({
+    required this.variant,
+    required this.leftSide,
+    required this.gap,
+    required this.heightMultiple,
+    required this.t,
+  });
+}
+
+/// Source image aspect ratio shared by every racer's frames (317 × 450 px).
+const double _kRacerAspect = 317 / 450;
+
+/// Number of frames in each racer's run cycle.
+const int _kRunFrameCount = 4;
+
+/// Run-cycle frames advanced per full road-scroll cycle. Matches the number
+/// of track markings in [_PerspectiveRoadPainter._drawTrackMarkings], so one
+/// frame is shown for each marking that passes under the racer's feet.
+const double _kRunFramesPerScrollCycle = 14;
+
+/// Frame-rate bounds so the slow Training level doesn't look like slow motion
+/// and top speed doesn't strobe faster than the display can show.
+const double _kMinRunFps = 6;
+const double _kMaxRunFps = 20;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen
@@ -89,7 +188,18 @@ class _BslSprintScreenState extends State<BslSprintScreen>
   /// Drives the scrolling road-marking animation.
   double _scrollOffset = 0.0;
 
+  /// Continuous position in the racer's run cycle; floor % frame count = frame shown.
+  double _runPhase = 0.0;
+
   bool _showingIntro = false;
+
+  // Roadside trees (scenery only)
+  final math.Random _treeRng = math.Random();
+
+  /// Play-area size from the last build, used to cull off-screen trees.
+  Size? _playSize;
+  final List<_SideTree> _trees = [];
+  double _treeSpawnTimer = 0.0;
 
   // Swipe detection
   double? _swipeStartX;
@@ -101,6 +211,32 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     _provider = context.read<BslSprintProvider>();
     _focusNode = FocusNode();
     _ticker = createTicker(_onTick)..start();
+    _seedTrees();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Thumbnails for the racer-select grid, which is the first thing shown.
+    for (final racer in SprintRacer.all) {
+      precacheImage(AssetImage(racer.thumbnail), context);
+    }
+    precacheImage(const AssetImage(_kSkyAsset), context);
+    for (final asset in _kTreeAssets) {
+      precacheImage(AssetImage(asset), context);
+    }
+  }
+
+  void _selectRacer(SprintRacer racer) {
+    // Decode the run frames up front so the first cycle doesn't flicker.
+    for (final frame in [
+      ...racer.runFrames,
+      racer.jumpFrame,
+      racer.landingFrame,
+    ]) {
+      precacheImage(AssetImage(frame), context);
+    }
+    _provider.selectRacer(racer);
   }
 
   void _onTick(Duration elapsed) {
@@ -111,11 +247,17 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     _previousElapsed = elapsed;
 
     if (_provider.state == SprintState.playing) {
-      _scrollOffset = (_scrollOffset +
-              _provider.scrollSpeed *
-                  _provider.currentLevel.scrollMultiplier *
-                  dt) %
-          1.0;
+      final scrollRate =
+          _provider.scrollSpeed * _provider.currentLevel.scrollMultiplier;
+      _scrollOffset = (_scrollOffset + scrollRate * dt) % 1.0;
+
+      // Legs keep pace with the road; pause the cycle while airborne/landing.
+      if (!_provider.isJumping && !_provider.isLanding) {
+        final fps = (scrollRate * _kRunFramesPerScrollCycle)
+            .clamp(_kMinRunFps, _kMaxRunFps);
+        _runPhase = (_runPhase + fps * dt) % _kRunFrameCount;
+      }
+      _updateTrees(dt);
     }
     _provider.tick(dt);
     setState(() {});
@@ -174,8 +316,61 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     return KeyEventResult.ignored;
   }
 
+  // ── Roadside trees ─────────────────────────────────────────────────────────
+
+  _SideTree _newTree(double t) => _SideTree(
+        variant: _treeRng.nextInt(_kTreeAssets.length),
+        leftSide: _treeRng.nextBool(),
+        gap: _treeRng.nextDouble() * _kTreeMaxGap,
+        heightMultiple: _kTreeMinHeightMultiple +
+            _treeRng.nextDouble() *
+                (_kTreeMaxHeightMultiple - _kTreeMinHeightMultiple),
+        t: t,
+      );
+
+  double _nextTreeSpawnDelay() => 0.8 + _treeRng.nextDouble() * 1.6;
+
+  /// Scatters a random number of trees at random depths.
+  void _seedTrees() {
+    _trees.clear();
+    final count =
+        _kMinTrees + _treeRng.nextInt(_kMaxTrees - _kMinTrees + 1);
+    for (var i = 0; i < count; i++) {
+      _trees.add(_newTree(_kTreeSpawnT + _treeRng.nextDouble() * 0.8));
+    }
+    _treeSpawnTimer = _nextTreeSpawnDelay();
+  }
+
+  /// Moves trees toward the player with the same perspective model as track
+  /// items, but slower (parallax). Trees are removed once fully off screen;
+  /// new ones only appear at the horizon, up to [_kMaxTrees] at once.
+  void _updateTrees(double dt) {
+    final worldSpeed = _provider.worldSpeed * _kTreeParallax;
+    for (final tree in _trees) {
+      final denom = 1.0 - tree.t * worldSpeed * dt;
+      tree.t = denom > 0.01 ? tree.t / denom : _kTreeExitT;
+    }
+    final playSize = _playSize;
+    _trees.removeWhere((tree) =>
+        tree.t >= _kTreeExitT ||
+        (playSize != null && !_isTreeOnScreen(tree, playSize)));
+
+    _treeSpawnTimer -= dt;
+    if (_treeSpawnTimer <= 0 && _trees.length < _kMaxTrees) {
+      _trees.add(_newTree(_kTreeSpawnT));
+      _treeSpawnTimer = _nextTreeSpawnDelay();
+    }
+  }
+
+  bool _isTreeOnScreen(_SideTree tree, Size size) {
+    final rect = _treeRect(tree, size);
+    return rect.right > 0 && rect.left < size.width && rect.top < size.height;
+  }
+
   void _restartGame() {
+    _seedTrees();
     _scrollOffset = 0.0;
+    _runPhase = 0.0;
     _previousElapsed = Duration.zero;
     _provider.resetForCountdown();
     setState(() => _showingIntro = true);
@@ -193,10 +388,16 @@ class _BslSprintScreenState extends State<BslSprintScreen>
       onKeyEvent: _onKeyEvent,
       child: Scaffold(
         extendBodyBehindAppBar: true,
-        appBar: provider.showLevelSelect
+        appBar: provider.showRacerSelect || provider.showLevelSelect
             ? GameAppBar(
                 title: localizer.translate('bsl_sprint.title'),
-                onBack: () => Navigator.of(context).pop(),
+                onBack: () {
+                  if (provider.showRacerSelect) {
+                    Navigator.of(context).pop();
+                  } else {
+                    provider.showRacerSelection();
+                  }
+                },
               )
             : null,
         body: Container(
@@ -209,16 +410,28 @@ class _BslSprintScreenState extends State<BslSprintScreen>
           child: Stack(
             children: [
               SafeArea(
-                child: provider.showLevelSelect
+                // The game screen handles the bottom inset itself so the
+                // track can be painted all the way to the screen edge.
+                bottom: provider.showRacerSelect || provider.showLevelSelect,
+                child: provider.showRacerSelect
+                    ? _RacerSelectScreen(
+                        locale: widget.locale,
+                        onSelected: _selectRacer,
+                      )
+                    : provider.showLevelSelect
                     ? _buildLevelSelectScreen(context, provider)
                     : _buildGameScreen(context, provider),
               ),
-              if (provider.state == SprintState.gameOver && !_showingIntro && !provider.showLevelSelect)
+              if (provider.state == SprintState.gameOver &&
+                  !_showingIntro &&
+                  !provider.showRacerSelect &&
+                  !provider.showLevelSelect)
                 Positioned.fill(
                   child: GameSuccessOverlay(
                     gameId: 'bsl_sprint',
                     locale: widget.locale,
                     scoreStyle: SuccessScoreStyle.custom,
+                    imageAsset: provider.racer.thumbnail,
                     customScoreLine: localizer
                         .translate('bsl_sprint.success_summary')
                         .replaceAll('{words}', '${provider.wordsCompleted}')
@@ -282,54 +495,131 @@ class _BslSprintScreenState extends State<BslSprintScreen>
           levelNumber: provider.currentLevel.number,
           centerContent: _SprintCenterHud(provider: provider, locale: widget.locale),
         ),
-        _WordBar(
-          word: provider.currentWord,
-          letterIndex: provider.letterIndex,
-          levelNumber: provider.currentLevel.number,
-          locale: widget.locale,
-        ),
         Expanded(
-          child: GestureDetector(
-            onTap: () {
-              if (_provider.state == SprintState.playing) {
-                _provider.jump();
-              }
-            },
-            onPanStart: _onPanStart,
-            onPanEnd: _onPanEnd,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final size = constraints.biggest;
-                final sortedItems = provider.items
-                    .where((item) => item.isActive && item.y > 0.02)
-                    .toList()
-                  ..sort((a, b) => a.y.compareTo(b.y));
-                return Stack(
-                  clipBehavior: Clip.hardEdge,
-                  children: [
-                    CustomPaint(
-                      size: size,
-                      painter: _PerspectiveRoadPainter(
-                        scrollOffset: _scrollOffset,
-                        characterLane: provider.characterLane,
-                      ),
-                    ),
-                    for (final item in sortedItems)
-                      _buildPerspectiveItem(
-                        item,
-                        size,
-                        provider.nextLetter,
-                        provider.currentLevel.number == 0,
-                      ),
-                    _buildCharacter(provider, size),
-                  ],
-                );
-              },
+          child: CustomMultiChildLayout(
+            delegate: _SkyUnderWordBarLayout(
+              bottomInset: MediaQuery.paddingOf(context).bottom,
             ),
+            children: [
+              LayoutId(
+                id: _GameSlot.sky,
+                child: Image.asset(
+                  _kSkyAsset,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.bottomCenter,
+                  gaplessPlayback: true,
+                ),
+              ),
+              LayoutId(id: _GameSlot.game, child: _buildGameArea(provider)),
+              LayoutId(
+                id: _GameSlot.wordBar,
+                child: _WordBar(
+                  word: provider.currentWord,
+                  letterIndex: provider.letterIndex,
+                  levelNumber: provider.currentLevel.number,
+                  locale: widget.locale,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  /// The track, items and racer. The sky above the horizon is left
+  /// transparent so the sky image laid out behind it shows through.
+  Widget _buildGameArea(BslSprintProvider provider) {
+    return GestureDetector(
+      onTap: () {
+        if (_provider.state == SprintState.playing) {
+          _provider.jump();
+        }
+      },
+      onPanStart: _onPanStart,
+      onPanEnd: _onPanEnd,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final fullSize = constraints.biggest;
+          // Items and the racer stay clear of the bottom safe-area
+          // inset; only the road is painted underneath it.
+          final bottomInset = MediaQuery.paddingOf(context).bottom;
+          final size = Size(fullSize.width, fullSize.height - bottomInset);
+          _playSize = size;
+          final sortedItems = provider.items
+              .where((item) => item.isActive && item.y > 0.02)
+              .toList()
+            ..sort((a, b) => a.y.compareTo(b.y));
+          final sortedTrees = [..._trees]..sort((a, b) => a.t.compareTo(b.t));
+          return Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              CustomPaint(
+                size: fullSize,
+                painter: _PerspectiveRoadPainter(
+                  playHeight: size.height,
+                  scrollOffset: _scrollOffset,
+                  characterLane: provider.characterLane,
+                ),
+              ),
+              for (final tree in sortedTrees) _buildTree(tree, size),
+              for (final item in sortedItems)
+                _buildPerspectiveItem(
+                  item,
+                  size,
+                  provider.nextLetter,
+                  provider.currentLevel.number == 0,
+                ),
+              _buildCharacter(provider, size),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ── Tree positioning ──────────────────────────────────────────────────────
+
+  /// Places a tree on the grass using the same perspective as the track.
+  /// Its base follows a line converging on the vanishing point, set outside
+  /// the kerb by half the tree's width plus [_SideTree.gap], so it never
+  /// overlaps the track at any depth.
+  Widget _buildTree(_SideTree tree, Size size) {
+    return Positioned.fromRect(
+      rect: _treeRect(tree, size),
+      child: Image.asset(
+        _kTreeAssets[tree.variant],
+        fit: BoxFit.contain,
+        alignment: Alignment.bottomCenter,
+        gaplessPlayback: true,
+      ),
+    );
+  }
+
+  /// Screen rect of [tree] in a play area of [size].
+  Rect _treeRect(_SideTree tree, Size size) {
+    final t = tree.t;
+    final aspect = _kTreeAspects[tree.variant];
+    // Scale with depth from the racer's size at the racer's depth.
+    final heightPerT = _racerHeight(size.width) *
+        tree.heightMultiple /
+        BslSprintProvider.characterBaseY;
+    final h = t * heightPerT;
+    final w = h * aspect;
+
+    // Half the tree's width, converted to the bottom-of-track units the
+    // converging line uses, keeps it off the track at every depth.
+    final clearance = tree.gap +
+        heightPerT * aspect / (2 * _kGroundToBottomRatio * size.width);
+    final lineFrac = tree.leftSide
+        ? _kTrackLeftFrac - clearance
+        : _kTrackRightFrac + clearance;
+    final vanishX = size.width * _kVanishXFrac;
+    final cx = vanishX +
+        t * _kGroundToBottomRatio * (size.width * lineFrac - vanishX);
+    final cy = _perspY(t, size.height);
+
+    return Rect.fromLTWH(cx - w / 2, cy - h, w, h);
   }
 
   // ── 3D item positioning ───────────────────────────────────────────────────
@@ -343,8 +633,11 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     final cy = _perspY(t, size.height);
 
     if (item.isBarrier) {
-      final w = (t * 0.4 * size.width).clamp(12.0, size.width * 0.45);
-      final h = 234.0 * scale;
+      final w = (t * _kLaneWidthFrac * size.width).clamp(
+        12.0,
+        size.width * 0.45 * _kTrackSizeScale,
+      );
+      final h = 234.0 * _kTrackSizeScale * scale;
       return Positioned(
         left: cx - w / 2,
         top: cy - h,
@@ -353,7 +646,10 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     }
 
     if (item.isObstacle) {
-      final w = (t * 0.4 * size.width).clamp(12.0, size.width * 0.45);
+      final w = (t * _kLaneWidthFrac * size.width).clamp(
+        12.0,
+        size.width * 0.45 * _kTrackSizeScale,
+      );
       final h = w * 0.7; // preserves original 56:80 aspect ratio
       return Positioned(
         left: cx - w / 2,
@@ -363,7 +659,10 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     }
 
     // BSL symbol disc — fills lane width at this perspective depth
-    final symW = (t * 0.4 * size.width).clamp(12.0, size.width * 0.5);
+    final symW = (t * _kLaneWidthFrac * size.width).clamp(
+      12.0,
+      size.width * 0.5 * _kTrackSizeScale,
+    );
     return Positioned(
       left: cx - symW / 2,
       top: cy - symW,
@@ -378,10 +677,13 @@ class _BslSprintScreenState extends State<BslSprintScreen>
 
   // ── Character positioning ─────────────────────────────────────────────────
 
+  /// On-screen racer height for a game area of [width].
+  double _racerHeight(double width) =>
+      180.0 * _kTrackSizeScale * _responsiveScale(width);
+
   Widget _buildCharacter(BslSprintProvider provider, Size size) {
-    final rs = _responsiveScale(size.width);
-    final charW = 48.0 * rs;
-    final charH = 72.0 * rs;
+    final charH = _racerHeight(size.width);
+    final charW = charH * _kRacerAspect;
 
     // The character stands at ground level in their current lane.
     final lane = provider.characterLane;
@@ -391,18 +693,22 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     final groundPy = _perspY(BslSprintProvider.characterBaseY, size.height);
 
     // Visual jump: move upward on screen as jumpOffset increases.
-    // We amplify slightly so the arc feels satisfying in perspective.
+    // Scaled so the arc reads clearly in perspective without leaping too high.
     final jumpPixels = provider.jumpOffset *
         size.height *
         (_kGroundFrac - _kHorizonFrac) *
-        1.4;
+        0.98;
     final py = groundPy - jumpPixels;
 
     return Positioned(
       left: cx - charW / 2,
       top: py - charH,
-      child: _CharacterPlaceholder(
-        isJumping: provider.isJumping,
+      child: _RunnerSprite(
+        asset: provider.isJumping
+            ? provider.racer.jumpFrame
+            : provider.isLanding
+            ? provider.racer.landingFrame
+            : provider.racer.runFrames[_runPhase.floor() % _kRunFrameCount],
         width: charW,
         height: charH,
       ),
@@ -411,14 +717,207 @@ class _BslSprintScreenState extends State<BslSprintScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// "Who would you like to race as?" — racer select grid
+//
+// 2 columns on devices under 600 px wide, 3 columns otherwise.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _RacerSelectScreen extends StatelessWidget {
+  final String locale;
+  final ValueChanged<SprintRacer> onSelected;
+
+  const _RacerSelectScreen({required this.locale, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations(locale: locale);
+    final crossAxisCount = MediaQuery.sizeOf(context).width < 600 ? 2 : 3;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSizes.paddingLarge),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Column(
+            children: [
+              Text(
+                l.translate('bsl_sprint.choose_racer'),
+                textAlign: TextAlign.center,
+                style: AppTheme.title.copyWith(
+                  fontSize: AppSizes.fontSizeTitle,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.spacingLarge),
+              // Rows of equal-width cells rather than a GridView, so each
+              // card is exactly as tall as its image and name — a fixed grid
+              // aspect ratio would leave empty space around the image.
+              for (
+                var start = 0;
+                start < SprintRacer.all.length;
+                start += crossAxisCount
+              ) ...[
+                if (start > 0) const SizedBox(height: AppSizes.spacingMedium),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = start; i < start + crossAxisCount; i++) ...[
+                      if (i > start)
+                        const SizedBox(width: AppSizes.spacingMedium),
+                      Expanded(
+                        child: i < SprintRacer.all.length
+                            ? _RacerCard(
+                                racer: SprintRacer.all[i],
+                                onTap: () => onSelected(SprintRacer.all[i]),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Width of the blue border drawn over the edge of each racer card.
+const double _kRacerCardBorderWidth = 3;
+
+class _RacerCard extends StatelessWidget {
+  final SprintRacer racer;
+  final VoidCallback onTap;
+
+  const _RacerCard({required this.racer, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: racer.name,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          // Clip the edge-to-edge image to the card's rounded corners.
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 6,
+                offset: const Offset(2, 3),
+              ),
+            ],
+          ),
+          // Drawn on top so the full-bleed image doesn't cover the card edge.
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
+            border: Border.all(
+              color: AppColors.catrinBlue,
+              width: _kRacerCardBorderWidth,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Full card width, no padding.
+              AspectRatio(
+                aspectRatio: _kRacerAspect,
+                child: Image.asset(racer.thumbnail, fit: BoxFit.cover),
+              ),
+              // Name centred vertically between the image and the card's
+              // bottom edge. The extra bottom padding offsets the card border
+              // drawn over this band, and the even leading splits the font's
+              // line spacing equally above and below the glyphs.
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: AppSizes.spacingSmall,
+                  bottom: AppSizes.spacingSmall + _kRacerCardBorderWidth,
+                ),
+                child: Text(
+                  racer.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textHeightBehavior: const TextHeightBehavior(
+                    leadingDistribution: TextLeadingDistribution.even,
+                  ),
+                  style: const TextStyle(
+                    fontFamily: 'Quicksand',
+                    fontSize: AppSizes.fontSizeLarge,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Game screen layout — sky behind a glass word bar
+//
+// The word bar sits at the top; the game area fills the rest. The sky image
+// spans from the top of the word bar down to the game area's horizon, so the
+// word bar's blur has sky behind it. Paint order: sky, game, word bar.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum _GameSlot { sky, game, wordBar }
+
+class _SkyUnderWordBarLayout extends MultiChildLayoutDelegate {
+  /// Bottom safe-area inset the game area paints under (see _buildGameArea).
+  final double bottomInset;
+
+  _SkyUnderWordBarLayout({required this.bottomInset});
+
+  @override
+  void performLayout(Size size) {
+    final wordBarH = layoutChild(
+      _GameSlot.wordBar,
+      BoxConstraints.tightFor(width: size.width),
+    ).height;
+    positionChild(_GameSlot.wordBar, Offset.zero);
+
+    final gameH = math.max(0.0, size.height - wordBarH);
+    layoutChild(_GameSlot.game, BoxConstraints.tight(Size(size.width, gameH)));
+    positionChild(_GameSlot.game, Offset(0, wordBarH));
+
+    final horizonY = math.max(0.0, gameH - bottomInset) * _kHorizonFrac;
+    layoutChild(
+      _GameSlot.sky,
+      BoxConstraints.tight(Size(size.width, wordBarH + horizonY)),
+    );
+    positionChild(_GameSlot.sky, Offset.zero);
+  }
+
+  @override
+  bool shouldRelayout(_SkyUnderWordBarLayout old) =>
+      old.bottomInset != bottomInset;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 3D Perspective road painter
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PerspectiveRoadPainter extends CustomPainter {
+  /// Height of the play area that the perspective fractions are based on.
+  /// The canvas may be taller (it runs under the bottom safe-area inset);
+  /// the road is extended down to the canvas bottom.
+  final double playHeight;
   final double scrollOffset;
   final int characterLane;
 
   const _PerspectiveRoadPainter({
+    required this.playHeight,
     required this.scrollOffset,
     required this.characterLane,
   });
@@ -426,42 +925,27 @@ class _PerspectiveRoadPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
-    final h = size.height;
+    final h = playHeight;
     final horizonY = h * _kHorizonFrac;
     final groundY = h * _kGroundFrac;
     final vanishX = w * _kVanishXFrac;
 
-    // ── Sky ────────────────────────────────────────────────────────────────
-    final skyRect = Rect.fromLTWH(0, 0, w, horizonY);
-    canvas.drawRect(
-      skyRect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF0D1B6B), Color(0xFF3949AB)],
-        ).createShader(skyRect),
-    );
+    // Road lines are defined to reach their bottom X at the play-area bottom;
+    // extend them along the same slope down to the canvas bottom.
+    final bottomY = size.height;
+    final stretch = (bottomY - horizonY) / (h - horizonY);
+    double bottomX(double frac) => vanishX + (w * frac - vanishX) * stretch;
 
-    // Sun / glow at vanishing point
-    final sunPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          Colors.amber.withValues(alpha: 0.55),
-          Colors.amber.withValues(alpha: 0.0),
-        ],
-      ).createShader(
-        Rect.fromCircle(center: Offset(vanishX, horizonY), radius: 60),
-      );
-    canvas.drawCircle(Offset(vanishX, horizonY), 60, sunPaint);
+    // ── Sky ────────────────────────────────────────────────────────────────
+    // Drawn by the sky image behind this painter (see _kSkyAsset).
 
     // ── Road trapezoid — athletics track red ───────────────────────────────
-    // Track extends 10% beyond each screen edge (20% wider total).
-    final roadRect = Rect.fromLTWH(0, horizonY, w, h - horizonY);
+    // Track extends beyond each screen edge (see _kTrackLeftFrac / Right).
+    final roadRect = Rect.fromLTWH(0, horizonY, w, bottomY - horizonY);
     final roadPath = Path()
       ..moveTo(vanishX, horizonY)
-      ..lineTo(-w * 0.1, h)
-      ..lineTo(w * 1.1, h)
+      ..lineTo(bottomX(_kTrackLeftFrac), bottomY)
+      ..lineTo(bottomX(_kTrackRightFrac), bottomY)
       ..close();
     canvas.drawPath(
       roadPath,
@@ -477,18 +961,18 @@ class _PerspectiveRoadPainter extends CustomPainter {
     final leftGrassPath = Path()
       ..moveTo(0, horizonY)
       ..lineTo(vanishX, horizonY)
-      ..lineTo(-w * 0.1, h)
+      ..lineTo(bottomX(_kTrackLeftFrac), bottomY)
       ..close();
     final rightGrassPath = Path()
       ..moveTo(w, horizonY)
       ..lineTo(vanishX, horizonY)
-      ..lineTo(w * 1.1, h)
+      ..lineTo(bottomX(_kTrackRightFrac), bottomY)
       ..close();
     final grassPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: const [Color(0xFF1B5E20), Color(0xFF2E7D32)],
+        colors: const [Color(0xFF66BB6A), Color(0xFF81C784)],
       ).createShader(roadRect);
     canvas.drawPath(leftGrassPath, grassPaint);
     canvas.drawPath(rightGrassPath, grassPaint);
@@ -496,7 +980,7 @@ class _PerspectiveRoadPainter extends CustomPainter {
     // Road kerb lines — thick white edge lines
     _drawConvergingLine(
       canvas,
-      vanishX, horizonY, -w * 0.1, h,
+      vanishX, horizonY, bottomX(_kTrackLeftFrac), bottomY,
       paint: Paint()
         ..color = Colors.white
         ..strokeWidth = 8
@@ -504,7 +988,7 @@ class _PerspectiveRoadPainter extends CustomPainter {
     );
     _drawConvergingLine(
       canvas,
-      vanishX, horizonY, w * 1.1, h,
+      vanishX, horizonY, bottomX(_kTrackRightFrac), bottomY,
       paint: Paint()
         ..color = Colors.white
         ..strokeWidth = 8
@@ -512,33 +996,35 @@ class _PerspectiveRoadPainter extends CustomPainter {
     );
 
     // ── Lane dividers — solid white lines (running track style) ───────────
-    _drawSolidConvergingLine(canvas, vanishX, horizonY, w * 0.3, h);
-    _drawSolidConvergingLine(canvas, vanishX, horizonY, w * 0.7, h);
+    _drawSolidConvergingLine(
+      canvas,
+      vanishX,
+      horizonY,
+      bottomX(_kTrackLeftFrac + _kLaneWidthFrac),
+      bottomY,
+    );
+    _drawSolidConvergingLine(
+      canvas,
+      vanishX,
+      horizonY,
+      bottomX(_kTrackRightFrac - _kLaneWidthFrac),
+      bottomY,
+    );
 
     // ── Scrolling horizontal track markings (motion cue) ──────────────────
     _drawTrackMarkings(canvas, vanishX, horizonY, groundY, w, scrollOffset);
 
     // ── Current-lane highlight ─────────────────────────────────────────────
-    final laneL = w * (-0.1 + characterLane * 0.4);
-    final laneR = laneL + w * 0.4;
+    final laneL = _kTrackLeftFrac + characterLane * _kLaneWidthFrac;
+    final laneR = laneL + _kLaneWidthFrac;
     final highlightPath = Path()
       ..moveTo(vanishX, horizonY)
-      ..lineTo(laneL, groundY)
-      ..lineTo(laneR, groundY)
+      ..lineTo(bottomX(laneL), bottomY)
+      ..lineTo(bottomX(laneR), bottomY)
       ..close();
     canvas.drawPath(
       highlightPath,
       Paint()..color = Colors.white.withValues(alpha: 0.06),
-    );
-
-    // ── Horizon glow strip ─────────────────────────────────────────────────
-    canvas.drawLine(
-      Offset(0, horizonY),
-      Offset(w, horizonY),
-      Paint()
-        ..color = Colors.amber.withValues(alpha: 0.25)
-        ..strokeWidth = 2
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
   }
 
@@ -606,8 +1092,10 @@ class _PerspectiveRoadPainter extends CustomPainter {
       if (t < 0.06) continue; // skip slivers too close to horizon
 
       final y = horizonY + t * (groundY - horizonY);
-      final xLeft = vanishX + t * (-w * 0.1 - vanishX);
-      final xRight = vanishX + t * (w * 1.1 - vanishX);
+      final xLeft = vanishX +
+          t * _kGroundToBottomRatio * (w * _kTrackLeftFrac - vanishX);
+      final xRight = vanishX +
+          t * _kGroundToBottomRatio * (w * _kTrackRightFrac - vanishX);
 
       canvas.drawLine(
         Offset(xLeft, y),
@@ -621,73 +1109,48 @@ class _PerspectiveRoadPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PerspectiveRoadPainter old) =>
-      old.scrollOffset != scrollOffset || old.characterLane != characterLane;
+      old.playHeight != playHeight ||
+      old.scrollOffset != scrollOffset ||
+      old.characterLane != characterLane;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Character placeholder
+// Runner sprite
 //
-// Swap _CharacterPlaceholder for your real sprite widget.
-// The widget is 48 × 72 px; feet are anchored to the road ground line.
-// Pass [isJumping] to drive a jump animation on the sprite.
+// Shows one frame of the 4-frame run cycle, or the jump pose while airborne.
+// The screen picks the run frame from a phase that advances with the road
+// scroll, so stride rate tracks speed. Feet are anchored to the road ground
+// line.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _CharacterPlaceholder extends StatelessWidget {
-  final bool isJumping;
+class _RunnerSprite extends StatelessWidget {
+  final String asset;
   final double width;
   final double height;
 
-  const _CharacterPlaceholder({
-    required this.isJumping,
-    this.width = 48,
-    this.height = 72,
+  const _RunnerSprite({
+    required this.asset,
+    required this.width,
+    required this.height,
   });
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = (28.0 * width / 48).clamp(16.0, 56.0);
-    final fontSize = (11.0 * width / 48).clamp(8.0, 22.0);
-    final radius = 12.0 * width / 48;
-
-    return Container(
+    return Image.asset(
+      asset,
       width: width,
       height: height,
-      decoration: BoxDecoration(
-        color: isJumping
-            ? const Color(0xFFE91E63).withValues(alpha: 0.80)
-            : const Color(0xFFE91E63),
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.person, color: Colors.white, size: iconSize),
-          SizedBox(height: 2 * width / 48),
-          Text(
-            'Abi',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: fontSize,
-              fontFamily: 'Quicksand',
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+      fit: BoxFit.contain,
+      alignment: Alignment.bottomCenter,
+      // Keep the previous frame on screen while the next one resolves.
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.medium,
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BSL symbol disc — 3D lit circular token
+// BSL symbol disc — round white token
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _BslSymbolWidget extends StatelessWidget {
@@ -705,17 +1168,19 @@ class _BslSymbolWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cornerRadius = math.min(24.0, size * 0.35);
     return SizedBox(
       width: size,
       height: size,
       child: CustomPaint(
         painter: _DiscPainter(scale: scale, highlightBorder: highlightBorder),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(cornerRadius),
-          child: BslAlphabetSvg(
-            letter: letter,
-            fit: BoxFit.contain,
+        // Clip circle sits 2 px inside the disc edge.
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: ClipOval(
+            child: BslAlphabetSvg(
+              letter: letter,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),
@@ -724,7 +1189,7 @@ class _BslSymbolWidget extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3-D disc painter — indigo token with rim, radial gradient and specular spot
+// Disc painter — round white token with a soft shadow and grey rim
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DiscPainter extends CustomPainter {
@@ -736,63 +1201,27 @@ class _DiscPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final cr = Radius.circular(math.min(24.0, w * 0.35));
 
-    final shadowRect = RRect.fromRectAndRadius(
+    canvas.drawOval(
       Rect.fromLTWH(w * 0.06, h * 0.10, w, h),
-      cr,
-    );
-    canvas.drawRRect(
-      shadowRect,
       Paint()
         ..color = Colors.black.withValues(alpha: 0.38)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, (8 * scale).clamp(3, 12)),
     );
 
-    // Rim — dark band simulating depth
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(0, h * 0.08, w, h), cr),
-      Paint()..color = const Color(0xFF0D1340),
+    // Rim — grey band below the face simulating depth
+    canvas.drawOval(
+      Rect.fromLTWH(0, h * 0.06, w, h),
+      Paint()..color = const Color(0xFFB0BEC5),
     );
 
-    // Face — radial gradient: near-white top-left → deep indigo
-    final faceRect = Rect.fromLTWH(0, 0, w, h);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(faceRect, cr),
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-0.28, -0.38),
-          radius: 1.0,
-          colors: [
-            Color(0xFFEEF0FF),
-            Color(0xFF7986CB),
-            Color(0xFF283593),
-          ],
-          stops: [0.0, 0.52, 1.0],
-        ).createShader(faceRect),
-    );
+    // Face — white
+    canvas.drawOval(Rect.fromLTWH(0, 0, w, h), Paint()..color = Colors.white);
 
-    // Specular highlight — soft white oval at top-left
-    final hlCenter = Offset(w * 0.30, h * 0.24);
-    final hlRect = Rect.fromCenter(center: hlCenter, width: w * 0.40, height: h * 0.40);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(hlRect, cr),
-      Paint()
-        ..shader = RadialGradient(
-          colors: [
-            Colors.white.withValues(alpha: 0.50),
-            Colors.white.withValues(alpha: 0.0),
-          ],
-        ).createShader(hlRect),
-    );
-
-    // Training-mode highlight — green border around the correct tile
+    // Training-mode highlight — green ring around the correct disc
     if (highlightBorder) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(-4, -4, w + 8, h + 8),
-          Radius.circular(math.min(28.0, w * 0.38)),
-        ),
+      canvas.drawOval(
+        Rect.fromLTWH(-4, -4, w + 8, h + 8),
         Paint()
           ..color = const Color(0xFF4CAF50)
           ..style = PaintingStyle.stroke
@@ -969,6 +1398,43 @@ class _SprintCenterHud extends StatelessWidget {
 // Word display bar
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Frosted-glass strip that blurs whatever is painted behind it (the sky).
+class _GlassPanel extends StatelessWidget {
+  final double? height;
+  final AlignmentGeometry? alignment;
+  final EdgeInsetsGeometry? padding;
+  final Widget child;
+
+  const _GlassPanel({
+    this.height,
+    this.alignment,
+    this.padding,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          height: height,
+          alignment: alignment,
+          padding: padding,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            border: Border(
+              bottom: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
 class _WordBar extends StatelessWidget {
   final String word;
   final int letterIndex;
@@ -989,9 +1455,8 @@ class _WordBar extends StatelessWidget {
     final l = AppLocalizations(locale: locale);
 
     if (word.isEmpty) {
-      return Container(
+      return _GlassPanel(
         height: 80 * s,
-        color: const Color(0xFF0D1B6B),
         alignment: Alignment.center,
         child: Text(
           l.translate('bsl_sprint.get_ready'),
@@ -1001,9 +1466,7 @@ class _WordBar extends StatelessWidget {
       );
     }
 
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFF0D1B6B),
+    return _GlassPanel(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -30,7 +30,7 @@ abstract class ZooMapGameBase extends FlameGame {
   @visibleForTesting
   static final Vector2 startPosition = Vector2(1000, 1242);
 
-  /// The chosen character's [ZooCharacter.id], drawn by the player
+  /// The chosen character's [CharacterThumb.id], drawn by the player
   /// component.
   String get characterId;
 

@@ -20,7 +20,7 @@ void main() {
 
   group('BslMathsLevel', () {
     test('all levels are defined', () {
-      expect(BslMathsLevel.all.length, 12);
+      expect(BslMathsLevel.all.length, 7);
     });
 
     test('Level 1 has correct configuration', () {
@@ -48,30 +48,28 @@ void main() {
       expect(level3.useTeenKeys, true);
     });
 
-    test('Level 6 has correct configuration', () {
+    test('Level 5 (Competition) has correct configuration', () {
+      final level5 = BslMathsLevel.all[4];
+      expect(level5.number, 5);
+      expect(level5.name, 'bsl_maths.level5.name');
+      expect(level5.isCompetition, true);
+    });
+
+    test('Level 6 (Take Away to 5) has correct configuration', () {
       final level6 = BslMathsLevel.all[5];
       expect(level6.number, 6);
       expect(level6.name, 'bsl_maths.level6.name');
-      expect(level6.maxAnswer, 10);
-      expect(level6.isMissingOperand, false);
-      expect(level6.hideDigits, true);
+      expect(level6.maxAnswer, 5);
+      expect(level6.isSubtraction, true);
+      expect(level6.maxSubtrahend, 5);
     });
 
-    test('Level 10 has correct configuration', () {
-      final level10 = BslMathsLevel.all[9];
-      expect(level10.number, 10);
-      expect(level10.name, 'bsl_maths.level10.name');
-      expect(level10.isCompetition, true);
-      expect(level10.hideDigits, true);
-    });
-
-    test('Level 12 (last level) has correct configuration', () {
-      final level12 = BslMathsLevel.all[11];
-      expect(level12.number, 12);
-      expect(level12.name, 'bsl_maths.level12.name');
-      expect(level12.maxAnswer, 10);
-      expect(level12.isSubtraction, true);
-      expect(level12.hideDigits, false);
+    test('Level 7 (last level, Take Away to 10) has correct configuration', () {
+      final level7 = BslMathsLevel.all[6];
+      expect(level7.number, 7);
+      expect(level7.name, 'bsl_maths.level7.name');
+      expect(level7.maxAnswer, 10);
+      expect(level7.isSubtraction, true);
     });
   });
 
@@ -369,6 +367,40 @@ void main() {
         );
 
         expect(provider.unitsDigit, isNull);
+      });
+    });
+
+    group('championMode', () {
+      test('starts locked and off for a guest player', () async {
+        // No logged-in user in this test environment, so the personal-best
+        // lookup resolves to null and Champion Mode stays locked.
+        await Future.delayed(Duration.zero);
+        expect(provider.isChampionModeUnlocked, false);
+        expect(provider.championMode, false);
+      });
+
+      test('setChampionMode(true) is a no-op while locked', () async {
+        await Future.delayed(Duration.zero);
+        provider.setChampionMode(true);
+        expect(provider.championMode, false);
+      });
+
+      test('justUnlockedChampionMode starts false', () async {
+        await Future.delayed(Duration.zero);
+        expect(provider.justUnlockedChampionMode, false);
+      });
+
+      test('dismissChampionModeUnlockedBanner clears the flag', () async {
+        await Future.delayed(Duration.zero);
+        provider.dismissChampionModeUnlockedBanner();
+        expect(provider.justUnlockedChampionMode, false);
+      });
+
+      test('starting a new game clears a stale unlock banner flag', () async {
+        await Future.delayed(Duration.zero);
+        provider.setLevel(1);
+        provider.startGame();
+        expect(provider.justUnlockedChampionMode, false);
       });
     });
 

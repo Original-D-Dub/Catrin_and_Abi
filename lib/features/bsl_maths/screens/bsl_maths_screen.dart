@@ -17,6 +17,8 @@ import '../models/maths_question.dart';
 import '../providers/bsl_maths_provider.dart';
 import '../widgets/bsl_keyboard.dart';
 import '../widgets/bsl_number_display.dart';
+import '../widgets/champion_mode_toggle.dart';
+import '../widgets/champion_mode_unlocked_banner.dart';
 
 /// Main screen for the BSL Maths addition game.
 ///
@@ -97,7 +99,9 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
           body: Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+                image: AssetImage(
+                  'assets/backgrounds/math-background-1080x1920.jpg',
+                ),
                 fit: BoxFit.cover,
               ),
             ),
@@ -150,15 +154,27 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                       showPersonalBest: false,
                       imageAsset: 'assets/success/Star-glowing.png',
                       onPlayAgain: () => provider.startGame(),
-                      onNextLevel: provider.currentLevel.number <
+                      onNextLevel:
+                          provider.currentLevel.number <
                               BslMathsLevel.all.length
                           ? () {
                               provider.setLevel(
-                                  provider.currentLevel.number + 1);
+                                provider.currentLevel.number + 1,
+                              );
                               provider.startGame();
                             }
                           : null,
                       onChangeLevel: () => provider.showLevelSelection(),
+                    ),
+                  ),
+                if (!provider.showLevelSelect &&
+                    provider.gameState == BslMathsGameState.timeUp &&
+                    provider.justUnlockedChampionMode)
+                  Positioned.fill(
+                    child: ChampionModeUnlockedBanner(
+                      locale: widget.locale,
+                      onDismiss: () =>
+                          provider.dismissChampionModeUnlockedBanner(),
                     ),
                   ),
               ],
@@ -177,7 +193,18 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
   ) {
     return LevelSelectScreen(
       subtitle: localizer('bsl_maths.subtitle'),
+      aboveSubtitle: provider.isChampionModeUnlocked
+          ? ChampionModeToggle(
+              value: provider.championMode,
+              onChanged: (value) => provider.setChampionMode(value),
+              localizer: localizer,
+            )
+          : null,
       locale: widget.locale,
+      sectionBreaks: {
+        BslMathsLevel.all.indexWhere((l) => l.isSubtraction):
+            localizer('bsl_maths.subtraction_subtitle'),
+      },
       levels: BslMathsLevel.all.map((level) {
         return LevelSelectItem(
           number: level.number,
@@ -198,18 +225,29 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
   }
 
   /// Builds the main game content.
-  Widget _buildGameContent(BuildContext context, BslMathsProvider provider, AppLocalizations localizer) {
+  Widget _buildGameContent(
+    BuildContext context,
+    BslMathsProvider provider,
+    AppLocalizations localizer,
+  ) {
     final scale = MediaQuery.of(context).size.width >= 600 ? 1.4 : 1.0;
     return LayoutBuilder(
       builder: (context, constraints) {
         // Cap how tall the (width-driven, always-square) keyboard is
         // allowed to grow, so it never squeezes the question card below
         // its minimum on short screens.
-        final maxKeyboardHeight = (constraints.maxHeight -
-                _fixedChromeHeight -
-                _minQuestionCardHeight * scale)
-            .clamp(0.0, double.infinity);
-        return _buildGameColumn(context, provider, localizer, scale, maxKeyboardHeight);
+        final maxKeyboardHeight =
+            (constraints.maxHeight -
+                    _fixedChromeHeight -
+                    _minQuestionCardHeight * scale)
+                .clamp(0.0, double.infinity);
+        return _buildGameColumn(
+          context,
+          provider,
+          localizer,
+          scale,
+          maxKeyboardHeight,
+        );
       },
     );
   }
@@ -233,20 +271,21 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                   formattedTime: _formatTime(provider.secondsRemaining),
                 )
               : provider.currentLevel.name.isNotEmpty
-                  ? Center(
-                      child: Text(
-                        localizer(provider.currentLevel.name)
-                            .replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), ''),
-                        style: const TextStyle(
-                          fontFamily: 'Quicksand',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    )
-                  : null,
+              ? Center(
+                  child: Text(
+                    localizer(
+                      provider.currentLevel.name,
+                    ).replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), ''),
+                    style: const TextStyle(
+                      fontFamily: 'Quicksand',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : null,
         ),
         const SizedBox(height: 12),
 
@@ -280,9 +319,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                       const SizedBox(height: AppSizes.spacingXSmall),
 
                       // Question display area (BSL SVG operands + answer slot(s))
-                      Expanded(
-                        child: _buildQuestionDisplay(provider, scale),
-                      ),
+                      Expanded(child: _buildQuestionDisplay(provider, scale)),
 
                       // Feedback area (correct/wrong message)
                       SizedBox(
@@ -313,7 +350,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
             isDisabled: provider.isInputLocked,
             enteredAnswer: provider.enteredAnswer,
             showTeenKeys: provider.useTeenKeys,
-            showNumbers: !provider.isCompetitionLevel && !provider.currentLevel.hideDigits,
+            showNumbers: !provider.isCompetitionLevel && !provider.championMode,
           ),
         ),
 
@@ -328,7 +365,6 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
     final secs = seconds % 60;
     return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
-
 
   /// Builds the question display showing BSL SVG operands and answer slot.
   ///
@@ -354,7 +390,9 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
               size: _questionSvgSize * scale,
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacingSmall),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.spacingSmall,
+              ),
               child: Text(
                 question.operatorSymbol,
                 style: TextStyle(
@@ -369,7 +407,9 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
               size: _questionSvgSize * scale,
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacingSmall),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.spacingSmall,
+              ),
               child: Text(
                 '=',
                 style: TextStyle(
@@ -406,7 +446,9 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
               size: _questionSvgSize * scale,
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacingSmall),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.spacingSmall,
+              ),
               child: Text(
                 question.operatorSymbol,
                 style: TextStyle(
@@ -418,7 +460,9 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
             ),
             _buildSingleAnswerSlot(provider, scale),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacingSmall),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.spacingSmall,
+              ),
               child: Text(
                 '=',
                 style: TextStyle(
@@ -471,8 +515,8 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
     final color = isCorrect
         ? AppColors.success
         : isWrong
-            ? AppColors.accentRed
-            : AppColors.catrinBlue;
+        ? AppColors.accentRed
+        : AppColors.catrinBlue;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -493,12 +537,20 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
   }
 
   /// Builds the feedback text area below the question display.
-  Widget _buildFeedback(BslMathsProvider provider, double scale, AppLocalizations localizer) {
+  Widget _buildFeedback(
+    BslMathsProvider provider,
+    double scale,
+    AppLocalizations localizer,
+  ) {
     if (provider.gameState == BslMathsGameState.correct) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check_circle, color: AppColors.success, size: AppSizes.iconLarge * scale),
+          Icon(
+            Icons.check_circle,
+            color: AppColors.success,
+            size: AppSizes.iconLarge * scale,
+          ),
           const SizedBox(width: AppSizes.spacingSmall),
           Text(
             localizer('general.correct'),
@@ -516,7 +568,11 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.refresh, color: AppColors.accentRed, size: AppSizes.iconLarge * scale),
+          Icon(
+            Icons.refresh,
+            color: AppColors.accentRed,
+            size: AppSizes.iconLarge * scale,
+          ),
           const SizedBox(width: AppSizes.spacingSmall),
           Text(
             localizer('general.try_again'),

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
 
 import '../../../core/constants/game_filters.dart';
+import '../../../shared/services/image_asset_service.dart';
 import '../models/animal_model.dart';
 import '../services/animal_collection_service.dart';
 import '../services/bingo_rewards_service.dart';
@@ -20,8 +20,9 @@ import '../services/iac_bingo_inventory_service.dart';
 /// opens their collection. [preload] is instead kicked off the moment a
 /// bingo game route is entered (see routes.dart), well before the first
 /// round ends, so by the time the celebration or collection screen actually
-/// needs the data it's already in memory and every image is already in
-/// Flutter's image cache.
+/// needs the data it's already in memory and every image is already
+/// disk-cached via [ImageAssetService] (see `CachedAssetImage`, which reads
+/// from that cache).
 class BingoCollectionProvider extends ChangeNotifier {
   BingoCollectionProvider({
     BingoRewardsService? rewardsService,
@@ -59,10 +60,10 @@ class BingoCollectionProvider extends ChangeNotifier {
       playerId != null && _collectedForPlayerId == playerId;
 
   /// Fetches (once per sign system / player) the reward list and the
-  /// player's collected-letters set, and warms Flutter's image cache with
-  /// every reward's artwork so it's ready before it's first displayed.
-  /// Safe to call repeatedly — an in-flight or already-cached load is
-  /// reused rather than re-fetched.
+  /// player's collected-letters set, and starts disk-caching every reward's
+  /// artwork so it's ready before it's first displayed. Safe to call
+  /// repeatedly — an in-flight or already-cached load is reused rather than
+  /// re-fetched.
   Future<void> preload({
     required SignSystem signSystem,
     String? playerId,
@@ -85,9 +86,7 @@ class BingoCollectionProvider extends ChangeNotifier {
       final urls = <String>{
         for (final animal in animals) ...[animal.imageUrl, animal.placeholderUrl],
       };
-      for (final url in urls) {
-        _precache(url);
-      }
+      ImageAssetService.preload(urls);
     });
   }
 
@@ -103,20 +102,6 @@ class BingoCollectionProvider extends ChangeNotifier {
         _collectedLoad = null;
       }
     }();
-  }
-
-  /// Resolving a [NetworkImage] (even without a [BuildContext]) triggers the
-  /// download and decode, populating Flutter's global image cache — any
-  /// later `Image.network(url)` with the same URL then hits that cache
-  /// instead of re-downloading.
-  void _precache(String url) {
-    final stream = NetworkImage(url).resolve(const ImageConfiguration());
-    late final ImageStreamListener listener;
-    listener = ImageStreamListener(
-      (_, _) => stream.removeListener(listener),
-      onError: (_, _) => stream.removeListener(listener),
-    );
-    stream.addListener(listener);
   }
 
   /// Records that [animal] was just added to the player's collection —

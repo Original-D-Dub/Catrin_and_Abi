@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/cached_asset_image.dart';
 import '../models/animal_model.dart';
 
 /// Shared reward card showing a collected animal's picture and name.
@@ -63,14 +64,14 @@ class AnimalCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(19),
                   ),
-                  child: Image.network(
-                    animal.imageUrl,
+                  child: CachedAssetImage(
+                    url: animal.imageUrl,
                     width: cardWidth,
                     height: imageHeight,
                     fit: BoxFit.cover,
                     semanticLabel: animal.name,
-                    errorBuilder: (_, _, _) => Image.network(
-                      animal.placeholderUrl,
+                    errorBuilder: (_, _, _) => CachedAssetImage(
+                      url: animal.placeholderUrl,
                       width: cardWidth,
                       height: imageHeight,
                       fit: BoxFit.cover,

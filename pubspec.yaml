@@ -114,10 +114,19 @@ flutter:
     - assets/games/letter_quest/bungalow/livingroom/
     - assets/images/make10_number_line/
     - assets/games/bsl_sprint/
+    - assets/games/bsl_sprint/Abi/
+    - assets/games/bsl_sprint/Catrin/
+    - assets/games/bsl_sprint/Harley/
+    - assets/games/bsl_sprint/JamJam/
+    - assets/games/bsl_sprint/Osian/
+    - assets/games/bsl_sprint/Ruby/
+    - assets/games/bsl_sprint/Ryan/
     - assets/games/zoo/
     - assets/games/zoo/videos/
     - assets/games/zoo/photos/
-    - lib/features/zoo/characters/
+    - assets/images/characters/
+    - assets/games/till/
+    - assets/games/till/signs/
 
     # BSL number signs (for maths game)
     - assets/bsl_numbers/
@@ -142,6 +151,7 @@ flutter:
 
     # Zoo game audio
     - assets/audio/zoo/
+    - assets/audio/till/
 
     # Letter Bingo reward-animal name audio
     - assets/audio/bingo/animals/
@@ -179,6 +189,11 @@ flutter:
       fonts:
         - asset: assets/fonts/ComicRelief-Regular.ttf
         - asset: assets/fonts/ComicRelief-Bold.ttf
+          weight: 700
+    - family: OpenDyslexic
+      fonts:
+        - asset: assets/fonts/OpenDyslexic-Regular.otf
+        - asset: assets/fonts/OpenDyslexic-Bold.otf
           weight: 700
     - family: LuckiestGuy
       fonts:

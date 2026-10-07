@@ -23,7 +23,16 @@ class SignInBannerButton extends StatefulWidget {
   /// ([MasterButton]'s `fontSizeLarge + 2`) is far too large for this CTA.
   final double fontSize;
 
-  const SignInBannerButton({super.key, this.locale = 'en', this.fontSize = 14});
+  /// Overrides the label and icon drop-shadow offset. Null keeps the shared
+  /// button default.
+  final Offset? textShadowOffset;
+
+  const SignInBannerButton({
+    super.key,
+    this.locale = 'en',
+    this.fontSize = 14,
+    this.textShadowOffset,
+  });
 
   @override
   State<SignInBannerButton> createState() => _SignInBannerButtonState();
@@ -100,6 +109,7 @@ class _SignInBannerButtonState extends State<SignInBannerButton>
         label: localizer('general.sign_in_to_save_scores'),
         icon: Icons.person_add,
         fontSize: widget.fontSize,
+        textShadowOffset: widget.textShadowOffset,
         onPressed: () => Navigator.pushNamed(
           context,
           AppRoutes.profile,

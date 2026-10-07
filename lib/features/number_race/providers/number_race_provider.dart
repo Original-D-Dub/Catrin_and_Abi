@@ -22,8 +22,11 @@ import '../models/number_race_models.dart';
 /// a map screen. Levels are grouped into sections of [levelsPerSection]:
 /// within each section [opponentTickInterval] shortens (7s, 5s, 3s, 3s)
 /// and the last level times the player, recording how long the race took
-/// instead of their number of attempts. The dot grid is 3x2 for levels
-/// 1-[levelsPerSection] and 4x2 for the next section.
+/// instead of their number of attempts. The dot grid is a plain 3x2 grid
+/// for levels 1-[levelsPerSection]; from there on dots are arranged like a
+/// die face in a 3x3 grid, shown as a single grid (dots 1-6) for the next
+/// section and as two grids side by side, domino-style (dots 1-10), for
+/// the last.
 class NumberRaceProvider extends ChangeNotifier {
   NumberRaceProvider({this.locale = 'en'});
 
@@ -37,10 +40,24 @@ class NumberRaceProvider extends ChangeNotifier {
   static const int levelsPerSection = 4;
 
   /// Total number of playable levels across all three sections.
-  /// Section 1 (levels 1-4): 3×2 grid, dots 1-6.
-  /// Section 2 (levels 5-8): 4×2 grid, dots 1-8.
-  /// Section 3 (levels 9-12): 5×2 grid, dots 1-10.
+  /// Section 1 (levels 1-4): plain 3×2 grid, dots 1-6.
+  /// Section 2 (levels 5-8): single 3×3 die-face grid, dots 1-6.
+  /// Section 3 (levels 9-12): two 3×3 die-face grids side by side
+  /// (domino-style), dots 1-10.
   static const int totalLevels = 12;
+
+  /// Row-major dot positions within a 3×3 grid for each die/domino face
+  /// value 0-6 — the standard six-sided-die pip layout (1 in the centre, 2
+  /// on the diagonal, and so on up to 6 as two columns of three).
+  static const Map<int, List<int>> _diePipPositions = {
+    0: [],
+    1: [4],
+    2: [2, 6],
+    3: [2, 4, 6],
+    4: [0, 2, 6, 8],
+    5: [0, 2, 4, 6, 8],
+    6: [0, 2, 3, 5, 6, 8],
+  };
 
   /// Returns true when [lvl] is the last (timed) level of its section.
   static bool isSectionEnd(int lvl) => lvl == 4 || lvl == 8 || lvl == 12;
@@ -74,12 +91,14 @@ class NumberRaceProvider extends ChangeNotifier {
   /// Total number of answers (correct + incorrect) given this game.
   int attempts = 0;
 
-  /// The number of dots shown in the current round (0..[dotGridSize]).
+  /// The number of dots shown in the current round (0..[maxQuestionValue]).
   int currentDotCount = -1;
 
-  /// Which grid cells currently show a dot — resized by [_nextRound] to
-  /// [dotGridSize] for the current level.
-  List<bool> dotCells = List.filled(8, false);
+  /// Which cells of each board currently show a dot — one board normally,
+  /// two side by side (domino-style) for levels 9-12. Resized by
+  /// [_nextRound] to [boardCount] boards of [gridColumns] * [gridRows]
+  /// cells each for the current level.
+  List<List<bool>> dotCells = [List.filled(6, false)];
 
   /// The 3 BSL number options shown to the player this round.
   List<int> answerOptions = const [];
@@ -99,15 +118,19 @@ class NumberRaceProvider extends ChangeNotifier {
     return level - 8; // section 3: levels 9-12 → 1-4
   }
 
-  /// Number of columns in the dot grid for [level].
-  int get gridColumns {
-    if (level <= 4) return 3;
-    if (level <= 8) return 4;
-    return 5;
-  }
+  /// Number of columns in each dot board — always 3.
+  int get gridColumns => 3;
 
-  /// Number of cells in the dot grid for [level] (2 rows of [gridColumns]).
-  int get dotGridSize => gridColumns * 2;
+  /// Number of rows in each dot board: 2 for the plain grid of levels 1-4,
+  /// 3 (a die face) from level 5 onward.
+  int get gridRows => level <= 4 ? 2 : 3;
+
+  /// Number of separate dot boards shown for [level] — a single board,
+  /// except levels 9-12 which show two side by side, domino-style.
+  int get boardCount => level > 8 ? 2 : 1;
+
+  /// Highest number a question can ask for at [level].
+  int get maxQuestionValue => level > 8 ? 10 : 6;
 
   /// Whether the current level times the player and records that time
   /// instead of their number of attempts.
@@ -171,7 +194,7 @@ class NumberRaceProvider extends ChangeNotifier {
     attempts = 0;
     lastResult = null;
     currentDotCount = -1;
-    dotCells = List.filled(dotGridSize, false);
+    dotCells = _emptyBoards();
     answerOptions = const [];
     _finishOrder.clear();
     for (final character in RaceCharacter.values) {
@@ -294,24 +317,54 @@ class NumberRaceProvider extends ChangeNotifier {
     super.dispose();
   }
 
+  /// A fresh, all-empty set of [boardCount] boards for the current level.
+  List<List<bool>> _emptyBoards() =>
+      List.generate(boardCount, (_) => List.filled(gridColumns * gridRows, false));
+
   void _nextRound() {
     int next;
     do {
-      next = _random.nextInt(dotGridSize) + 1;
+      next = _random.nextInt(maxQuestionValue) + 1;
     } while (next == currentDotCount);
     currentDotCount = next;
 
-    // Dots fill the grid column by column (top to bottom within each
-    // column, then moving to the next column) rather than row by row.
-    dotCells = List.filled(dotGridSize, false);
-    const rows = 2;
-    for (int i = 0; i < currentDotCount; i++) {
-      final column = i ~/ rows;
-      final row = i % rows;
-      dotCells[row * gridColumns + column] = true;
+    dotCells = _emptyBoards();
+
+    if (level <= 4) {
+      // Dots fill the grid column by column (top to bottom within each
+      // column, then moving to the next column) rather than row by row.
+      for (int i = 0; i < currentDotCount; i++) {
+        final column = i ~/ gridRows;
+        final row = i % gridRows;
+        dotCells[0][row * gridColumns + column] = true;
+      }
+    } else if (boardCount == 1) {
+      // Single die-face board (levels 5-8).
+      for (final index in _diePipPositions[currentDotCount]!) {
+        dotCells[0][index] = true;
+      }
+    } else {
+      // Two die-face boards side by side, domino-style (levels 9-12).
+      final (left, right) = _splitDominoValue(currentDotCount);
+      for (final index in _diePipPositions[left]!) {
+        dotCells[0][index] = true;
+      }
+      for (final index in _diePipPositions[right]!) {
+        dotCells[1][index] = true;
+      }
     }
 
     _buildOptions();
+  }
+
+  /// Splits a domino total into two random halves, each 0-6, matching how a
+  /// real double-six domino set represents that total (e.g. 6 could be
+  /// shown as 0-6, 1-5, 2-4 or 3-3).
+  (int, int) _splitDominoValue(int total) {
+    final minLeft = max(0, total - 6);
+    final maxLeft = min(6, total);
+    final left = minLeft + _random.nextInt(maxLeft - minLeft + 1);
+    return (left, total - left);
   }
 
   void _buildOptions() {
@@ -319,7 +372,7 @@ class NumberRaceProvider extends ChangeNotifier {
     int attemptsToBuild = 0;
     while (options.length < 3 && attemptsToBuild < 100) {
       attemptsToBuild++;
-      options.add(_random.nextInt(dotGridSize) + 1);
+      options.add(_random.nextInt(maxQuestionValue) + 1);
     }
     answerOptions = options.toList()..shuffle(_random);
   }

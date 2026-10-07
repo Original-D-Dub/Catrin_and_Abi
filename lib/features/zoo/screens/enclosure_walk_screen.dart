@@ -229,11 +229,7 @@ class _EnclosureWalkScreenState extends State<EnclosureWalkScreen> {
                           'level': '${provider.levelNumber + 1}',
                           'locale': provider.locale,
                           'signSystem': provider.signSystem.toPrefsString(),
-                          // EnclosureWalkProvider doesn't carry the chosen
-                          // character (the zooBuilding route never receives
-                          // one either) — the next screen's provider
-                          // defaults to 'abi' the same way.
-                          'character': 'abi',
+                          'character': provider.characterId,
                         },
                       );
                     }

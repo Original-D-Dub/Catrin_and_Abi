@@ -142,8 +142,8 @@ class _AnimalRewardOverlayState extends State<AnimalRewardOverlay>
                       ? 'letter_bingo.new_friend'
                       : 'letter_bingo.friend'),
                   textAlign: TextAlign.center,
-                  style: AppTheme.celebration.copyWith(
-                    fontSize: 32,
+                  style: AppTheme.celebrationAt(32).copyWith(
+                    letterSpacing: 32 * -0.18,
                     color: const Color(0xFFFFC73A),
                   ),
                 ),

@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2108 1908" width="2108" height="1908">
+  <defs>
+    <linearGradient id="deck" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f1ebe3"/><stop offset="1" stop-color="#e3dace"/>
+    </linearGradient>
+    <linearGradient id="lip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ddd4c7"/><stop offset="1" stop-color="#b3a896"/>
+    </linearGradient>
+    <linearGradient id="drawerBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d4349"/><stop offset="1" stop-color="#23272b"/>
+    </linearGradient>
+    <linearGradient id="drawerFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2e3337"/><stop offset="1" stop-color="#25292d"/>
+    </linearGradient>
+    <radialGradient id="lock" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#f2f3f4"/><stop offset="0.6" stop-color="#b9bcbf"/><stop offset="1" stop-color="#7d8185"/>
+    </radialGradient>
+    <linearGradient id="darkBox" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#50565b"/><stop offset="1" stop-color="#2d3135"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d9d9d6"/><stop offset="0.15" stop-color="#fbfbf9"/>
+      <stop offset="0.85" stop-color="#f4f4f2"/><stop offset="1" stop-color="#cfcfcc"/>
+    </linearGradient>
+    <linearGradient id="lcd" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8eab97"/><stop offset="0.25" stop-color="#9dbca7"/><stop offset="1" stop-color="#93b39d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background blob -->
+  <path d="M 656,250 C 293,260 70,600 47,1000 C 35,1400 234,1760 703,1862 C 996,1905 1173,1905 1466,1862 C 1876,1760 2099,1400 2087,1000 C 2075,600 1817,260 1466,250 Z" fill="#1b1f1e"/>
+
+  <!-- drawer housing -->
+  <rect x="275" y="1440" width="1520" height="350" rx="34" fill="url(#drawerBody)"/>
+  <rect x="300" y="1478" width="1470" height="24" fill="#15181a"/>
+  <rect x="355" y="1515" width="1360" height="220" rx="18" fill="url(#drawerFront)" stroke="#16191b" stroke-width="6"/>
+  <circle cx="1035" cy="1644" r="50" fill="url(#lock)" stroke="#55595d" stroke-width="4"/>
+  <circle cx="1035" cy="1634" r="11" fill="#2a2d30"/>
+  <rect x="1030" y="1638" width="10" height="28" rx="4" fill="#2a2d30"/>
+
+  <!-- front lip + top deck -->
+  <path d="M 300,1390 L 1770,1390 L 1770,1455 Q 1770,1484 1740,1484 L 330,1484 Q 300,1484 300,1455 Z" fill="url(#lip)"/>
+  <path d="M 418,195 L 1684,195 Q 1706,195 1708,218 L 1770,1400 Q 1772,1432 1740,1432 L 330,1432 Q 298,1432 300,1400 L 394,218 Q 396,195 418,195 Z" fill="url(#deck)" stroke="#b9ae9f" stroke-width="4"/>
+
+  <!-- keypad plate -->
+  <path d="M 380,642 L 1658,642 Q 1682,642 1683,666 L 1698,1392 Q 1699,1414 1676,1414 L 360,1414 Q 337,1414 338,1392 L 356,666 Q 357,642 380,642 Z" fill="#ebe4da" stroke="#cdc3b5" stroke-width="4"/>
+
+  <!-- printer -->
+  <rect x="428" y="190" width="483" height="445" rx="30" fill="url(#darkBox)"/>
+  <rect x="485" y="398" width="370" height="70" rx="10" fill="#141719"/>
+  <path d="M 512,160 L 512,133 L 528,149 L 544,133 L 560,149 L 576,133 L 592,149 L 608,133 L 624,149 L 640,133 L 656,149 L 672,133 L 688,149 L 704,133 L 720,149 L 736,133 L 752,149 L 768,133 L 784,149 L 800,133 L 804,160 L 804,470 L 512,470 Z" fill="url(#paper)"/>
+  <rect x="470" y="452" width="400" height="30" rx="8" fill="#3c4146"/>
+  <rect x="440" y="470" width="459" height="150" rx="20" fill="#34393d"/>
+  <rect x="553" y="518" width="199" height="28" rx="14" fill="#1c1f22" stroke="#5c6267" stroke-width="3"/>
+
+  <!-- display -->
+  <rect x="1096" y="515" width="415" height="105" rx="12" fill="#26292d"/>
+  <rect x="958" y="154" width="722" height="373" rx="42" fill="url(#darkBox)"/>
+  <rect x="993" y="222" width="652" height="236" rx="18" fill="#1d2124"/>
+  <rect x="1039" y="251" width="559" height="174" rx="8" fill="url(#lcd)"/>
+  <rect x="1039" y="251" width="559" height="10" fill="#6f8878" fill-opacity="0.6"/>
+
+  <!-- number key wells, 3 rows of 1-12 (key tops are drawn by the app so they can be pressed) -->
+  <rect x="443" y="663" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="450" y="682" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="735" y="663" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="742" y="682" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="1027" y="663" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="1034" y="682" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="1319" y="663" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="1326" y="682" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="443" y="908" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="450" y="927" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="735" y="908" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="742" y="927" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="1027" y="908" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="1034" y="927" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="1319" y="908" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="1326" y="927" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="443" y="1153" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="450" y="1172" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="735" y="1153" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="742" y="1172" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="1027" y="1153" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="1034" y="1172" width="270" height="216" rx="22" fill="#16191b"/>
+  <rect x="1319" y="1153" width="284" height="242" rx="26" fill="#bdb2a4"/>
+  <rect x="1326" y="1172" width="270" height="216" rx="22" fill="#16191b"/>
+
+</svg>

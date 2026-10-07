@@ -496,30 +496,8 @@ class VowelHandProvider extends ChangeNotifier {
     if (matches.isEmpty) return;
     final target = matches.first;
 
-    // Calculate the target position in hand coordinates
-    final targetPosition = Offset(
-      target.normalizedPosition.dx * handSize.width,
-      target.normalizedPosition.dy * handSize.height,
-    );
-
-    // Use fixed hit radius (no scaling)
-    final hitRadius = target.hitRadius;
-
-    // Check if touch is within the target
-    final distance = (position - targetPosition).distance;
-
-    // Debug logging
-    // debugPrint('=== HIT CHECK (VOWEL MODE) ===');
-    // debugPrint('Current vowel: $_currentVowel');
-    // debugPrint('Touch position: $position');
-    // debugPrint('Hand size: $handSize');
-    // debugPrint('Target position (normalized): ${target.normalizedPosition}');
-    // debugPrint('Target position: $targetPosition');
-    // debugPrint('Hit radius: $hitRadius');
-    // debugPrint('Distance: $distance');
-    // debugPrint('Hit: ${distance <= hitRadius}');
-
-    if (distance <= hitRadius) {
+    // Check if touch is within the fingertip outline
+    if (target.containsPoint(position, handSize)) {
       _scoreCorrectVowel();
     }
   }
@@ -592,23 +570,7 @@ class VowelHandProvider extends ChangeNotifier {
     if (_hasScored || _currentPuzzle == null) return;
 
     // Check all fingertips to find which one was tapped
-    String? tappedVowel;
-    double closestDistance = double.infinity;
-
-    for (final target in VowelHandConstants.targets) {
-      final targetPosition = Offset(
-        target.normalizedPosition.dx * handSize.width,
-        target.normalizedPosition.dy * handSize.height,
-      );
-
-      final distance = (position - targetPosition).distance;
-
-      // Check if within hit radius and closer than previous matches
-      if (distance <= target.hitRadius && distance < closestDistance) {
-        tappedVowel = target.vowel;
-        closestDistance = distance;
-      }
-    }
+    final tappedVowel = VowelHandConstants.targetAt(position, handSize)?.vowel;
 
     // Debug logging
     debugPrint('=== HIT CHECK (WORD MODE) ===');
@@ -702,21 +664,7 @@ class VowelHandProvider extends ChangeNotifier {
   }) {
     if (_hasScored || _currentMultiPuzzle == null || _isInputLocked) return;
 
-    String? tappedVowel;
-    double closestDistance = double.infinity;
-
-    for (final target in VowelHandConstants.targets) {
-      final targetPosition = Offset(
-        target.normalizedPosition.dx * handSize.width,
-        target.normalizedPosition.dy * handSize.height,
-      );
-      final distance = (position - targetPosition).distance;
-      if (distance <= target.hitRadius && distance < closestDistance) {
-        tappedVowel = target.vowel;
-        closestDistance = distance;
-      }
-    }
-
+    final tappedVowel = VowelHandConstants.targetAt(position, handSize)?.vowel;
     if (tappedVowel == null) return;
     _hasScored = true;
 

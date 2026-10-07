@@ -76,12 +76,14 @@ class ZooMapData {
   static Future<Path> loadWalkable() async {
     final svg = await rootBundle.loadString(assetPath);
 
-    final walkableMatch =
-        RegExp(r'<path id="walkable" d="([^"]+)"').firstMatch(svg);
+    final walkableMatch = RegExp(
+      r'<path id="walkable" d="([^"]+)"',
+    ).firstMatch(svg);
     if (walkableMatch == null) {
       throw StateError(
-          'zoo_map.svg has no <path id="walkable"> — re-add the id after '
-          'exporting from the design tool.');
+        'zoo_map.svg has no <path id="walkable"> — re-add the id after '
+        'exporting from the design tool.',
+      );
     }
     return parseSvgPathData(walkableMatch.group(1)!)
       ..fillType = PathFillType.evenOdd;

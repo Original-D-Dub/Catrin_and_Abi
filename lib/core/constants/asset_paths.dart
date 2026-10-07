@@ -224,14 +224,18 @@ class AssetPaths {
   /// Base directory for vowel hand game SVGs
   static const String _vowelHand = '$_games/vowel_hand';
 
-  /// Open left hand SVG - displays fingertip vowel positions (a,e,i,o,u)
-  static const String vowelHandOpen = '$_vowelHand/open_hand_left.svg';
+  /// Open left hand PNG - displays fingertip vowel positions (a,e,i,o,u)
+  static const String vowelHandOpen = '$_vowelHand/open_hand_left.png';
 
-  /// Pointy finger SVG - cursor that follows player touch position
-  static const String vowelHandPointer = '$_vowelHand/pointy_finger_right.svg';
+  /// Pointy finger PNG - cursor that follows player touch position
+  static const String vowelHandPointer = '$_vowelHand/pointy_finger_right.png';
 
   /// "E" hand pose - shown on the intro screen before starting the game
   static const String vowelHandIntroImage = '$_vowelHand/hand_e.png';
+
+  /// IAC 'w' / 'y' sign images for the vowel badges (no fingertip target)
+  static String vowelHandBadge(String vowel) =>
+      vowel == 'y' ? '$_vowelHand/y_square.png' : '$_vowelHand/$vowel.png';
 
   // -------------------------
   // Letter Quest Audio (RPG game sound effects)

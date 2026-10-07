@@ -132,6 +132,7 @@ class _ZooScreenState extends State<ZooScreen> {
                       'locale': locale,
                       'signSystem': provider.signSystem.toPrefsString(),
                       'level': '${provider.levelNumber}',
+                      'character': provider.characterId,
                     },
                   ),
                 ),

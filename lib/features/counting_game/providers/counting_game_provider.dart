@@ -497,7 +497,7 @@ class CountingGameProvider extends ChangeNotifier {
 
   /// Maximum total circle count per level.
   static const List<int> _maxTotals = [
-    5, 7, 10, 10, 5, 7, 10, 10, 5, 7, 10, 10, 5, 10, 20, 10, 20,
+    5, 7, 10, 10, 5, 7, 10, 10, 5, 7, 10, 10, 5, 10, 19, 10, 19,
   ];
 
   int get _maxTotal => _maxTotals[_levelIndex];
@@ -712,7 +712,9 @@ class CountingGameProvider extends ChangeNotifier {
 
     if (colours.isTeenGrid) {
       while (true) {
-        final countB = _random.nextInt(10) + 1;
+        // countB is 1-9 (not 1-10) so the total (10 + countB) never reaches
+        // 20 — the highest total across all levels is capped at 19.
+        final countB = _random.nextInt(9) + 1;
 
         if (previous != null && countB == previous.countB) {
           continue;

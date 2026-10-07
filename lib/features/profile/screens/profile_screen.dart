@@ -694,9 +694,7 @@ class _ProfileHeader extends StatelessWidget {
         const SizedBox(height: AppSizes.spacingMedium),
         Text(
           screenName.isEmpty ? placeholder : screenName,
-          style: const TextStyle(
-            fontFamily: 'LuckiestGuy',
-            fontSize: 28,
+          style: AppTheme.celebrationAt(28).copyWith(
             color: Colors.white,
           ),
         ),

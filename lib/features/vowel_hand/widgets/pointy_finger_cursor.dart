@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/constants/asset_paths.dart';
+import '../models/vowel_target.dart';
 
-/// Displays the pointy finger SVG as a cursor following the player's touch.
+/// Displays the pointy finger image as a cursor following the player's touch.
 ///
 /// The cursor is positioned so that the fingertip of the pointing finger
 /// aligns with the touch position. The cursor is scaled proportionally
 /// to match the open hand display size.
 ///
-/// SVG dimensions:
-/// - pointy-finger-right.svg viewBox: 384.9 x 853.81
-/// - open hand-left.svg viewBox: 695.94 x 726.2
+/// Image dimensions:
+/// - pointy_finger_right.png: 594 x 1223
+/// - open_hand_left.png: 823 x 1120
 ///
-/// The pointer is scaled to be approximately 1/4 the width of the hand,
-/// matching the proportional size of a finger on the hand.
+/// The pointer is drawn at the same pixel scale as the open hand so the
+/// two green cuffs appear the same size on screen.
 class PointyFingerCursor extends StatelessWidget {
   /// The position where the fingertip should be placed
   final Offset position;
@@ -36,18 +36,20 @@ class PointyFingerCursor extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!isVisible) return const SizedBox.shrink();
 
-    // SVG viewBox dimensions for pointy finger
-    const pointerSvgWidth = 384.9;
-    const pointerSvgHeight = 853.81;
-    const pointerAspectRatio = pointerSvgWidth / pointerSvgHeight;
+    // PNG pixel dimensions for pointy finger
+    const pointerImageWidth = 594.0;
+    const pointerImageHeight = 1223.0;
+    const pointerAspectRatio = pointerImageWidth / pointerImageHeight;
 
-    // Calculate cursor width as ~25% of the hand width (proportional to a finger)
-    final cursorWidth = handSize.width * 0.5;
+    // Draw the pointer at the same pixel scale as the open hand so both
+    // cuffs (~340px wide in each PNG) render at the same size.
+    final cursorWidth =
+        handSize.width * pointerImageWidth / VowelHandConstants.imageWidth;
     final cursorHeight = cursorWidth / pointerAspectRatio;
 
-    // The fingertip is at the top of the SVG, offset to align tip with touch
-    // Based on SVG path data, fingertip is roughly at 35% from left, 3% from top
-    const fingertipOffsetX = 0.35;
+    // The fingertip is at the top of the PNG, offset to align tip with touch
+    // Measured from the PNG alpha: fingertip pad is ~62% from left, 3% from top
+    const fingertipOffsetX = 0.62;
     const fingertipOffsetY = 0.03;
 
     final offsetX = position.dx - (cursorWidth * fingertipOffsetX);
@@ -60,7 +62,7 @@ class PointyFingerCursor extends StatelessWidget {
         child: SizedBox(
           width: cursorWidth,
           height: cursorHeight,
-          child: SvgPicture.asset(
+          child: Image.asset(
             AssetPaths.vowelHandPointer,
             fit: BoxFit.contain,
           ),

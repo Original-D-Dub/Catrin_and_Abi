@@ -36,6 +36,10 @@ class EnclosureWalkProvider extends ChangeNotifier with ElapsedTimerMixin {
   /// This level's number, shown in the header bar.
   final int levelNumber;
 
+  /// The character chosen on the pick-a-player screen, carried on to the
+  /// next level so the zoo map keeps drawing it.
+  final String characterId;
+
   /// How many video questions make up one playthrough.
   final int questionCount;
 
@@ -52,6 +56,7 @@ class EnclosureWalkProvider extends ChangeNotifier with ElapsedTimerMixin {
     this.locale = 'en',
     this.signSystem = SignSystem.bsl,
     this.levelNumber = 1,
+    this.characterId = 'abi',
     int questionCount = 3,
     Random? random,
   })  : questionCount = min(questionCount, config.enclosures.length),

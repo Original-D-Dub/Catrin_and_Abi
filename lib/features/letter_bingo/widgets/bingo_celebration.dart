@@ -18,6 +18,15 @@ import '../providers/bingo_collection_provider.dart';
 import '../services/celebration_audio.dart';
 import 'animal_card.dart';
 
+/// Background of the BINGO celebration overlay. Shared with the animal
+/// collection screen's pop-up so both overlays match.
+final RadialGradient bingoOverlayGradient = RadialGradient(
+  colors: [
+    const Color(0xFF94E0FF).withValues(alpha: 0.88),
+    const Color(0xFF00A8F3).withValues(alpha: 0.88),
+  ],
+);
+
 /// Combined BINGO celebration screen.
 ///
 /// Layout (top → bottom):
@@ -393,14 +402,7 @@ class _BingoCelebrationState extends State<BingoCelebration>
       onTap: _skipToControls,
       behavior: HitTestBehavior.translucent,
       child: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            colors: [
-              const Color(0xFF94E0FF).withValues(alpha: 0.88),
-              const Color(0xFF00A8F3).withValues(alpha: 0.88),
-            ],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: bingoOverlayGradient),
         child: SafeArea(
           child: Stack(
             children: [
@@ -451,8 +453,11 @@ class _BingoCelebrationState extends State<BingoCelebration>
                                       Text(
                                         _congratulationsText(localizer),
                                         textAlign: TextAlign.center,
-                                        style: AppTheme.celebration.copyWith(
-                                          fontSize: AppSizes.fontSizeHeading,
+                                        style: AppTheme.celebrationAt(AppSizes.fontSizeHeading).copyWith(
+                                          // Tighter than the app-wide
+                                          // celebration spacing.
+                                          letterSpacing:
+                                              AppSizes.fontSizeHeading * -0.18,
                                           foreground: Paint()
                                             ..style = PaintingStyle.stroke
                                             ..strokeWidth = 2
@@ -468,8 +473,11 @@ class _BingoCelebrationState extends State<BingoCelebration>
                                       Text(
                                         _congratulationsText(localizer),
                                         textAlign: TextAlign.center,
-                                        style: AppTheme.celebration.copyWith(
-                                          fontSize: AppSizes.fontSizeHeading,
+                                        style: AppTheme.celebrationAt(AppSizes.fontSizeHeading).copyWith(
+                                          // Tighter than the app-wide
+                                          // celebration spacing.
+                                          letterSpacing:
+                                              AppSizes.fontSizeHeading * -0.18,
                                           color: AppColors.celebrationGold,
                                         ),
                                       ),
@@ -698,21 +706,53 @@ class _BingoText extends StatelessWidget {
   static const _letterSize = 80.0;
   static const _letterStagger = 0.12;
   static const _letterPopWindow = 0.45;
-  static const _letterShadows = [
-    Shadow(color: Colors.white, offset: Offset(-2, -2), blurRadius: 0),
-    Shadow(color: Colors.white, offset: Offset(2, -2), blurRadius: 0),
-    Shadow(color: Colors.white, offset: Offset(-2, 2), blurRadius: 0),
-    Shadow(color: Colors.white, offset: Offset(2, 2), blurRadius: 0),
-    Shadow(color: Colors.white, offset: Offset(4, 0), blurRadius: 0),
-    Shadow(color: Colors.white, offset: Offset(-4, 0), blurRadius: 0),
-    Shadow(color: Colors.white, offset: Offset(0, 4), blurRadius: 0),
-    Shadow(color: Colors.white, offset: Offset(0, -4), blurRadius: 0),
-  ];
+
+  /// Width of the white outline outside each letter's edge. Flutter centres
+  /// a stroke on the glyph outline, so it's drawn at twice this width behind
+  /// the fill, which covers the inner half.
+  static const _outerStroke = 12.0;
+
+  /// Letter spacing as a fraction of [_letterSize]. Each letter is its own
+  /// [Text], and letter spacing shortens a glyph's advance, so this pulls
+  /// neighbouring letters closer exactly as it would within one word.
+  static const _letterSpacing = _letterSize * -0.18;
 
   @override
   Widget build(BuildContext context) {
+    // Strokes and fills are separate rows, stacked strokes-first, so one
+    // letter's thick white outline never paints over its neighbour's fill.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Padding(
+        // Room for the outline beyond the text's own layout box.
+        padding: const EdgeInsets.all(_outerStroke),
+        child: Stack(
+          children: [
+            _buildRow((i) => AppTheme.celebration.copyWith(
+                  fontSize: _letterSize,
+                  letterSpacing: _letterSpacing,
+                  foreground: Paint()
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = _outerStroke * 2
+                    ..strokeJoin = StrokeJoin.round
+                    ..color = Colors.white,
+                )),
+            _buildRow((i) => AppTheme.celebration.copyWith(
+                  fontSize: _letterSize,
+                  letterSpacing: _letterSpacing,
+                  color: _colors[i],
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// One row of the five letters, each popping in on its own staggered
+  /// interval of [intro], styled by [styleFor].
+  Widget _buildRow(TextStyle Function(int index) styleFor) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: List.generate(_letters.length, (i) {
         final start = i * _letterStagger;
         return ScaleTransition(
@@ -726,16 +766,7 @@ class _BingoText extends StatelessWidget {
               ),
             ),
           ),
-          child: Text(
-            _letters[i],
-            style: TextStyle(
-              fontFamily: 'ComicRelief',
-              fontSize: _letterSize,
-              fontWeight: FontWeight.w700,
-              color: _colors[i],
-              shadows: _letterShadows,
-            ),
-          ),
+          child: Text(_letters[i], style: styleFor(i)),
         );
       }),
     );

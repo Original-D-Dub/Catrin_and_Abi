@@ -33,11 +33,26 @@ class AppTheme {
   );
 
   /// Base style for celebratory/success messages — confetti overlays, BINGO
-  /// congratulations, reward reveals.
+  /// congratulations, reward reveals: OpenDyslexic Bold.
   ///
-  /// Carries only [fontFamily]; call sites layer their own
-  /// [TextStyle.copyWith] for size, weight, and color.
-  static const TextStyle celebration = TextStyle(fontFamily: 'LuckiestGuy');
+  /// Prefer [celebrationAt], which also sets the matching tightened letter
+  /// spacing for a given size; call sites layer their own
+  /// [TextStyle.copyWith] for colour, stroke and shadows.
+  static const TextStyle celebration = TextStyle(
+    fontFamily: 'OpenDyslexic',
+    fontWeight: FontWeight.w700,
+  );
+
+  /// Letter spacing for [celebration] text as a fraction of its font size —
+  /// OpenDyslexic is wide, so headings are tightened to keep them compact.
+  static const double celebrationLetterSpacingFactor = -0.15;
+
+  /// [celebration] at [fontSize], with letter spacing of
+  /// `fontSize * celebrationLetterSpacingFactor`.
+  static TextStyle celebrationAt(double fontSize) => celebration.copyWith(
+        fontSize: fontSize,
+        letterSpacing: fontSize * celebrationLetterSpacingFactor,
+      );
 
   /// Width, in logical pixels, above which the default (unstyled) body text
   /// in [lightTheme] grows from [narrowDeviceFontSize] to
@@ -71,6 +86,9 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+
+      // Default font for all text that doesn't set its own family.
+      fontFamily: 'Quicksand',
 
       // Color scheme
       colorScheme: ColorScheme.fromSeed(

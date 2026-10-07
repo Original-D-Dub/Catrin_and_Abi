@@ -52,6 +52,10 @@ abstract class MasterButton extends StatelessWidget {
   /// [AppSizes.paddingLarge] horizontal, [AppSizes.paddingMedium] vertical.
   final EdgeInsetsGeometry? padding;
 
+  /// Overrides the label and icon drop-shadow offset. Defaults to
+  /// `Offset(1, 3)`.
+  final Offset? textShadowOffset;
+
   const MasterButton({
     super.key,
     required this.label,
@@ -65,6 +69,7 @@ abstract class MasterButton extends StatelessWidget {
     this.fontSize,
     this.iconOnly = false,
     this.padding,
+    this.textShadowOffset,
   });
 
   /// Fill colour used when [backgroundColor] isn't supplied.
@@ -92,6 +97,7 @@ abstract class MasterButton extends StatelessWidget {
       fontSize: fontSize,
       iconOnly: iconOnly,
       padding: padding,
+      textShadowOffset: textShadowOffset,
     );
   }
 }
@@ -127,6 +133,7 @@ class PrimaryButton extends MasterButton {
     super.fontSize,
     super.iconOnly,
     super.padding,
+    super.textShadowOffset,
   });
 
   @override
@@ -174,6 +181,7 @@ class SecondaryButton extends MasterButton {
     super.fontSize,
     super.iconOnly,
     super.padding,
+    super.textShadowOffset,
   });
 
   @override
@@ -221,6 +229,7 @@ class TertiaryButton extends MasterButton {
     super.fontSize,
     super.iconOnly,
     super.padding,
+    super.textShadowOffset,
   });
 
   @override
@@ -268,6 +277,7 @@ class WarningButton extends MasterButton {
     super.fontSize,
     super.iconOnly,
     super.padding,
+    super.textShadowOffset,
   });
 
   @override
@@ -305,6 +315,7 @@ class _GradientStrokeButton extends StatelessWidget {
   final double? fontSize;
   final bool iconOnly;
   final EdgeInsetsGeometry? padding;
+  final Offset? textShadowOffset;
 
   const _GradientStrokeButton({
     required this.label,
@@ -320,6 +331,7 @@ class _GradientStrokeButton extends StatelessWidget {
     this.fontSize,
     this.iconOnly = false,
     this.padding,
+    this.textShadowOffset,
   });
 
   /// Renders [label] as a solid fill over a white-stroked outline, with a
@@ -343,7 +355,10 @@ class _GradientStrokeButton extends StatelessWidget {
               ..strokeWidth = 1
               ..color = Colors.white,
             shadows: [
-              Shadow(color: textStrokeColor, offset: _textShadowOffset),
+              Shadow(
+                color: textStrokeColor,
+                offset: textShadowOffset ?? _textShadowOffset,
+              ),
             ],
           ),
         ),
@@ -381,7 +396,12 @@ class _GradientStrokeButton extends StatelessWidget {
             ? Icon(
                 icon,
                 size: AppSizes.iconMedium,
-                shadows: [Shadow(color: textStrokeColor, offset: _textShadowOffset)],
+                shadows: [
+                  Shadow(
+                    color: textStrokeColor,
+                    offset: textShadowOffset ?? _textShadowOffset,
+                  ),
+                ],
               )
             : Column(
                 mainAxisSize: MainAxisSize.min,
@@ -396,7 +416,10 @@ class _GradientStrokeButton extends StatelessWidget {
                           icon,
                           size: AppSizes.iconMedium,
                           shadows: [
-                            Shadow(color: textStrokeColor, offset: _textShadowOffset),
+                            Shadow(
+                              color: textStrokeColor,
+                              offset: textShadowOffset ?? _textShadowOffset,
+                            ),
                           ],
                         ),
                         const SizedBox(width: AppSizes.spacingSmall),

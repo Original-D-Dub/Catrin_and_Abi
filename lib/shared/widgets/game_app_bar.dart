@@ -9,7 +9,8 @@ import 'back_arrow_icon.dart';
 /// Transparent AppBar used on game screens.
 ///
 /// Renders a transparent, zero-elevation AppBar with a white back arrow and
-/// a centred ComicRelief title — the standard style across all game screens.
+/// a centred [AppTheme.title] (Quicksand) title — the standard style across
+/// all game screens.
 class GameAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback onBack;

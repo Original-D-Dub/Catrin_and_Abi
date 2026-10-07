@@ -46,7 +46,8 @@ enum SuccessScoreStyle {
 /// Shared full-screen success overlay used across all games.
 ///
 /// Layout (top→bottom, full screen, dark scrim):
-/// - "Well Done!" heading — bold white, ComicRelief, top of card
+/// - "Well Done!" heading — [AppTheme.celebration] (OpenDyslexic), gold with
+///   an orange outline, top of card
 /// - Score sub-line — gold (#FFC73A)
 /// - Personal best badge (optional, shown when [showPersonalBest] && result is PB)
 /// - Sign-in banner (shown automatically for anonymous users)
@@ -106,6 +107,11 @@ class GameSuccessOverlay extends StatefulWidget {
   /// the buttons stay pinned to the bottom.
   final String? backgroundImage;
 
+  /// Overrides the "Well Done!"/"Play Again" heading with a specific string
+  /// (e.g. Number Race's "Try Again!" when the player's racer came third),
+  /// bypassing the default score-based choice entirely.
+  final String? headingOverride;
+
   // ── extra content (e.g. word list for Letter Quest) ──────────────────────
   final Widget? extraContent;
 
@@ -118,6 +124,12 @@ class GameSuccessOverlay extends StatefulWidget {
   /// Game identifier used to look up a custom success sound in [AudioService].
   /// When null, "Well Done!" is spoken via TTS.
   final String? gameId;
+
+  /// Overrides the spoken opening message (see [_successAudioName]) with a
+  /// specific bare `general_`-prefixed clip name, bypassing the default
+  /// score-based choice entirely — e.g. Number Race passes `'try_again'`
+  /// when the player's racer came third, matching [headingOverride].
+  final String? successAudioNameOverride;
 
   // ── localization ─────────────────────────────────────────────────────────
   /// UI locale ('en' or 'cy') used for all displayed text.
@@ -140,9 +152,11 @@ class GameSuccessOverlay extends StatefulWidget {
     this.personalBestSuffix = '',
     this.imageAsset,
     this.backgroundImage,
+    this.headingOverride,
     this.extraContent,
     this.centerExtraContent = false,
     this.gameId,
+    this.successAudioNameOverride,
     this.locale = 'en',
   });
 
@@ -153,9 +167,7 @@ class GameSuccessOverlay extends StatefulWidget {
 class _GameSuccessOverlayState extends State<GameSuccessOverlay>
     with TickerProviderStateMixin {
   static const Color _gold = Color(0xFFFFC73A);
-  static const Color _goldLight = Color(0xFFFFE08A);
   static const Color _orange = Color(0xFFFF6F00);
-  static const Color _pbTextColor = Color(0xE6000000); // black @ 0.9 opacity
   static const Color _pink = Color(0xFFEE009B);
   static const Color _darkBlue = Color(0xFF002D97);
 
@@ -362,18 +374,25 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay>
     super.dispose();
   }
 
-  String _headingText(AppLocalizations localizer) =>
-      (widget.score != null && widget.score! < 3)
-      ? localizer('general.play_again')
-      : localizer('general.welldone');
+  static const double _headingFontSize = 48;
+
+  String _headingText(AppLocalizations localizer) {
+    if (widget.headingOverride != null) return widget.headingOverride!;
+    return (widget.score != null && widget.score! < 3)
+        ? localizer('general.play_again')
+        : localizer('general.welldone');
+  }
 
   /// Bare `general_`-prefixed clip name (see [AudioService.playSuccess]) for
-  /// the spoken message that opens the overlay's audio, picked in the same
-  /// priority a personal best takes over a plain win: a new personal best
-  /// speaks `'personal_best'`; otherwise a good score (the same condition
+  /// the spoken message that opens the overlay's audio. [successAudioNameOverride]
+  /// takes priority when set; otherwise it's picked in the same priority a
+  /// personal best takes over a plain win: a new personal best speaks
+  /// `'personal_best'`; otherwise a good score (the same condition
   /// [_headingText] uses for "Well Done!") speaks `'congratulations'`; a low
   /// score (which shows "Play Again" instead) speaks `'well_done'`.
   String _successAudioName() {
+    if (widget.successAudioNameOverride != null)
+      return widget.successAudioNameOverride!;
     if (_celebratePersonalBest) return 'personal_best';
     if (widget.score != null && widget.score! < 3) return 'well_done';
     return 'congratulations';
@@ -419,78 +438,53 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay>
   }
 
   Widget _personalBestBadge(AppLocalizations localizer) {
-    final pill = Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: _goldLight,
-        borderRadius: BorderRadius.circular(AppSizes.borderRadiusXLarge),
-        border: Border.all(color: _orange, width: 3),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.paddingLarge,
-          vertical: AppSizes.spacingMedium + 4,
-        ),
-        decoration: BoxDecoration(
-          color: _gold,
-          borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-          border: Border.all(color: _orange, width: 2),
-        ),
-        child: Text(
-          localizer('general.personal_best'),
-          textAlign: TextAlign.center,
-          style: AppTheme.celebration.copyWith(
-            fontSize: AppSizes.fontSizeLarge,
-            fontWeight: FontWeight.bold,
-            color: _pbTextColor,
-          ),
-        ),
-      ),
-    );
+    final text = localizer('general.personal_best');
 
-    // All layers share [_pbIconSize] and the same top offset, so they sit
-    // centred on exactly the same point, straddling the pill's top edge.
-    const top = -_pbIconSize / 2;
-
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Bottom layer: orange-outlined trophy behind the whole pill, with
-        // a thick 12px outer border so it peeks out around the pill's edges.
-        Positioned(
-          top: top,
-          child: _strokedIcon(
-            Icons.emoji_events,
-            size: _pbIconSize,
-            color: _orange,
-            strokeWidth: 12,
-          ),
+        // Trophy icon: thick orange stroke behind a solid gold fill, the
+        // same stroke-behind-fill layering as the text below.
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            _strokedIcon(
+              Icons.emoji_events,
+              size: _pbIconSize,
+              color: _orange,
+              strokeWidth: 8,
+            ),
+            const Icon(Icons.emoji_events, color: _gold, size: _pbIconSize),
+          ],
         ),
-        pill,
-        // Middle layer: gold trophy with its own 8px orange outline, sitting
-        // in front of the pill.
-        Positioned(
-          top: top,
-          child: _strokedIcon(
-            Icons.emoji_events,
-            size: _pbIconSize,
-            color: _orange,
-            strokeWidth: 8,
-          ),
-        ),
-        const Positioned(
-          top: top,
-          child: Icon(Icons.emoji_events, color: _gold, size: _pbIconSize),
-        ),
-        // Top layer: unchanged.
-        const Positioned(
-          top: top,
-          child: Icon(
-            Icons.emoji_events,
-            color: _pbTextColor,
-            size: _pbIconSize,
-          ),
+        const SizedBox(height: AppSizes.spacingSmall),
+        // "Personal Best!" text, styled the same way as the "Well Done!"
+        // heading: a thick coloured stroke + solid drop shadow behind a
+        // solid fill.
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: AppTheme.celebrationAt(AppSizes.fontSizeLarge * 1.5).copyWith(
+                fontWeight: FontWeight.bold,
+                foreground: Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = 6
+                  ..color = _orange,
+                shadows: const [Shadow(color: _darkBlue, offset: Offset(5, 7))],
+              ),
+            ),
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: AppTheme.celebrationAt(AppSizes.fontSizeLarge * 1.3).copyWith(
+                fontWeight: FontWeight.bold,
+                color: _gold,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -581,8 +575,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay>
                             Text(
                               headingText,
                               textAlign: TextAlign.center,
-                              style: AppTheme.celebration.copyWith(
-                                fontSize: 48,
+                              style: AppTheme.celebrationAt(_headingFontSize).copyWith(
                                 fontWeight: FontWeight.bold,
                                 foreground: Paint()
                                   ..style = PaintingStyle.stroke
@@ -599,8 +592,7 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay>
                             Text(
                               headingText,
                               textAlign: TextAlign.center,
-                              style: AppTheme.celebration.copyWith(
-                                fontSize: 48,
+                              style: AppTheme.celebrationAt(_headingFontSize).copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
@@ -827,7 +819,10 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay>
                           // Sign-in banner — 14 px label; pulses itself.
                           if (context.watch<AuthProvider>().isAnonymous &&
                               widget.backgroundImage == null)
-                            SignInBannerButton(locale: widget.locale),
+                            SignInBannerButton(
+                              locale: widget.locale,
+                              textShadowOffset: Offset(1, 2),
+                            ),
                           if (context.watch<AuthProvider>().isAnonymous)
                             const SizedBox(height: AppSizes.spacingMedium),
 
@@ -1062,7 +1057,10 @@ class _BingoSuccessOverlayState extends State<BingoSuccessOverlay>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (context.watch<AuthProvider>().isAnonymous) ...[
-                            SignInBannerButton(locale: widget.locale),
+                            SignInBannerButton(
+                              locale: widget.locale,
+                              textShadowOffset: Offset(1, 2),
+                            ),
                             const SizedBox(height: AppSizes.spacingMedium),
                           ],
 

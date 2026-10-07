@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/settings_provider.dart';
 import '../widgets/game_tile.dart';
 
@@ -96,6 +97,18 @@ List<Widget> buildGameTiles(
         title: localizer(g.titleKey),
         imagePath: g.imagePath,
         icon: g.icon,
-        onTap: () => Navigator.pushNamed(context, g.route, arguments: g.arguments),
+        onTap: () {
+          // titleKey is always '<gameId>.title' — strip the suffix to get
+          // the id used by the recorded '<gameId>_title' speech clip.
+          final gameId = g.titleKey.split('.').first;
+          // Number Race plays its own title clip as the first step of its
+          // character-select intro sequence (title -> pause -> choose
+          // character), so skip the generic tap-triggered play here to
+          // avoid overlapping playback of the same clip.
+          if (gameId != 'number_race') {
+            AudioService.playInstructionClip(gameId, 'title', locale: localizer.locale);
+          }
+          Navigator.pushNamed(context, g.route, arguments: g.arguments);
+        },
       )).toList();
 }

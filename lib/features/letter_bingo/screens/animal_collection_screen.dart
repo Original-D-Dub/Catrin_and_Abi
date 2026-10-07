@@ -6,10 +6,12 @@ import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/auth_provider.dart';
 import '../../../shared/widgets/button.dart';
+import '../../../shared/widgets/cached_asset_image.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../models/animal_model.dart';
 import '../models/letter_bingo_level.dart';
 import '../providers/bingo_collection_provider.dart';
+import '../widgets/bingo_celebration.dart' show bingoOverlayGradient;
 
 class AnimalCollectionScreen extends StatefulWidget {
   /// When non-null, the "Play Again" button pops this screen and calls back.
@@ -209,7 +211,9 @@ class _AnimalTile extends StatelessWidget {
   void _showOverlay(BuildContext context) {
     showGeneralDialog<void>(
       context: context,
-      barrierColor: const Color(0xFF002D97).withValues(alpha: 0.85),
+      // The barrier only takes a flat colour, so it is left transparent and
+      // the success page's gradient is painted in the transition instead.
+      barrierColor: Colors.transparent,
       barrierDismissible: true,
       barrierLabel: localizer('general.close'),
       transitionDuration: const Duration(milliseconds: 350),
@@ -219,9 +223,25 @@ class _AnimalTile extends StatelessWidget {
           curve: Curves.easeOutBack,
           reverseCurve: Curves.easeIn,
         );
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(scale: curved, child: child),
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Ignores taps so they still reach the barrier and dismiss.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: FadeTransition(
+                  opacity: animation,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(gradient: bingoOverlayGradient),
+                  ),
+                ),
+              ),
+            ),
+            FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(scale: curved, child: child),
+            ),
+          ],
         );
       },
       pageBuilder: (context, _, _) {
@@ -238,11 +258,11 @@ class _AnimalTile extends StatelessWidget {
                 children: [
                   AspectRatio(
                     aspectRatio: 1,
-                    child: Image.network(
-                      animal!.imageUrl,
+                    child: CachedAssetImage(
+                      url: animal!.imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Image.network(
-                        animal!.placeholderUrl,
+                      errorBuilder: (_, _, _) => CachedAssetImage(
+                        url: animal!.placeholderUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
                           color: const Color(0xFFEEEEEE),
@@ -293,12 +313,12 @@ class _AnimalTile extends StatelessWidget {
               ? Column(
                   children: [
                     Expanded(
-                      child: Image.network(
-                        animal!.imageUrl,
+                      child: CachedAssetImage(
+                        url: animal!.imageUrl,
                         fit: BoxFit.cover,
                         width: double.infinity,
-                        errorBuilder: (_, _, _) => Image.network(
-                          animal!.placeholderUrl,
+                        errorBuilder: (_, _, _) => CachedAssetImage(
+                          url: animal!.placeholderUrl,
                           fit: BoxFit.cover,
                           width: double.infinity,
                           errorBuilder: (_, _, _) => Container(

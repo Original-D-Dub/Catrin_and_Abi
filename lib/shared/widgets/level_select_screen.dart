@@ -52,22 +52,40 @@ const List<Color> kLevelSelectColors = [
 ];
 
 /// Returns a colour from [kLevelSelectColors] for the given 0-based index.
-Color levelColor(int index) => kLevelSelectColors[index % kLevelSelectColors.length];
+Color levelColor(int index) =>
+    kLevelSelectColors[index % kLevelSelectColors.length];
 
 /// Shared level-selection screen used by all games.
 ///
 /// Renders:
+/// - Optional [aboveTitle] widget (e.g. one/two-player tabs)
 /// - "Choose a Level" title
+/// - Optional [aboveSubtitle] widget (e.g. a mode toggle)
 /// - Optional [subtitle] line
 /// - 2-column grid of coloured [LevelSelectItem] buttons
 ///
 /// Each button shows "Level N", the level name, and an optional description.
 class LevelSelectScreen extends StatelessWidget {
-  /// Optional subtitle shown below the title.
+  /// Optional subtitle shown below the title (and below [aboveSubtitle]).
   final String? subtitle;
+
+  /// Optional widget shown below the title and above [subtitle].
+  final Widget? aboveSubtitle;
+
+  /// Optional widget shown at the very top, above the title.
+  final Widget? aboveTitle;
 
   /// Ordered list of levels to display.
   final List<LevelSelectItem> levels;
+
+  /// Optional headers inserted mid-grid, splitting [levels] into groups.
+  ///
+  /// Key is the 0-based index in [levels] the header appears immediately
+  /// before, starting a new row — e.g. `{5: 'Subtraction with BSL'}` inserts
+  /// a header before the 6th level (index 5). Each group before/after a
+  /// break gets its own grid, so its own responsive column count and
+  /// trailing logo filler.
+  final Map<int, String> sectionBreaks;
 
   /// UI language for the title and "Level" prefix ('en' or 'cy').
   final String locale;
@@ -75,7 +93,10 @@ class LevelSelectScreen extends StatelessWidget {
   const LevelSelectScreen({
     super.key,
     this.subtitle,
+    this.aboveSubtitle,
+    this.aboveTitle,
     required this.levels,
+    this.sectionBreaks = const {},
     this.locale = 'en',
   });
 
@@ -89,6 +110,11 @@ class LevelSelectScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            if (aboveTitle != null) ...[
+              aboveTitle!,
+              const SizedBox(height: AppSizes.spacingMedium),
+            ],
+
             // Title
             Text(
               localizer('level_select.title'),
@@ -97,6 +123,11 @@ class LevelSelectScreen extends StatelessWidget {
                 color: AppColors.textPrimary,
               ),
             ),
+
+            if (aboveSubtitle != null) ...[
+              const SizedBox(height: AppSizes.spacingMedium),
+              aboveSubtitle!,
+            ],
 
             if (subtitle != null) ...[
               const SizedBox(height: AppSizes.spacingSmall),
@@ -114,36 +145,80 @@ class LevelSelectScreen extends StatelessWidget {
 
             const SizedBox(height: AppSizes.spacingLarge),
 
-            // Level buttons in responsive grid
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth < 400 ? 2 : 3;
-                final List<Widget> children = levels.map((item) => _buildButton(item, localizer)).toList();
-                if (children.length % crossAxisCount != 0) {
-                  children.add(
-                    Padding(
-                      padding: const EdgeInsets.all(AppSizes.paddingSmall),
-                      child: Image.asset(
-                        'assets/logos/english/Catrin_Abi_Logo_Eng_600x600.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  );
-                }
-                return GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: AppSizes.spacingMedium,
-                  crossAxisSpacing: AppSizes.spacingMedium,
-                  childAspectRatio: 1.3,
-                  children: children,
-                );
-              },
-            ),
+            // Level buttons, split into groups at each section break
+            ..._buildLevelGroups(localizer),
           ],
         ),
       ),
+    );
+  }
+
+  /// Splits [levels] into groups at each [sectionBreaks] index, rendering a
+  /// header before each group after the first.
+  List<Widget> _buildLevelGroups(AppLocalizations localizer) {
+    final breakIndices =
+        sectionBreaks.keys.where((i) => i > 0 && i < levels.length).toList()
+          ..sort();
+
+    final widgets = <Widget>[];
+    var start = 0;
+    for (final index in breakIndices) {
+      widgets.add(_buildGrid(levels.sublist(start, index), localizer));
+      widgets.add(const SizedBox(height: AppSizes.spacingLarge));
+      widgets.add(_buildSectionHeader(sectionBreaks[index]!));
+      widgets.add(const SizedBox(height: AppSizes.spacingMedium));
+      start = index;
+    }
+    widgets.add(_buildGrid(levels.sublist(start), localizer));
+    return widgets;
+  }
+
+  Widget _buildSectionHeader(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontFamily: 'Quicksand',
+        fontSize: AppSizes.fontSizeLarge,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  /// Builds a responsive grid for one group of levels, padded with a
+  /// trailing logo image if the group doesn't fill its last row.
+  Widget _buildGrid(
+    List<LevelSelectItem> groupLevels,
+    AppLocalizations localizer,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth < 400 ? 2 : 3;
+        final List<Widget> children = groupLevels
+            .map((item) => _buildButton(item, localizer))
+            .toList();
+        if (children.length % crossAxisCount != 0) {
+          children.add(
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingSmall),
+              child: Image.asset(
+                'assets/logos/english/Catrin_Abi_Logo_Eng_600x600.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          );
+        }
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: AppSizes.spacingMedium,
+          crossAxisSpacing: AppSizes.spacingMedium,
+          childAspectRatio: 1.3,
+          children: children,
+        );
+      },
     );
   }
 

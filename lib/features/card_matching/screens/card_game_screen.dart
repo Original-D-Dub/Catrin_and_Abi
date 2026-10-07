@@ -12,6 +12,7 @@ import '../../../features/home/providers/trail_provider.dart';
 import '../../../features/home/widgets/trail_navigation.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/game_instructions_service.dart';
+import '../../../shared/widgets/choose_character_grid.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/game_header_bar.dart';
@@ -19,6 +20,9 @@ import '../../../shared/widgets/level_select_screen.dart';
 import '../../../shared/widgets/level_transition_overlay.dart';
 import '../providers/card_game_provider.dart';
 import '../widgets/card_grid.dart';
+import '../widgets/character_select_screen.dart';
+import '../widgets/player_mode_tabs.dart';
+import '../widgets/two_player_scores.dart';
 
 /// Main screen for the card matching game.
 ///
@@ -109,7 +113,7 @@ class _CardGameScreenState extends State<CardGameScreen>
       builder: (context, provider, child) {
         return Scaffold(
           extendBodyBehindAppBar: true,
-          appBar: provider.showLevelSelect
+          appBar: provider.showLevelSelect && provider.pickingPlayer == null
               ? GameAppBar(
                   title: localizer('card_matching.title'),
                   onBack: () => Navigator.pop(context),
@@ -128,14 +132,41 @@ class _CardGameScreenState extends State<CardGameScreen>
                 SafeArea(
                   child: Stack(
                     children: [
-                      if (provider.showLevelSelect)
+                      if (provider.showLevelSelect &&
+                          provider.pickingPlayer != null)
+                        _buildCharacterSelect(provider, localizer)
+                      else if (provider.showLevelSelect)
                         _buildLevelSelectScreen(context, provider, localizer)
                       else
                         _buildGameContent(context, provider, localizer),
                     ],
                   ),
                 ),
-                if (!provider.showLevelSelect && provider.hasWon)
+                if (!provider.showLevelSelect &&
+                    provider.hasWon &&
+                    provider.isTwoPlayer)
+                  Positioned.fill(
+                    child: GameSuccessOverlay(
+                      gameId: 'card_matching',
+                      locale: widget.locale,
+                      headingOverride: _twoPlayerResult(provider, localizer),
+                      extraContent: _TwoPlayerWinnerImage(
+                        characters: [
+                          if (provider.twoPlayerWinner != 2)
+                            provider.player1Character,
+                          if (provider.twoPlayerWinner != 1)
+                            provider.player2Character,
+                        ].whereType<CharacterThumb>().toList(),
+                      ),
+                      centerExtraContent: true,
+                      onPlayAgain: () => provider.resetGame(),
+                      onNextLevel: _canAdvance(context, provider)
+                          ? () => _onNextLevel(context, provider)
+                          : null,
+                      onChangeLevel: () => provider.showLevelSelection(),
+                    ),
+                  )
+                else if (!provider.showLevelSelect && provider.hasWon)
                   Positioned.fill(
                     child: GameSuccessOverlay(
                       gameId: 'card_matching',
@@ -177,6 +208,48 @@ class _CardGameScreenState extends State<CardGameScreen>
     );
   }
 
+  /// The chosen character's name for [player] (1 or 2), falling back to
+  /// "Player N" if none was picked.
+  String _playerName(
+    CardGameProvider provider,
+    int player,
+    AppLocalizations localizer,
+  ) {
+    final character =
+        player == 1 ? provider.player1Character : provider.player2Character;
+    return character != null
+        ? character.name
+        : localizer('card_matching.player$player');
+  }
+
+  /// "{name} wins!" or "It's a draw!" for a finished two-player game.
+  String _twoPlayerResult(
+    CardGameProvider provider,
+    AppLocalizations localizer,
+  ) {
+    final winner = provider.twoPlayerWinner;
+    if (winner == null) return localizer('card_matching.draw');
+    return localizer('card_matching.player_wins')
+        .replaceAll('{name}', _playerName(provider, winner, localizer));
+  }
+
+  /// Character select for whichever player is choosing; once player 2 has
+  /// picked, the provider returns to the level select.
+  Widget _buildCharacterSelect(
+    CardGameProvider provider,
+    AppLocalizations localizer,
+  ) {
+    final player = provider.pickingPlayer!;
+    return CharacterSelectScreen(
+      key: ValueKey('character_select_$player'),
+      player: player,
+      takenCharacter: player == 2 ? provider.player1Character : null,
+      localizer: localizer,
+      onBack: provider.backFromCharacterSelect,
+      onPick: provider.pickCharacter,
+    );
+  }
+
   /// Whether "Next Level" has anywhere to go — either the next trail node
   /// (when launched from the trail) or the next level in this game.
   bool _canAdvance(BuildContext context, CardGameProvider provider) {
@@ -207,19 +280,26 @@ class _CardGameScreenState extends State<CardGameScreen>
 
     return LevelSelectScreen(
       subtitle: localizer(introKey),
+      aboveTitle: PlayerModeTabs(
+        isTwoPlayer: provider.isTwoPlayer,
+        onChanged: provider.setTwoPlayer,
+        localizer: localizer,
+      ),
       locale: widget.locale,
       levels: provider.levels.map((level) {
         return LevelSelectItem(
           number: level.levelNumber,
           name: localizer(level.name),
           color: levelColor(level.levelNumber - 1),
+          // Two-player characters are already chosen by now — picking them
+          // happens when the Two Players tab is tapped.
           onTap: () => startLevelWithTransition(
-            gameId: 'card_matching',
-            levelNumber: level.levelNumber,
-            locale: widget.locale,
-            signSystem: provider.signSystem,
-            startLevel: () => provider.startLevel(level),
-          ),
+                gameId: 'card_matching',
+                levelNumber: level.levelNumber,
+                locale: widget.locale,
+                signSystem: provider.signSystem,
+                startLevel: () => provider.startLevel(level),
+              ),
         );
       }).toList(),
     );
@@ -262,8 +342,18 @@ class _CardGameScreenState extends State<CardGameScreen>
               scoreValue: '${provider.moveCount}',
               scoreLabelFontSize: 12,
               scoreValueFontSize: 32,
+              // Two-player shows both players' scores in place of moves.
+              showScore: !provider.isTwoPlayer,
               levelNumber: provider.level.levelNumber,
-              centerContent: Center(
+              centerContent: provider.isTwoPlayer
+                  ? TwoPlayerScores(
+                      player1Score: provider.player1Score,
+                      player2Score: provider.player2Score,
+                      player1Name: _playerName(provider, 1, localizer),
+                      player2Name: _playerName(provider, 2, localizer),
+                      currentPlayer: provider.currentPlayer,
+                    )
+                  : Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -345,6 +435,43 @@ class _CardGameScreenState extends State<CardGameScreen>
                   onDismiss: _dismissTapInstructions,
                 ),
               ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The two-player winner's full character art on the success screen — or
+/// both characters side by side for a draw. Falls back to the thumbnail
+/// when a character has no full-size art yet (see
+/// [CharacterThumb.fullAssetPath]).
+class _TwoPlayerWinnerImage extends StatelessWidget {
+  final List<CharacterThumb> characters;
+
+  const _TwoPlayerWinnerImage({required this.characters});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (final character in characters)
+          Flexible(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.paddingSmall,
+              ),
+              child: character.fullAssetPath != null
+                  ? Image.asset(character.fullAssetPath!, fit: BoxFit.contain)
+                  : ClipRRect(
+                      borderRadius:
+                          BorderRadius.circular(AppSizes.borderRadiusMedium),
+                      child: Image.asset(
+                        character.assetPath,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
             ),
           ),
       ],

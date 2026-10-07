@@ -81,13 +81,6 @@ class BslMathsLevel {
   /// in that range. Each key press auto-submits (no two-digit entry).
   final bool useTeenKeys;
 
-  /// Whether to hide the numeral labels on the BSL keyboard keys.
-  ///
-  /// When true, only the BSL hand-sign is shown on each key, with no digit
-  /// printed underneath. Competition levels already hide digits regardless
-  /// of this flag.
-  final bool hideDigits;
-
   const BslMathsLevel({
     required this.number,
     required this.name,
@@ -98,7 +91,6 @@ class BslMathsLevel {
     this.isSubtraction = false,
     this.maxSubtrahend = 10,
     this.useTeenKeys = false,
-    this.hideDigits = false,
   });
 
   /// All available levels
@@ -131,54 +123,14 @@ class BslMathsLevel {
     BslMathsLevel(
       number: 6,
       name: 'bsl_maths.level6.name',
-      maxAnswer: 10,
-      hideDigits: true,
-    ),
-
-    BslMathsLevel(
-      number: 7,
-      name: 'bsl_maths.level7.name',
-      maxAnswer: 10,
-      isMissingOperand: true,
-      fixedTarget: 10,
-      hideDigits: true,
-    ),
-
-    BslMathsLevel(
-      number: 8,
-      name: 'bsl_maths.level8.name',
-      maxAnswer: 19,
-      useTeenKeys: true,
-      hideDigits: true,
-    ),
-
-    BslMathsLevel(
-      number: 9,
-      name: 'bsl_maths.level9.name',
-      maxAnswer: 10,
-      isMissingOperand: true,
-      hideDigits: true,
-    ),
-
-    BslMathsLevel(
-      number: 10,
-      name: 'bsl_maths.level10.name',
-      maxAnswer: 10,
-      isCompetition: true,
-      hideDigits: true,
-    ),
-
-    BslMathsLevel(
-      number: 11,
-      name: 'bsl_maths.level11.name',
       maxAnswer: 5,
       isSubtraction: true,
       maxSubtrahend: 5,
     ),
 
     BslMathsLevel(
-      number: 12,
-      name: 'bsl_maths.level12.name',
+      number: 7,
+      name: 'bsl_maths.level7.name',
       maxAnswer: 10,
       isSubtraction: true,
     ),
@@ -261,6 +213,29 @@ class BslMathsProvider extends ChangeNotifier {
   /// Competition duration in seconds
   static const int competitionDurationSeconds = 60;
 
+  /// Score required on the Competition level (level 5) to unlock Champion Mode.
+  static const int championModeUnlockScore = 10;
+
+  /// The level number whose personal best gates Champion Mode.
+  static const int championModeUnlockLevel = 5;
+
+  /// Whether Champion Mode is enabled — hides the numeral labels on the
+  /// keyboard so the player must recognise the BSL number sign alone.
+  bool _championMode = false;
+  bool get championMode => _championMode;
+
+  /// Whether the player has unlocked Champion Mode by scoring at least
+  /// [championModeUnlockScore] on level [championModeUnlockLevel].
+  bool _isChampionModeUnlocked = false;
+  bool get isChampionModeUnlocked => _isChampionModeUnlocked;
+
+  /// True for one session only: the player just crossed the Champion Mode
+  /// unlock threshold (see [championModeUnlockScore]) for the first time.
+  /// The screen shows a celebratory banner while this is true, then calls
+  /// [dismissChampionModeUnlockedBanner] to clear it.
+  bool _justUnlockedChampionMode = false;
+  bool get justUnlockedChampionMode => _justUnlockedChampionMode;
+
   // -------------------------
   // Computed Properties
   // -------------------------
@@ -310,6 +285,7 @@ class BslMathsProvider extends ChangeNotifier {
     _showLevelSelect = true;
     _feedbackTimer?.cancel();
     _competitionTimer?.cancel();
+    _refreshChampionModeUnlock();
     notifyListeners();
   }
 
@@ -325,6 +301,32 @@ class BslMathsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Unlocks Champion Mode from the player's personal best on
+  /// [championModeUnlockLevel], if it isn't already unlocked.
+  ///
+  /// Only ever raises [isChampionModeUnlocked], never lowers it: guest play
+  /// isn't persisted by [GameStatsService] (it no-ops for anonymous users),
+  /// so this DB lookup always comes back empty for guests — if it were
+  /// allowed to clear the flag, a guest who just unlocked Champion Mode by
+  /// scoring in this session would see it re-locked the moment they
+  /// returned to level select.
+  Future<void> _refreshChampionModeUnlock() async {
+    if (_isChampionModeUnlocked) return;
+    final best = await _statsService
+        .getPersonalBest('${GameIds.bslMaths}_$championModeUnlockLevel');
+    if ((best ?? 0) >= championModeUnlockScore) {
+      _isChampionModeUnlocked = true;
+      notifyListeners();
+    }
+  }
+
+  /// Enables or disables Champion Mode. No-ops if not yet unlocked.
+  void setChampionMode(bool value) {
+    if (value && !_isChampionModeUnlocked) return;
+    _championMode = value;
+    notifyListeners();
+  }
+
   // -------------------------
   // Game Control
   // -------------------------
@@ -337,6 +339,7 @@ class BslMathsProvider extends ChangeNotifier {
     _clearDigits();
     _isInputLocked = false;
     _gameState = BslMathsGameState.playing;
+    _justUnlockedChampionMode = false;
     _feedbackTimer?.cancel();
     _competitionTimer?.cancel();
     _currentQuestion = _generateQuestion();
@@ -356,6 +359,12 @@ class BslMathsProvider extends ChangeNotifier {
             _gameState = BslMathsGameState.timeUp;
             _statsService.recordGameResult(GameIds.bslMaths, _score, level: _currentLevel.number).then((result) {
               _lastResult = result;
+              if (_currentLevel.number == championModeUnlockLevel &&
+                  !_isChampionModeUnlocked &&
+                  _score >= championModeUnlockScore) {
+                _isChampionModeUnlocked = true;
+                _justUnlockedChampionMode = true;
+              }
               notifyListeners();
             });
           }
@@ -364,6 +373,13 @@ class BslMathsProvider extends ChangeNotifier {
       );
     }
 
+    notifyListeners();
+  }
+
+  /// Clears [justUnlockedChampionMode] once the unlock banner has been
+  /// shown and dismissed.
+  void dismissChampionModeUnlockedBanner() {
+    _justUnlockedChampionMode = false;
     notifyListeners();
   }
 

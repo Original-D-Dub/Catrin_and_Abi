@@ -41,11 +41,17 @@ class AppColors {
   // -------------------------
 
   static const Color accentRed = Color(0xFFE53935);
-  static const Color accentOrange = Color(0xFFFF6F00);
+  // Darkened from #FF6F00 (2.8:1 on white) to meet 3:1 on white and cream.
+  static const Color accentOrange = Color(0xFFEC6700);
   static const Color accentYellow = Color(0xFFFDD835);
-  static const Color accentLimeGreen = Color(0xFF7CB342);
+  // Darkened from #7CB342 (2.5:1 on white) to meet 3:1 on white and cream.
+  static const Color accentLimeGreen = Color(0xFF6C9C39);
   static const Color accentDarkGreen = Color(0xFF137100);
   static const Color accentNavyBlue = Color(0xFF1565C0);
+  static const Color accentTeal = Color(0xFF00796B);
+  // Magenta-pink: abiPink's hue moved 10° away from accentRed so 'w' and
+  // 'a' are easier to tell apart (4.2:1 on white).
+  static const Color accentMagentaPink = Color(0xFFE91E84);
   static const Color accentPurple = Color(0xFF8E24AA);
   static const Color accentWhite = Color(0xFFFFFFFF);
 
@@ -98,8 +104,10 @@ class AppColors {
     'i': accentLimeGreen,
     'o': accentOrange,
     'u': accentPurple,
-    'w': abiPink,
-    'y': catrinBlue,
+    'w': accentMagentaPink,
+    // Teal rather than catrinBlue: 5.3:1 contrast on white (catrinBlue is
+    // 1.7:1) and a hue clearly distinct from 'e' navy and 'i' lime green.
+    'y': accentTeal,
   };
 
   /// Color assignments for Welsh digraph pairs (ch, dd, ff, ll, ng, ph, rh, th).

@@ -32,7 +32,7 @@ class GameIntroCountdown extends StatefulWidget {
   /// when not specified.
   final String? backgroundImage;
 
-  /// Heading text shown above the speech bubble, in large LuckiestGuy type.
+  /// Heading text shown above the speech bubble, in large OpenDyslexic type.
   /// Omitted when not specified.
   final String? topText;
 
@@ -304,9 +304,7 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
                   Text(
                     widget.topText!,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'LuckiestGuy',
-                      fontSize: _topTextFontSize(context),
+                    style: AppTheme.celebrationAt(_topTextFontSize(context)).copyWith(
                       height: 1,
                       color: Colors.white,
                       shadows: const [

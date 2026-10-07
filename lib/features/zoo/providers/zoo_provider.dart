@@ -22,7 +22,7 @@ class ZooProvider extends ChangeNotifier {
   /// Which sign alphabet the building activities should use.
   final SignSystem signSystem;
 
-  /// The character chosen on the pick-a-player screen ([ZooCharacter.id]).
+  /// The character chosen on the pick-a-player screen ([CharacterThumb.id]).
   final String characterId;
 
   /// The building the player must find and enter for this level (a zoo

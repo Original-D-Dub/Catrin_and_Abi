@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/constants/game_filters.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import '../services/settings_provider.dart';
 
 /// Full-width banner tile shown above the game grid on both home screens.
@@ -21,7 +22,11 @@ class LearnSignSystemTile extends StatelessWidget {
   /// game tiles below it.
   final double height;
 
-  const LearnSignSystemTile({super.key, required this.locale, required this.height});
+  const LearnSignSystemTile({
+    super.key,
+    required this.locale,
+    required this.height,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +59,7 @@ class LearnSignSystemTile extends StatelessWidget {
               width: 2,
             ),
             image: const DecorationImage(
-              image: AssetImage(
-                'assets/backgrounds/yellow_ brick_path.png',
-              ),
+              image: AssetImage('assets/backgrounds/yellow_ brick_path.png'),
               fit: BoxFit.cover,
             ),
           ),
@@ -71,9 +74,7 @@ class LearnSignSystemTile extends StatelessWidget {
                     // top covers its inner half.
                     Text(
                       localizer(titleKey),
-                      style: TextStyle(
-                        fontFamily: 'LuckiestGuy',
-                        fontSize: fontSize,
+                      style: AppTheme.celebrationAt(fontSize).copyWith(
                         foreground: Paint()
                           ..style = PaintingStyle.stroke
                           ..strokeWidth = 4
@@ -88,11 +89,9 @@ class LearnSignSystemTile extends StatelessWidget {
                     ),
                     Text(
                       localizer(titleKey),
-                      style: TextStyle(
-                        fontFamily: 'LuckiestGuy',
-                        fontSize: fontSize,
-                        color: Colors.white,
-                      ),
+                      style: AppTheme.celebrationAt(
+                        fontSize,
+                      ).copyWith(color: Colors.white),
                     ),
                   ],
                 ),
@@ -107,7 +106,9 @@ class LearnSignSystemTile extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.schoolGreen,
-                    borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
+                    borderRadius: BorderRadius.circular(
+                      AppSizes.borderRadiusLarge,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

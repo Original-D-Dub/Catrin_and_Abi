@@ -245,15 +245,25 @@ class AudioService {
   /// — and waits for it to finish before resolving. Resolves immediately if
   /// no audio file is found, instructions are disabled, or [locale] isn't
   /// supported, so callers can always safely await it as a gate.
+  ///
+  /// If [isCancelled] returns true once the clip has loaded, it's stopped
+  /// straight away — this catches a [stopAll] that ran while the clip was
+  /// still loading (and so had no player to stop yet).
   static Future<void> playInstructionClipAndWait(
     String gameId,
     String name, {
     String locale = 'en',
+    bool Function()? isCancelled,
   }) async {
+    if (isCancelled?.call() ?? false) return;
     final player = await _startInstructionClip(gameId, name, locale);
-    if (player != null) {
-      await _awaitCompletion(player, const Duration(seconds: 10));
+    if (player == null) return;
+    if (isCancelled?.call() ?? false) {
+      _activePlayers.remove(player);
+      await player.stop().catchError((_) {});
+      return;
     }
+    await _awaitCompletion(player, const Duration(seconds: 10));
   }
 
   /// Plays the zoo's camera shutter click (`assets/audio/zoo/camera_shutter.wav`).
@@ -276,6 +286,10 @@ class AudioService {
       }
     }
   }
+
+  /// Short till-key beep. A rapid second tap cuts off the previous beep
+  /// rather than queueing behind it.
+  static Future<void> playTillBeep() => _playSfx('till/beep.mp3');
 
   /// Plays the correct-answer SFX for [gameId] and triggers a haptic pulse.
   ///

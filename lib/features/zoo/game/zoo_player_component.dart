@@ -6,6 +6,7 @@ import 'package:flame/events.dart';
 import 'package:flutter/painting.dart' show decodeImageFromList;
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../../../shared/widgets/choose_character_grid.dart';
 import '../models/zoo_character.dart';
 import 'zoo_map_game_base.dart';
 
@@ -61,7 +62,7 @@ class ZooPlayerComponent extends PositionComponent
   Sprite? _sprite;
   Image? _spriteImage;
 
-  /// The chosen character's height multiplier ([ZooCharacter.heightScale]),
+  /// The chosen character's height multiplier ([ZooCharacter.heightScaleFor]),
   /// applied to the sprite only — the collision circle stays the standard
   /// size regardless.
   double _heightScale = 1.0;
@@ -107,9 +108,11 @@ class ZooPlayerComponent extends PositionComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    final character = ZooCharacter.byId(game.characterId);
-    _heightScale = character.heightScale;
-    final asset = character.fullAsset;
+    _heightScale = ZooCharacter.heightScaleFor(game.characterId);
+    final character = await CharacterThumb.find(game.characterId);
+    final asset = character?.fullAssetPath;
+    // Character art not created yet — keep the ellipse placeholder.
+    if (asset == null) return;
     try {
       final data = await rootBundle.load(asset);
       _spriteImage = await decodeImageFromList(data.buffer.asUint8List());

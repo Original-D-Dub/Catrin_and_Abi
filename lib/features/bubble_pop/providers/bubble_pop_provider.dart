@@ -363,6 +363,7 @@ class BubblePopProvider extends ChangeNotifier {
     _tappedSequence = '';
     _easterEggTriggered = null;
     _lastPoppedBubbleId = null;
+    _sameTargetRun = 0;
 
     _selectNewTarget();
     _spawnInitialBubbles();
@@ -381,6 +382,7 @@ class BubblePopProvider extends ChangeNotifier {
     _tappedSequence = '';
     _easterEggTriggered = null;
     _lastPoppedBubbleId = null;
+    _sameTargetRun = 0;
 
     _selectNewTarget();
     _spawnInitialBubbles();
@@ -411,14 +413,27 @@ class BubblePopProvider extends ChangeNotifier {
     });
   }
 
-  /// Selects a new random target letter from the current level's letters.
+  /// Most consecutive times the same target letter may be called.
+  static const int _maxSameTargetRun = 2;
+
+  /// How many times in a row the current [_targetLetter] has been called.
+  int _sameTargetRun = 0;
+
+  /// Selects a new random target letter from the current level's letters,
+  /// never calling the same letter three times in a row.
   ///
   /// Audio call-out is chosen by [_signSystem]: BSL levels use the English
   /// alphabet, IAC levels use the Welsh vowel set (consonants stay silent
   /// since there's no recording for them yet).
   void _selectNewTarget() {
-    final letters = _currentLevel.letters;
-    _targetLetter = letters[_random.nextInt(letters.length)];
+    var letters = _currentLevel.letters;
+    if (_sameTargetRun >= _maxSameTargetRun) {
+      final others = letters.where((l) => l != _targetLetter).toList();
+      if (others.isNotEmpty) letters = others;
+    }
+    final letter = letters[_random.nextInt(letters.length)];
+    _sameTargetRun = letter == _targetLetter ? _sameTargetRun + 1 : 1;
+    _targetLetter = letter;
     if (_isPlaying) {
       AudioService.playLetterMp3(_targetLetter, signSystem: _signSystem).ignore();
     }
@@ -427,6 +442,8 @@ class BubblePopProvider extends ChangeNotifier {
   /// Spawns initial bubbles at game start, spread across the full play area
   /// so they don't all enter together as a single visible wave.
   void _spawnInitialBubbles() {
+    _lastSpawnedLetter = '';
+    _sameLetterSpawnRun = 0;
     for (int i = 0; i < _targetBubbleCount; i++) {
       _spawnBubble(spreadAcrossScreen: true);
     }
@@ -436,6 +453,13 @@ class BubblePopProvider extends ChangeNotifier {
   /// Maximum number of on-screen (unpopped) bubbles allowed to share the
   /// same letter before that letter is excluded from spawning.
   static const int _maxDuplicateLetters = 3;
+
+  /// Most consecutive spawns allowed to share the same letter.
+  static const int _maxSameLetterSpawnRun = 2;
+
+  /// Letter of the most recent spawn, and how many spawns in a row used it.
+  String _lastSpawnedLetter = '';
+  int _sameLetterSpawnRun = 0;
 
   /// Spawns a new bubble with random properties.
   ///
@@ -448,7 +472,9 @@ class BubblePopProvider extends ChangeNotifier {
   /// - Level 6: +300% (6.0x)
   ///
   /// Letters already at [_maxDuplicateLetters] copies on screen are excluded
-  /// from selection so the same letter doesn't keep piling up.
+  /// from selection so the same letter doesn't keep piling up, and a letter
+  /// that was used for the last [_maxSameLetterSpawnRun] spawns is skipped
+  /// so no letter appears three times in a row.
   ///
   /// [spreadAcrossScreen] distributes the bubble's starting height across the
   /// whole play area (used for initial fill); otherwise it enters from just
@@ -472,6 +498,13 @@ class BubblePopProvider extends ChangeNotifier {
       // Every letter is saturated (shouldn't normally happen) — fall back
       // to the full set rather than failing to spawn.
       eligibleLetters = letters;
+    }
+
+    // Never spawn the same letter three times in a row.
+    if (_sameLetterSpawnRun >= _maxSameLetterSpawnRun) {
+      final withoutRepeat =
+          eligibleLetters.where((l) => l != _lastSpawnedLetter).toList();
+      if (withoutRepeat.isNotEmpty) eligibleLetters = withoutRepeat;
     }
 
     // Calculate level-specific target weight
@@ -512,6 +545,13 @@ class BubblePopProvider extends ChangeNotifier {
       } else {
         letter = otherLetters[_random.nextInt(otherLetters.length)];
       }
+    }
+
+    if (letter == _lastSpawnedLetter) {
+      _sameLetterSpawnRun++;
+    } else {
+      _lastSpawnedLetter = letter;
+      _sameLetterSpawnRun = 1;
     }
 
     final bubble = Bubble(

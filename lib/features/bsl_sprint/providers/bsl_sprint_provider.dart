@@ -55,11 +55,25 @@ class BslSprintProvider extends ChangeNotifier {
   /// collision. Prevents collecting letters that are still far in the z-plane.
   static const double _minCollectY = 0.60;
 
+  /// Upper limit for scroll speed as it ramps up during a game.
+  static const double _maxScrollSpeed = 0.595;
+
+  /// Stretches the time between spawn waves. Scrolling was slowed to 70 %;
+  /// this keeps waves about 80 % as far apart on the track as before.
+  static const double _spawnIntervalScale = 0.8 / 0.7;
+
+  /// Upper limit on the time between spawn waves (seconds). The lower limit
+  /// is per level ([SprintLevel.minSpawnInterval]).
+  static const double _maxSpawnInterval = 3.0;
+
   /// Initial upward velocity for a jump (normalised units / second).
   static const double _jumpInitialVelocity = 2.2;
 
   /// Downward acceleration applied while airborne (normalised units / second²).
   static const double _gravity = 5.0;
+
+  /// How long the landing pose is held after touching down (seconds).
+  static const double _landingDuration = 0.18;
 
   // ── Services & RNG ────────────────────────────────────────────────────────
 
@@ -97,6 +111,12 @@ class BslSprintProvider extends ChangeNotifier {
 
   bool isJumping = false;
 
+  /// Seconds left showing the landing pose; > 0 just after touching down.
+  double _landingTimer = 0.0;
+
+  /// True briefly after a jump touches down, while the landing pose shows.
+  bool get isLanding => _landingTimer > 0.0;
+
   /// Effective normalised Y position of the character including jump arc.
   double get characterY => characterBaseY - jumpOffset;
 
@@ -105,6 +125,12 @@ class BslSprintProvider extends ChangeNotifier {
   final List<SprintItem> items = [];
 
   // ── Level ─────────────────────────────────────────────────────────────────
+
+  bool _showRacerSelect = true;
+  bool get showRacerSelect => _showRacerSelect;
+
+  SprintRacer _racer = SprintRacer.all.first;
+  SprintRacer get racer => _racer;
 
   bool _showLevelSelect = true;
   bool get showLevelSelect => _showLevelSelect;
@@ -116,6 +142,10 @@ class BslSprintProvider extends ChangeNotifier {
 
   double _scrollSpeed = SprintLevel.all[0].initialScrollSpeed;
   double get scrollSpeed => _scrollSpeed;
+
+  /// Rate at which track items approach in world-Z (see [_updateItems]).
+  /// Scenery can scale this for parallax.
+  double get worldSpeed => _scrollSpeed * _perspWorldFactor;
 
   double _spawnTimer = 0.0;
   double _spawnInterval = 2.0; // seconds between spawn waves
@@ -142,6 +172,20 @@ class BslSprintProvider extends ChangeNotifier {
   // ─────────────────────────────────────────────────────────────────────────
   // Public API
   // ─────────────────────────────────────────────────────────────────────────
+
+  /// Shows the "who would you like to race as?" screen.
+  void showRacerSelection() {
+    _showRacerSelect = true;
+    notifyListeners();
+  }
+
+  /// Picks the racer and moves on to level selection.
+  void selectRacer(SprintRacer racer) {
+    _racer = racer;
+    _showRacerSelect = false;
+    _showLevelSelect = true;
+    notifyListeners();
+  }
 
   /// Shows the level-selection screen.
   void showLevelSelection() {
@@ -178,9 +222,11 @@ class BslSprintProvider extends ChangeNotifier {
     jumpOffset = 0.0;
     _jumpVelocity = 0.0;
     isJumping = false;
+    _landingTimer = 0.0;
     _scrollSpeed = _currentLevel.initialScrollSpeed;
     _spawnTimer = 0.0;
-    _spawnInterval = _currentLevel.initialSpawnInterval;
+    _spawnInterval = (_currentLevel.initialSpawnInterval * _spawnIntervalScale)
+        .clamp(_currentLevel.minSpawnInterval, _maxSpawnInterval);
     _speedUpTimer = 0.0;
     lastResult = null;
     _remainingWords = List.from(_activeWordPool)..shuffle(_rng);
@@ -204,7 +250,7 @@ class BslSprintProvider extends ChangeNotifier {
     _speedUpTimer += dt;
     if (_speedUpTimer >= 10.0) {
       _speedUpTimer -= 10.0;
-      _scrollSpeed = (_scrollSpeed * 1.01).clamp(_currentLevel.initialScrollSpeed, 0.85);
+      _scrollSpeed = (_scrollSpeed * 1.01).clamp(_currentLevel.initialScrollSpeed, _maxScrollSpeed);
     }
     _checkCollisions();
     items.removeWhere((item) => !item.isActive);
@@ -227,6 +273,7 @@ class BslSprintProvider extends ChangeNotifier {
     if (state != SprintState.playing) return;
     if (!isJumping) {
       isJumping = true;
+      _landingTimer = 0.0;
       _jumpVelocity = _jumpInitialVelocity;
     }
   }
@@ -248,13 +295,17 @@ class BslSprintProvider extends ChangeNotifier {
   }
 
   void _updateJump(double dt) {
-    if (!isJumping) return;
+    if (!isJumping) {
+      if (_landingTimer > 0.0) _landingTimer -= dt;
+      return;
+    }
     jumpOffset += _jumpVelocity * dt;
     _jumpVelocity -= _gravity * dt;
     if (jumpOffset <= 0.0) {
       jumpOffset = 0.0;
       _jumpVelocity = 0.0;
       isJumping = false;
+      _landingTimer = _landingDuration;
     }
   }
 
@@ -280,8 +331,8 @@ class BslSprintProvider extends ChangeNotifier {
       _spawnBarriers();
       return;
     }
-    // ~35 % chance of a hurdle obstacle wave; otherwise a letter wave.
-    if (_rng.nextDouble() < 0.35) {
+    // ~15 % chance of a hurdle row; otherwise a letter wave.
+    if (_rng.nextDouble() < 0.15) {
       _spawnObstacles();
     } else {
       _spawnLetters();
@@ -340,12 +391,10 @@ class BslSprintProvider extends ChangeNotifier {
     }
   }
 
-  /// Spawns rock obstacles on 1 or 2 randomly chosen lanes.
-  /// Never blocks all three lanes so there is always a safe path.
+  /// Spawns a full row of hurdles across all three lanes — the player must
+  /// jump to clear it.
   void _spawnObstacles() {
-    final count = 1 + _rng.nextInt(2); // 1 or 2 obstacles
-    final lanes = ([0, 1, 2]..shuffle(_rng)).take(count).toList();
-    for (final lane in lanes) {
+    for (int lane = 0; lane < 3; lane++) {
       items.add(SprintItem(
         letter: '',
         lane: lane,
@@ -483,8 +532,9 @@ class BslSprintProvider extends ChangeNotifier {
       }
 
       // Ramp up difficulty each word.
-      _scrollSpeed = (_scrollSpeed * 1.08).clamp(_currentLevel.initialScrollSpeed, 0.85);
-      _spawnInterval = (_spawnInterval * 0.92).clamp(1.0, 2.0);
+      _scrollSpeed = (_scrollSpeed * 1.08).clamp(_currentLevel.initialScrollSpeed, _maxScrollSpeed);
+      _spawnInterval = (_spawnInterval * 0.92)
+          .clamp(_currentLevel.minSpawnInterval, _maxSpawnInterval);
 
       _nextWord();
 

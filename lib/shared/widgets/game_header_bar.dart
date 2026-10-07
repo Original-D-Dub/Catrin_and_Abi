@@ -61,12 +61,54 @@ class GameHeaderBar extends StatelessWidget {
 
   // Width reserved for the back arrow inside the rectangle row.
   static const double _arrowWidth = 48;
-  // Width reserved in the row for the score circle (≈ half circle diameter).
-  static const double _circleRowReservation = 52;
+  // Width reserved in the row for the score box at its minimum width.
+  static const double _scoreRowReservation = 52;
+  // Score box height, and its minimum width (grows to fit wide scores).
+  static const double _scoreBoxSize = 104;
+  // Corner radius: fully rounded — a circle at minimum width, a pill when
+  // the box widens for long scores.
+  static const double _scoreBoxRadius = _scoreBoxSize / 2;
+  // Horizontal breathing room around the score text inside the box.
+  static const double _scoreTextPadding = 14;
+
+  /// Width of the score box: [_scoreBoxSize] unless the label or value text
+  /// is too wide to fit, in which case it grows to fit.
+  double _scoreBoxWidth(BuildContext context, String label) {
+    final textScaler = MediaQuery.textScalerOf(context);
+    double measure(String text, double fontSize) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: TextStyle(
+            fontFamily: 'Quicksand',
+            fontSize: fontSize,
+            fontWeight: FontWeight.w600,
+            height: 1.0,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        textScaler: textScaler,
+        maxLines: 1,
+      )..layout();
+      return painter.width;
+    }
+
+    final textWidth = [
+      measure(label, scoreLabelFontSize),
+      measure(scoreValue, scoreValueFontSize),
+    ].reduce((a, b) => a > b ? a : b);
+    // Outer padding (2) + inner border (2) on each side, plus text padding.
+    final needed = textWidth + 2 * (4 + _scoreTextPadding);
+    return needed > _scoreBoxSize ? needed : _scoreBoxSize;
+  }
 
   @override
   Widget build(BuildContext context) {
     final localizer = AppLocalizations.of(context);
+    final scoreLabelText =
+        scoreLabel.isEmpty ? localizer('general.score') : scoreLabel;
+    final scoreBoxWidth =
+        showScore ? _scoreBoxWidth(context, scoreLabelText) : _scoreBoxSize;
     return Padding(
       padding: const EdgeInsets.only(left: 16, right: 16),
       child: SizedBox(
@@ -115,9 +157,14 @@ class GameHeaderBar extends StatelessWidget {
                         ),
                       ),
 
-                      // Spacer for the score circle that overlaps this area
+                      // Spacer for the score box that overlaps this area;
+                      // grows with the box so wide scores don't cover the
+                      // centre content.
                       if (showScore)
-                        const SizedBox(width: _circleRowReservation),
+                        SizedBox(
+                          width: _scoreRowReservation +
+                              (scoreBoxWidth - _scoreBoxSize),
+                        ),
 
                       // Centre content
                       if (centerContent != null)
@@ -159,8 +206,9 @@ class GameHeaderBar extends StatelessWidget {
               ),
             ),
 
-            // Score circle — positioned after the arrow, overlapping the
-            // rectangle vertically (104 px circle vs 72 px bar inner height).
+            // Score box — rounded rectangle positioned after the arrow,
+            // overlapping the rectangle vertically (104 px box vs 72 px bar
+            // inner height). Widens to fit long scores.
             if (showScore)
             Positioned(
               left: _arrowWidth - 4,
@@ -168,11 +216,11 @@ class GameHeaderBar extends StatelessWidget {
               bottom: 0,
               child: Center(
                 child: Container(
-                  width: 104,
-                  height: 104,
+                  width: scoreBoxWidth,
+                  height: _scoreBoxSize,
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(_scoreBoxRadius),
                     color: AppColors.headerBackgroundLight,
                     border: Border.all(
                       color: AppColors.headerBorderDark,
@@ -180,10 +228,8 @@ class GameHeaderBar extends StatelessWidget {
                     ),
                   ),
                   child: Container(
-                    width: 96,
-                    height: 96,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(_scoreBoxRadius - 2),
                       color: AppColors.headerBackground,
                       border: Border.all(
                         color: AppColors.headerBorderDark,
@@ -194,7 +240,7 @@ class GameHeaderBar extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          scoreLabel.isEmpty ? localizer('general.score') : scoreLabel,
+                          scoreLabelText,
                           style: TextStyle(
                             fontFamily: 'Quicksand',
                             fontSize: scoreLabelFontSize,

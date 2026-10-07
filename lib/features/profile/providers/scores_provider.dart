@@ -26,6 +26,11 @@ class LevelScore {
 /// "`<number> <label>`" instead of the usual "`<label>: <number>`".
 /// [suffixKey], when set, is a localization key for a unit appended
 /// straight after the number (e.g. card_matching's " moves").
+///
+/// [showPillLabel] hides both [pillLabelKey] and [pillIcon] from the row's
+/// collapsed summary, leaving a bare "`<number> <suffix>`" — used for card
+/// matching, where "Best: 88 moves" plus a trophy icon is too wide to sit
+/// next to the title.
 class GameScoreEntry {
   final String gameId;
   final String titleKey;
@@ -33,6 +38,7 @@ class GameScoreEntry {
   final String pillLabelKey;
   final IconData? pillIcon;
   final String? suffixKey;
+  final bool showPillLabel;
 
   const GameScoreEntry({
     required this.gameId,
@@ -41,6 +47,7 @@ class GameScoreEntry {
     this.pillLabelKey = 'profile.scores_best_label',
     this.pillIcon = Icons.emoji_events,
     this.suffixKey,
+    this.showPillLabel = true,
   });
 }
 
@@ -234,6 +241,7 @@ class ScoresProvider extends ChangeNotifier {
         titleKey: titleKey,
         levels: levels,
         suffixKey: _scoreSuffixKeys[gameId],
+        showPillLabel: gameId != GameIds.cardMatching,
       ));
     }
     return result;

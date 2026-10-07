@@ -25,6 +25,7 @@ static const String bslSprint = 'bsl_sprint';
   static const String wordSearch = 'word_whirl';
   static const String numberRace = 'number_race';
   static const String zoo = 'zoo';
+  static const String schoolExplorer = 'school_explorer';
 }
 
 /// The result returned by [GameStatsService.recordGameResult].

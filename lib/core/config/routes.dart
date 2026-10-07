@@ -38,6 +38,7 @@ import '../../features/counting_back/screens/counting_back_screen.dart';
 import '../../features/counting_back/providers/counting_back_provider.dart';
 import '../../features/bsl_sprint/screens/bsl_sprint_screen.dart';
 import '../../features/bsl_sprint/providers/bsl_sprint_provider.dart';
+import '../../features/bsl_number_builder/screens/bsl_number_builder_screen.dart';
 import '../../features/clothes_line/screens/clothes_line_screen.dart';
 import '../../features/clothes_line/providers/clothes_line_provider.dart';
 import '../../features/more_or_less/screens/more_or_less_screen.dart';
@@ -54,6 +55,8 @@ import '../../features/word_whirl/providers/word_whirl_provider.dart';
 import '../../features/word_whirl/screens/word_whirl_screen.dart';
 import '../../features/number_race/providers/number_race_provider.dart';
 import '../../features/number_race/screens/number_race_screen.dart';
+import '../../features/school_explorer/providers/school_explorer_provider.dart';
+import '../../features/school_explorer/screens/school_explorer_screen.dart';
 import '../../features/zoo/models/enclosure_level_config.dart';
 import '../../features/zoo/providers/enclosure_walk_provider.dart';
 import '../../features/zoo/models/zoo_animal_zone.dart';
@@ -144,8 +147,11 @@ class AppRoutes {
   /// Counting back game
   static const String countingBackGame = '/games/counting-back';
 
-/// BSL Sprint endless-runner game
+  /// BSL Sprint endless-runner game
   static const String bslSprint = '/games/bsl-sprint';
+
+  /// BSL Number Builder till game (landscape only)
+  static const String bslNumberBuilder = '/games/bsl-number-builder';
 
   /// Clothes Line colour-learning game
   static const String clothesLine = '/games/clothes-line';
@@ -184,6 +190,9 @@ class AppRoutes {
 
   /// Number Race game
   static const String numberRace = '/games/number-race';
+
+  /// School Explorer (isometric classroom, hall, playground, canteen)
+  static const String schoolExplorer = '/games/school-explorer';
 
   /// Animal collection screen (Letter Bingo earned animals)
   static const String animalCollection = '/games/letter-bingo/collection';
@@ -261,8 +270,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       final cardMatchingLevel = cardMatchingArgs is Map
           ? int.tryParse(cardMatchingArgs['level'] ?? '')
           : null;
-      final cardMatchingTrailNode =
-          cardMatchingArgs is Map ? cardMatchingArgs['trailNode'] as String? : null;
+      final cardMatchingTrailNode = cardMatchingArgs is Map
+          ? cardMatchingArgs['trailNode'] as String?
+          : null;
       return MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider(
           create: (context) => CardGameProvider(
@@ -287,8 +297,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       final bubblePopLevel = bubblePopArgs is Map
           ? int.tryParse(bubblePopArgs['level'] ?? '')
           : null;
-      final bubblePopTrailNode =
-          bubblePopArgs is Map ? bubblePopArgs['trailNode'] as String? : null;
+      final bubblePopTrailNode = bubblePopArgs is Map
+          ? bubblePopArgs['trailNode'] as String?
+          : null;
       return MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider(
           create: (context) => BubblePopProvider(
@@ -318,8 +329,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       final vowelHandLocale = vowelHandArgs is Map
           ? (vowelHandArgs['locale'] ?? 'en')
           : (vowelHandArgs as String? ?? 'en');
-      final vowelHandTrailNode =
-          vowelHandArgs is Map ? vowelHandArgs['trailNode'] as String? : null;
+      final vowelHandTrailNode = vowelHandArgs is Map
+          ? vowelHandArgs['trailNode'] as String?
+          : null;
       return MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider(
           create: (context) => VowelHandProvider(
@@ -464,7 +476,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
-
     case AppRoutes.countingGame:
       final countingGameArgs = settings.arguments;
       final countingGameLocale = countingGameArgs is Map
@@ -515,6 +526,13 @@ Route<dynamic> generateRoute(RouteSettings settings) {
           create: (_) => BslSprintProvider(locale: bslSprintLocale),
           child: BslSprintScreen(locale: bslSprintLocale),
         ),
+        settings: settings,
+      );
+
+    case AppRoutes.bslNumberBuilder:
+      final bslNumberBuilderLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => BslNumberBuilderScreen(locale: bslNumberBuilderLocale),
         settings: settings,
       );
 
@@ -593,8 +611,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     case AppRoutes.zooMap:
-      final zooMapArgs =
-          settings.arguments as Map<String, String>? ?? const {};
+      final zooMapArgs = settings.arguments as Map<String, String>? ?? const {};
       final zooMapTarget = zooMapArgs['building'];
       return MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider(
@@ -602,10 +619,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
             locale: zooMapArgs['locale'] ?? 'en',
             characterId: zooMapArgs['character'] ?? 'abi',
             signSystem: context.read<SettingsProvider>().signSystem,
-            targetBuilding:
-                (zooMapTarget != null && zooMapTarget.isNotEmpty)
-                    ? zooMapTarget
-                    : null,
+            targetBuilding: (zooMapTarget != null && zooMapTarget.isNotEmpty)
+                ? zooMapTarget
+                : null,
             levelNumber: int.tryParse(zooMapArgs['level'] ?? '') ?? 1,
           ),
           child: const ZooScreen(),
@@ -618,9 +634,11 @@ Route<dynamic> generateRoute(RouteSettings settings) {
           settings.arguments as Map<String, String>? ?? const {};
       final zooBuildingName = zooBuildingArgs['building'] ?? 'aquarium';
       final zooBuildingLocale = zooBuildingArgs['locale'] ?? 'en';
-      final zooBuildingSigns =
-          SignSystem.fromPrefsString(zooBuildingArgs['signSystem']);
-      final zooBuildingLevel = int.tryParse(zooBuildingArgs['level'] ?? '') ?? 1;
+      final zooBuildingSigns = SignSystem.fromPrefsString(
+        zooBuildingArgs['signSystem'],
+      );
+      final zooBuildingLevel =
+          int.tryParse(zooBuildingArgs['level'] ?? '') ?? 1;
       // Buildings with a walk-level config open the side-scrolling
       // enclosure walk; the rest keep the coming-soon placeholder.
       final walkConfig = EnclosureLevelConfig.forBuilding(zooBuildingName);
@@ -632,6 +650,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
               locale: zooBuildingLocale,
               signSystem: zooBuildingSigns,
               levelNumber: zooBuildingLevel,
+              characterId: zooBuildingArgs['character'] ?? 'abi',
             ),
             child: const EnclosureWalkScreen(),
           ),
@@ -672,6 +691,19 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (_) => ChangeNotifierProvider(
           create: (_) => NumberRaceProvider(locale: numberRaceLocale),
           child: NumberRaceScreen(locale: numberRaceLocale),
+        ),
+        settings: settings,
+      );
+
+    case AppRoutes.schoolExplorer:
+      final schoolExplorerLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => SchoolExplorerProvider(
+            locale: schoolExplorerLocale,
+            signSystem: context.read<SettingsProvider>().signSystem,
+          ),
+          child: const SchoolExplorerScreen(),
         ),
         settings: settings,
       );
