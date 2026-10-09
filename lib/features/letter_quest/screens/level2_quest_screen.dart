@@ -63,6 +63,9 @@ class _Level2QuestScreenState extends State<Level2QuestScreen> {
                       AppRoutes.letterQuestLevel2,
                       arguments: widget.locale),
                   onChangeLevel: () => Navigator.of(context).pop(),
+                  onNextLevel: () => Navigator.of(context).pushReplacementNamed(
+                      AppRoutes.letterQuestHouse,
+                      arguments: widget.locale),
                   extraContent: done.isEmpty
                       ? null
                       : Column(

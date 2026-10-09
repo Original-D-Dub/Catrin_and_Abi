@@ -12,6 +12,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../shared/services/audio_service.dart';
 import '../providers/letter_quest_provider.dart';
 import 'base_letter_quest_game.dart';
+import 'player_component.dart';
 
 /// A BSL letter sign collectible placed on the map.
 ///
@@ -42,8 +43,20 @@ class LetterCollectible extends PositionComponent
   /// Whether this letter is temporarily hidden (wrong letter cooldown)
   bool _hidden = false;
 
-  /// Flame timer for wrong-letter respawn (10 seconds)
+  /// Flame timer for wrong-letter respawn (8 seconds)
   Timer? _respawnTimer;
+
+  /// Seconds since mount; contact within [_spawnOverlapWindow] counts as the
+  /// letter having spawned under the player.
+  double _age = 0;
+  static const double _spawnOverlapWindow = 0.5;
+
+  /// Whether the player is currently overlapping this letter.
+  bool _touchingPlayer = false;
+
+  /// True while the letter appeared under the player (on spawn or respawn).
+  /// It can't be collected until the player has stepped off it.
+  bool _blockedUntilSeparated = false;
 
   /// Fill paint for the white circle background
   late final Paint _circleFillPaint;
@@ -122,7 +135,25 @@ class LetterCollectible extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
+    _age += dt;
     _respawnTimer?.update(dt);
+  }
+
+  @override
+  void onCollisionStart(
+      Set<Vector2> intersectionPoints, PositionComponent other) {
+    super.onCollisionStart(intersectionPoints, other);
+    if (other is! PlayerComponent) return;
+    _touchingPlayer = true;
+    if (_age < _spawnOverlapWindow) _blockedUntilSeparated = true;
+  }
+
+  @override
+  void onCollisionEnd(PositionComponent other) {
+    super.onCollisionEnd(other);
+    if (other is! PlayerComponent) return;
+    _touchingPlayer = false;
+    _blockedUntilSeparated = false;
   }
 
   /// Called when the player makes contact with this collectible.
@@ -130,7 +161,7 @@ class LetterCollectible extends PositionComponent
   /// Checks with the provider whether this is the correct next letter.
   /// Handles correct/wrong feedback with sound and haptics.
   void onPlayerContact(LetterQuestProvider provider) {
-    if (_collected || _hidden) return;
+    if (_collected || _hidden || _blockedUntilSeparated) return;
     if (provider.phase != LetterQuestPhase.playing) return;
 
     final isCorrect = provider.tryCollectLetter(letter);
@@ -163,7 +194,7 @@ class LetterCollectible extends PositionComponent
 
   /// Handles wrong letter collection.
   ///
-  /// Plays descending buzz, medium haptic, fades out, then reappears after 10s.
+  /// Plays descending buzz, medium haptic, fades out, then reappears after 8s.
   void _handleWrongCollection() {
     _hidden = true;
 
@@ -182,9 +213,9 @@ class LetterCollectible extends PositionComponent
       0.0,
       EffectController(duration: 0.3),
       onComplete: () {
-        // Start 10-second respawn timer
+        // Start 8-second respawn timer
         _respawnTimer = Timer(
-          10.0,
+          8.0,
           onTick: _respawn,
         );
       },
@@ -195,6 +226,7 @@ class LetterCollectible extends PositionComponent
   void _respawn() {
     _hidden = false;
     _respawnTimer = null;
+    _blockedUntilSeparated = _touchingPlayer;
 
     // Fade back in
     add(OpacityEffect.to(

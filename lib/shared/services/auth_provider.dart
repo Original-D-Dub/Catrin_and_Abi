@@ -10,17 +10,66 @@ import '../../core/config/app_config.dart';
 /// can access the current user without importing Supabase directly.
 class AuthProvider extends ChangeNotifier {
   /// Localization key set when a signed-in account is rejected by
-  /// [_enforceHwbOnlyIfNeeded] because it isn't a Hwb account — resolve with
-  /// an [AppLocalizations] at the display site, since this provider has no
+  /// [_enforceHwbOnlyIfNeeded] because it isn't a Hwb account, or when a Hwb
+  /// sign-in fails after returning from the browser — resolve with an
+  /// [AppLocalizations] at the display site, since this provider has no
   /// locale/context of its own. Cleared on the next successful sign-in.
   String? hwbRejectionMessage;
 
+  /// True between launching a Hwb browser flow and it completing, so that
+  /// unrelated auth errors (e.g. a token refresh failing) aren't reported as
+  /// a failed Hwb sign-in.
+  bool _hwbFlowPending = false;
+
+  static const String _hwbRedirect = 'catrinabi://login-callback';
+  static const String _hwbScopes = 'email openid profile';
+
   AuthProvider() {
-    // Listen to auth state changes (sign-in, sign-out, token refresh)
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      _enforceHwbOnlyIfNeeded(data.session?.user);
-      notifyListeners();
-    });
+    // Listen to auth state changes (sign-in, sign-out, token refresh).
+    // Errors from the OAuth deep link (e.g. a failed Hwb link) arrive on the
+    // same stream.
+    Supabase.instance.client.auth.onAuthStateChange.listen(
+      (data) {
+        if (data.event == AuthChangeEvent.signedIn ||
+            data.event == AuthChangeEvent.userUpdated) {
+          _hwbFlowPending = false;
+        }
+        _enforceHwbOnlyIfNeeded(data.session?.user);
+        notifyListeners();
+      },
+      onError: _onAuthStreamError,
+    );
+  }
+
+  /// Handles errors from the auth stream. If an anonymous player tried to
+  /// link a Hwb account that already belongs to another player (e.g. they
+  /// signed in on a different device first), falls back to a normal Hwb
+  /// sign-in to that existing account. This session's anonymous progress is
+  /// not merged in that case.
+  void _onAuthStreamError(Object error) {
+    if (error is AuthException && _isIdentityAlreadyLinked(error)) {
+      _startHwbSignIn().catchError((Object e) {
+        debugPrint('Hwb sign-in fallback error: $e');
+        _reportHwbFailure();
+      });
+      return;
+    }
+    debugPrint('Auth stream error: $error');
+    if (_hwbFlowPending) _reportHwbFailure();
+  }
+
+  void _reportHwbFailure() {
+    _hwbFlowPending = false;
+    hwbRejectionMessage = 'auth.hwb_sign_in_failed';
+    notifyListeners();
+  }
+
+  /// Errors parsed from the redirect URL carry the `error_code` value in
+  /// [AuthException.statusCode]; errors from API calls carry it in
+  /// [AuthException.code]. Check both.
+  bool _isIdentityAlreadyLinked(AuthException error) {
+    const code = 'identity_already_exists';
+    return error.code == code || error.statusCode == code;
   }
 
   /// When [AppConfig.hwbOnlyLogin] is true, signs out any non-anonymous
@@ -30,12 +79,22 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _enforceHwbOnlyIfNeeded(User? user) async {
     if (!AppConfig.hwbOnlyLogin) return;
     if (user == null || user.isAnonymous) return;
-    if (_isHwbEmail(user.email)) {
+    if (_accountEmails(user).any(_isHwbEmail)) {
       hwbRejectionMessage = null;
       return;
     }
     hwbRejectionMessage = 'auth.hwb_rejection_message';
     await Supabase.instance.client.auth.signOut();
+  }
+
+  /// The account email plus any email on its linked identities. An
+  /// anonymous account converted by linking a Hwb identity may carry the
+  /// address only on that identity.
+  Iterable<String?> _accountEmails(User user) sync* {
+    yield user.email;
+    for (final identity in user.identities ?? const <UserIdentity>[]) {
+      yield identity.identityData?['email'] as String?;
+    }
   }
 
   bool _isHwbEmail(String? email) {
@@ -114,13 +173,40 @@ class AuthProvider extends ChangeNotifier {
   /// 'catrinabi://login-callback' deep link, at which point
   /// [_enforceHwbOnlyIfNeeded] verifies it's actually a Hwb account.
   ///
-  /// Requires the Azure provider to be configured in the Supabase dashboard
-  /// (client ID/secret from an Entra app registration) before this will work.
-  Future<void> signInWithHwb() {
+  /// When the current player is anonymous, the Hwb identity is linked to
+  /// their existing account instead, so the same user ID — and all stats
+  /// and collections saved against it — carry over. If that Hwb account is
+  /// already in use, [_onAuthStreamError] falls back to a plain sign-in.
+  ///
+  /// Requires, in the Supabase dashboard: the Azure provider configured
+  /// (client ID/secret from an Entra app registration) and, for linking,
+  /// Authentication → "Allow manual linking" enabled.
+  Future<void> signInWithHwb() async {
+    hwbRejectionMessage = null;
+    _hwbFlowPending = true;
+    try {
+      if (currentUser?.isAnonymous ?? false) {
+        await Supabase.instance.client.auth.linkIdentity(
+          OAuthProvider.azure,
+          redirectTo: _hwbRedirect,
+          scopes: _hwbScopes,
+        );
+      } else {
+        await _startHwbSignIn();
+      }
+    } catch (_) {
+      // Browser never opened — the caller reports this failure itself.
+      _hwbFlowPending = false;
+      rethrow;
+    }
+  }
+
+  Future<void> _startHwbSignIn() {
+    _hwbFlowPending = true;
     return Supabase.instance.client.auth.signInWithOAuth(
       OAuthProvider.azure,
-      redirectTo: 'catrinabi://login-callback',
-      scopes: 'email openid profile',
+      redirectTo: _hwbRedirect,
+      scopes: _hwbScopes,
     );
   }
 

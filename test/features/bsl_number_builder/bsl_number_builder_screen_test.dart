@@ -76,7 +76,7 @@ void main() {
 
     final tillRect = tester.getRect(find.byType(BslTill));
     final belt = tester.getRect(find.byType(ConveyorBelt));
-    expect(belt.left, 20);
+    expect(belt.left, 0);
     expect(belt.right, greaterThan(tillRect.left));
 
     final counter = tester.getRect(find.byType(CoinCounter));

@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/config/routes.dart';
 import '../game/bungalow_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
@@ -37,10 +38,15 @@ class _BungalowQuestScreenState extends State<BungalowQuestScreen> {
           },
           'victory': (BuildContext context, BungalowQuestGame game) {
             return VictoryOverlay(
+              locale: widget.locale,
               onPlayAgain: () {
                 game.overlays.remove('victory');
                 game.handlePlayAgain();
               },
+              onNextLevel: () => Navigator.of(context).pushReplacementNamed(
+                AppRoutes.letterQuestLevel4,
+                arguments: widget.locale,
+              ),
               onHome: () => Navigator.of(context).pop(),
             );
           },

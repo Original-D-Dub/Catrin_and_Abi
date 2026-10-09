@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/config/routes.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/button.dart';
 import '../game/house_quest_game.dart';
@@ -53,11 +54,16 @@ class _HouseQuestScreenState extends State<HouseQuestScreen> {
           },
           'victory': (BuildContext context, HouseQuestGame game) {
             return VictoryOverlay(
+              locale: widget.locale,
               onPlayAgain: () {
                 game.overlays.remove('victory');
                 provider.resetGame();
                 game.roomManager.clearAndReplaceLetters();
               },
+              onNextLevel: () => Navigator.of(context).pushReplacementNamed(
+                AppRoutes.letterQuestLevel3,
+                arguments: widget.locale,
+              ),
               onHome: () => Navigator.of(context).pop(),
             );
           },

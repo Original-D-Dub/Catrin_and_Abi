@@ -114,6 +114,9 @@ flutter:
     - assets/games/letter_quest/bungalow/livingroom/
     - assets/images/make10_number_line/
     - assets/games/bsl_sprint/
+    - assets/games/bsl_number_builder/all/
+    - assets/games/bsl_number_builder/english/
+    - assets/games/bsl_number_builder/cymraeg/
     - assets/games/bsl_sprint/Abi/
     - assets/games/bsl_sprint/Catrin/
     - assets/games/bsl_sprint/Harley/

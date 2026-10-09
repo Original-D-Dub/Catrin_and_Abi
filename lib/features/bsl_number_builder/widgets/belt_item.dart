@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-/// A placeholder item (a cardboard box) with a [PriceTag] tied by a string
+/// A grocery item (an [image]) with a [PriceTag] tied by a string
 /// to its top right corner, trailing behind it as it rides the belt.
 ///
 /// [boxSize] is the box's side length; the whole widget is
@@ -10,12 +10,14 @@ import 'package:flutter/material.dart';
 /// edge on the widget's bottom edge, so callers can position it.
 class BeltItem extends StatelessWidget {
   final double boxSize;
+  final String image;
   final int price;
   final bool tagShowsSign;
 
   const BeltItem({
     super.key,
     required this.boxSize,
+    required this.image,
     required this.price,
     required this.tagShowsSign,
   });
@@ -30,6 +32,9 @@ class BeltItem extends StatelessWidget {
 
   /// How far the tilted tag's leftmost point overlaps the box's right edge.
   static const double _tagOverlap = 8;
+
+  /// Width of the image canvas relative to [boxSize].
+  static const double _imageScale = 4;
 
   static double _tagWidth(double s) => s * 0.72;
   static double _tagHeight(double s) => s * 0.92;
@@ -83,7 +88,18 @@ class BeltItem extends StatelessWidget {
             top: boxTop,
             width: s,
             height: s,
-            child: const _CardboardBox(),
+            child: OverflowBox(
+              // The artwork sits small in the middle of a 4:3 canvas, so
+              // draw the canvas larger than the item, resting on its base.
+              maxWidth: s * _imageScale,
+              maxHeight: s * _imageScale * 0.75,
+              alignment: const Alignment(0, 0.1),
+              child: Image.asset(
+                image,
+                width: s * _imageScale,
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
           Positioned(
             left: tagLeft,
@@ -149,59 +165,6 @@ class PriceTag extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _CardboardBox extends StatelessWidget {
-  const _CardboardBox();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final s = constraints.maxWidth;
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(s * 0.06),
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFD29D62), Color(0xFFA9733D)],
-            ),
-            border: Border.all(color: const Color(0xFF7E5226), width: s * 0.02),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                offset: Offset(0, s * 0.04),
-                blurRadius: s * 0.05,
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              // Lid seam.
-              Positioned(
-                left: 0,
-                right: 0,
-                top: s * 0.22,
-                height: s * 0.02,
-                child: const ColoredBox(color: Color(0xFF8C5D2C)),
-              ),
-              // Packing tape.
-              Positioned(
-                left: s * 0.4,
-                width: s * 0.2,
-                top: 0,
-                bottom: 0,
-                child: ColoredBox(
-                  color: const Color(0xFFE8C48E).withValues(alpha: 0.85),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

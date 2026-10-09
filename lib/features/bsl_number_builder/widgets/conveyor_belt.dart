@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 /// A horizontal conveyor belt's brushed-steel front rail, filling whatever
 /// box it's given. The rail is skewed into a parallelogram, its bottom edge
-/// [railSkew] right of its top. The belt bed above the rail is the dark wall behind it
+/// [railSkew] right of its top; its left end is cut vertical. The belt bed above the rail is the dark wall behind it
 /// (see [FactoryBackground]), so items ride on that.
 class ConveyorBelt extends StatelessWidget {
   const ConveyorBelt({super.key});
@@ -33,12 +33,16 @@ class _ConveyorBeltPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
+    // Start the rail [railSkew] left of the box and clip to it, so the
+    // skew's slanted left edge is cut off and the rail ends in a vertical
+    // edge at the box's left side.
+    canvas.clipRect(Offset.zero & size);
     _paintRail(
       canvas,
       Rect.fromLTWH(
-        0,
+        -ConveyorBelt.railSkew,
         h * ConveyorBelt.railTop,
-        w,
+        w + ConveyorBelt.railSkew,
         h * (0.97 - ConveyorBelt.railTop),
       ),
       const [

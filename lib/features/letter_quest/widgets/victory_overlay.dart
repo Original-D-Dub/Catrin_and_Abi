@@ -5,34 +5,23 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../shared/widgets/button.dart';
+import '../../../shared/widgets/game_success_overlay.dart';
 import '../providers/letter_quest_provider.dart';
 
-/// Full-screen victory overlay shown when all 5 words are collected.
+/// Victory overlay shown when all 5 words are collected.
 ///
-/// Displays:
-/// - "Well Done!" title
-/// - All 5 completed words with their thumbnail images
-/// - "Play Again" and "Home" action buttons
-/// - Optional "Congratulations Level 4 unlocked" message with
-///   "Play Level 4" button (shown only on Level 3 via [onPlayLevel4])
-///
-/// Follows the styling pattern from the existing confetti_overlay
-/// and vowel_hand finished overlay.
+/// Wraps the shared [GameSuccessOverlay]: "Well Done!" heading,
+/// "You collected all the words!" in the score slot, the completed word list
+/// as extra content, and the standard Play Again button and back arrow.
 class VictoryOverlay extends StatelessWidget {
   /// Callback when "Play Again" is tapped
   final VoidCallback onPlayAgain;
 
-  /// Callback when "Home" is tapped
+  /// Callback when the back arrow is tapped
   final VoidCallback onHome;
 
-  /// Optional callback when "Play Level 4" is tapped.
-  /// When non-null, the unlock message and button are shown.
-  final VoidCallback? onPlayLevel4;
-
-  /// Optional widget shown after the word list (e.g. sign-in banner)
-  final Widget? signInBanner;
+  /// Optional callback for the standard "Next Level" button.
+  final VoidCallback? onNextLevel;
 
   /// UI language for overlay text ('en' or 'cy').
   final String locale;
@@ -41,8 +30,7 @@ class VictoryOverlay extends StatelessWidget {
     super.key,
     required this.onPlayAgain,
     required this.onHome,
-    this.onPlayLevel4,
-    this.signInBanner,
+    this.onNextLevel,
     this.locale = 'en',
   });
 
@@ -52,119 +40,24 @@ class VictoryOverlay extends StatelessWidget {
 
     return Consumer<LetterQuestProvider>(
       builder: (context, provider, _) {
-        return Container(
-          color: Colors.black.withValues(alpha: 0.6),
-          child: Center(
-            child: Container(
-              margin: const EdgeInsets.all(AppSizes.spacingLarge),
-              padding: const EdgeInsets.all(AppSizes.paddingLarge),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(
-                  AppSizes.borderRadiusLarge,
+        return GameSuccessOverlay(
+          locale: locale,
+          onPlayAgain: onPlayAgain,
+          onChangeLevel: onHome,
+          onNextLevel: onNextLevel,
+          scoreStyle: SuccessScoreStyle.custom,
+          customScoreLine: localizer('letter_quest.victory_subtitle'),
+          extraContent: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final word in provider.words)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppSizes.spacingSmall,
+                  ),
+                  child: CompletedWordRow(word: word.word, vowel: word.vowel),
                 ),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Trophy icon
-                    const Icon(
-                      Icons.emoji_events,
-                      color: AppColors.connectorGold,
-                      size: 64,
-                    ),
-                    const SizedBox(height: AppSizes.spacingSmall),
-
-                    // Title
-                    Text(
-                      localizer('general.welldone'),
-                      style: AppTheme.title.copyWith(
-                        fontSize: AppSizes.fontSizeHeading,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.spacingSmall),
-
-                    // Subtitle
-                    Text(
-                      localizer('letter_quest.victory_subtitle'),
-                      style: const TextStyle(
-                        fontSize: AppSizes.fontSizeBody,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.spacingLarge),
-
-                    // All 5 completed words
-                    ...provider.words.map((word) => Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: AppSizes.spacingSmall,
-                          ),
-                          child: CompletedWordRow(
-                            word: word.word,
-                            vowel: word.vowel,
-                          ),
-                        )),
-
-                    if (signInBanner != null) ...[
-                      const SizedBox(height: AppSizes.spacingMedium),
-                      signInBanner!,
-                    ],
-                    const SizedBox(height: AppSizes.spacingLarge),
-
-                    // Action buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        // Play Again
-                        PrimaryButton(
-                          label: localizer('general.play_again'),
-                          icon: Icons.replay,
-                          onPressed: onPlayAgain,
-                        ),
-
-                        // Home
-                        TertiaryButton(
-                          label: localizer('general.home'),
-                          icon: Icons.home,
-                          onPressed: onHome,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingMedium,
-                            vertical: AppSizes.paddingSmall,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Level 4 unlock section (only shown on Level 3)
-                    if (onPlayLevel4 != null) ...[
-                      const SizedBox(height: AppSizes.spacingLarge),
-
-                      // Unlock message
-                      Text(
-                        localizer('letter_quest.level4_unlocked'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: AppSizes.fontSizeBody,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.success,
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.spacingMedium),
-
-                      // Play Level 4 button
-                      PrimaryButton(
-                        label: localizer('letter_quest.play_level4'),
-                        icon: Icons.park,
-                        expanded: true,
-                        onPressed: onPlayLevel4,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+            ],
           ),
         );
       },

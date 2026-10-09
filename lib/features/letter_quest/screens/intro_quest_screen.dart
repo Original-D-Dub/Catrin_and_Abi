@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/config/routes.dart';
 import '../../../shared/services/audio_service.dart';
 
 import '../game/intro_quest_game.dart';
@@ -62,6 +63,10 @@ class _IntroQuestScreenState extends State<IntroQuestScreen> {
                 provider.resetGame();
                 game.roomManager.clearAndReplaceLetters();
               },
+              onNextLevel: () => Navigator.of(context).pushReplacementNamed(
+                AppRoutes.letterQuestLevel2,
+                arguments: widget.locale,
+              ),
               onHome: () {
                 Navigator.of(context).pop();
               },

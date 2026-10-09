@@ -729,6 +729,7 @@ const Map<String, String> translationsCy = {
   // -------------------------
   // Auth
   // -------------------------
+  'auth.hwb_sign_in_failed': 'Ni orffennodd mewngofnodi Hwb. Rhowch gynnig arall arni.',
   'auth.hwb_rejection_message': "Mewngofnodwch gyda'ch cyfrif Hwb",
 
   // -------------------------

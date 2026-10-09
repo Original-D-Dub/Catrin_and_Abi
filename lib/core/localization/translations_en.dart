@@ -735,6 +735,7 @@
   // -------------------------
   // Auth
   // -------------------------
+  'auth.hwb_sign_in_failed': "Hwb sign-in didn't finish. Please try again.",
   'auth.hwb_rejection_message': 'Please sign in with your Hwb account.',
 
   // -------------------------

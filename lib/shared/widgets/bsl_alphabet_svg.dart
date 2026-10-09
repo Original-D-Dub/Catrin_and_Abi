@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/asset_paths.dart';
 import '../../core/constants/game_filters.dart';
+import '../services/sign_svg_styler.dart';
 
 /// Renders an alphabet sign SVG with styles applied as inline attributes.
 ///
@@ -75,28 +75,9 @@ class _BslAlphabetSvgState extends State<BslAlphabetSvg> {
         ? AssetPaths.welshLetterSvg(letter)
         : AssetPaths.bslLetterSvg(letter);
     var svg = await rootBundle.loadString(path);
-    svg = _applyStyles(svg, fillColor, strokeColor);
+    svg = SignSvgStyler.apply(svg,
+        fillColor: fillColor, strokeColor: strokeColor);
     _cache[key] = svg;
-    return svg;
-  }
-
-  static String _applyStyles(
-      String svg, String? fillColor, String? strokeColor) {
-    final fill = fillColor ?? AppColors.svgSkin;
-    final stroke = strokeColor ?? AppColors.svgStroke;
-
-    svg = svg.replaceAll(
-      RegExp(r'\bclass="cls-1"'),
-      'fill="$fill" stroke="$stroke" stroke-linecap="round" stroke-linejoin="round"',
-    );
-    svg = svg.replaceAll(
-      RegExp(r'\bclass="cls-2"'),
-      'fill="none" stroke="$stroke" stroke-linecap="round" stroke-linejoin="round"',
-    );
-    svg = svg.replaceAll(
-      RegExp(r'\bclass="dash"'),
-      'fill="none" stroke="$stroke" stroke-dasharray="2 2"',
-    );
     return svg;
   }
 

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../../core/config/routes.dart';
 import '../../../shared/services/audio_service.dart';
-import '../../../shared/widgets/sign_in_banner_button.dart';
 import '../game/letter_quest_game.dart';
 import '../providers/letter_quest_provider.dart';
 import '../widgets/game_hud.dart';
@@ -65,13 +64,12 @@ class _LetterQuestScreenState extends State<LetterQuestScreen> {
               onHome: () {
                 Navigator.of(context).pop();
               },
-              onPlayLevel4: () {
+              onNextLevel: () {
                 Navigator.of(context).pushReplacementNamed(
-                  AppRoutes.letterQuestLevel4,
+                  AppRoutes.letterQuestBungalow,
                   arguments: widget.locale,
                 );
               },
-              signInBanner: const SignInBannerButton(),
             );
           },
         },

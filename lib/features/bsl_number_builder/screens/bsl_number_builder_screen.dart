@@ -12,6 +12,7 @@ import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/level_select_screen.dart';
 import '../../../shared/widgets/rotate_device_overlay.dart';
+import '../models/belt_item_images.dart';
 import '../models/number_builder_game.dart';
 import '../models/number_builder_level.dart';
 import '../widgets/belt_item.dart';
@@ -58,7 +59,7 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
   static const double _itemRestY = 0.4;
 
   /// Gap between the screen's left edge and the belt's.
-  static const double _beltLeft = 20;
+  static const double _beltLeft = 0;
 
   /// Most of the screen width the till may take on squarer (tablet)
   /// screens.
@@ -83,6 +84,10 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
   late final AnimationController _move;
   _ItemPhase _phase = _ItemPhase.arriving;
   int? _display;
+
+  late final _itemImages = beltItemImages(widget.locale);
+  late final _imageRandom = widget.random ?? Random();
+  String? _itemImage;
   Timer? _tickTimer;
 
   /// Counts down a timed level, once its first item is ready.
@@ -126,7 +131,16 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
     _bankedCoins = 0;
     _burst = null;
     _game.nextItem();
+    _pickImage();
     _arrive();
+  }
+
+  void _pickImage() {
+    _itemImage = pickBeltItemImage(
+      _itemImages,
+      _imageRandom,
+      previous: _itemImage,
+    );
   }
 
   void _showLevelSelect() {
@@ -189,6 +203,7 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
     _move.forward(from: 0).then((_) {
       if (!mounted || session != _session || _levelComplete) return;
       _game.nextItem();
+      _pickImage();
       _arrive();
     });
   }
@@ -409,6 +424,7 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
               ),
               child: BeltItem(
                 boxSize: boxSize,
+                image: _itemImage!,
                 price: _game.price!,
                 tagShowsSign: _game.tagShowsSign,
               ),

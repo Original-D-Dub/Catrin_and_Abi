@@ -3,6 +3,7 @@ import 'package:flame/game.dart';
 import 'package:flame_svg/flame_svg.dart';
 
 import '../../../core/constants/game_filters.dart';
+import '../../../shared/services/sign_svg_styler.dart';
 import '../providers/letter_quest_provider.dart';
 
 /// Abstract base class shared by all Letter Quest levels.
@@ -59,7 +60,7 @@ abstract class BaseLetterQuestGame extends FlameGame
     final strings = <String, String>{};
     for (final key in keys) {
       var svgString = await Flame.assets.readFile('$dir/$key.svg');
-      strings[key] = _applyInlineStyles(svgString);
+      strings[key] = SignSvgStyler.apply(svgString);
     }
     final entries = await Future.wait(
       strings.entries.map((e) async =>
@@ -68,21 +69,5 @@ abstract class BaseLetterQuestGame extends FlameGame
     for (final entry in entries) {
       signSvgs[entry.key] = entry.value;
     }
-  }
-
-  static String _applyInlineStyles(String svg) {
-    svg = svg.replaceAll(
-      RegExp(r'\bclass="cls-1"'),
-      'fill="#ffd8bf" stroke="#000" stroke-linecap="round" stroke-linejoin="round"',
-    );
-    svg = svg.replaceAll(
-      RegExp(r'\bclass="cls-2"'),
-      'fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round"',
-    );
-    svg = svg.replaceAll(
-      RegExp(r'\bclass="dash"'),
-      'fill="none" stroke="#000" stroke-dasharray="2 2"',
-    );
-    return svg;
   }
 }
