@@ -30,6 +30,7 @@ class ObjectDetails {
   static final Map<String, DetailPainter> _painters = {
     'water_fountain': _waterFountain,
     'piano': _piano,
+    'bookshelf': _bookshelf,
   };
 
   static DetailPainter? painterFor(SchoolObject object) =>
@@ -291,6 +292,167 @@ class ObjectDetails {
       bc + const Offset(0, 0.3),
       2.6,
       _o(const Color(0xFFFFFFFF), opacity),
+    );
+  }
+
+  // ── Bookshelf ─────────────────────────────────────────────────────────────
+  //
+  // Matches the single box in SchoolLayouts.classroom, standing against the
+  // x == 0 wall with its open front facing +x. Close up, it's rebuilt as a
+  // real open bookcase — back panel, end panels, shelf boards and a row of
+  // books standing on each shelf — painted over the flat box, which it
+  // covers completely once fully faded in.
+
+  static const List<Color> _bookColours = [
+    Color(0xFFE0524B),
+    Color(0xFF4A90D9),
+    Color(0xFF5DB85C),
+    Color(0xFFF2C94C),
+    Color(0xFF9B6CC9),
+    Color(0xFFF2994A),
+  ];
+
+  static void _bookshelf(
+    Canvas canvas,
+    SchoolObject object,
+    double opacity,
+    double time,
+  ) {
+    final s = object.parts.first;
+    final x0 = s.x, y0 = s.y, z0 = s.z;
+    final x1 = s.x + s.w, y1 = s.y + s.d, z1 = s.z + s.h;
+    const panel = 0.05, plinth = 0.1, board = 0.05;
+    final wood = s.color;
+    final inside = IsoPainter.darken(wood, 0.3);
+
+    // Fade the whole bookcase as one layer, so overlapping boards and
+    // books don't show through each other while it's half faded in.
+    canvas.saveLayer(
+      IsoPainter.bounds(object.parts).inflate(6),
+      Paint()..color = Color.fromRGBO(0, 0, 0, opacity),
+    );
+
+    // Back to front: back panel, far end panel, then each shelf's board
+    // and its books from the bottom up, then the top and near end panel.
+    _shelfBox(canvas, x0, y0, z0, x0 + panel, y1, z1, inside);
+    _shelfBox(canvas, x0, y0, z0, x1, y0 + panel, z1, wood);
+    final iy0 = y0 + panel, iy1 = y1 - panel;
+    final innerTop = z1 - board;
+    const shelves = 3;
+    final bay = (innerTop - (z0 + plinth)) / shelves;
+    for (var shelf = 0; shelf < shelves; shelf++) {
+      final floor = z0 + plinth + shelf * bay;
+      final boardBottom = shelf == 0 ? z0 : floor - board;
+      _shelfBox(canvas, x0, iy0, boardBottom, x1, iy1, floor, wood);
+      _books(canvas, shelf, x0 + panel + 0.04, x1 - 0.08, iy0, iy1, floor, bay);
+    }
+    _shelfBox(canvas, x0, iy0, innerTop, x1, iy1, z1, wood);
+    _shelfBox(canvas, x0, iy1, z0, x1, y1, z1, wood);
+
+    canvas.restore();
+  }
+
+  /// One row of books standing on a shelf at height [floor], with spines
+  /// facing +x. Widths, heights and colours vary by position (fixed, so
+  /// the shelf looks the same every visit), with the odd gap.
+  static void _books(
+    Canvas canvas,
+    int shelf,
+    double back,
+    double front,
+    double y0,
+    double y1,
+    double floor,
+    double bay,
+  ) {
+    var y = y0 + 0.02;
+    var i = shelf * 5;
+    while (true) {
+      final width = 0.07 + (i * 7 % 5) * 0.015;
+      if (y + width > y1 - 0.02) break;
+      final height = bay * (0.62 + (i * 3 % 4) * 0.08);
+      // A shallower book every so often, so the spines don't all line up.
+      final bookFront = i % 4 == 1 ? front - 0.06 : front;
+      final colour = _bookColours[i * 5 % _bookColours.length];
+      _shelfBox(
+        canvas,
+        back,
+        y,
+        floor,
+        bookFront,
+        y + width,
+        floor + height,
+        colour,
+        outline: 0.6,
+      );
+      // A pale label band near the top of the spine.
+      final band = Paint()
+        ..color = IsoPainter.lighten(colour, 0.55)
+        ..strokeWidth = 1.2;
+      final bandZ = floor + height * 0.78;
+      canvas.drawLine(
+        _p(bookFront, y + width * 0.2, bandZ),
+        _p(bookFront, y + width * 0.8, bandZ),
+        band,
+      );
+      y += width + 0.008;
+      if (i % 6 == 4) y += 0.12;
+      i++;
+    }
+  }
+
+  /// A plain box with its three visible faces shaded like
+  /// [IsoPainter.paintPart] but with square corners and a thin outline —
+  /// fine enough for books and shelf boards.
+  static void _shelfBox(
+    Canvas canvas,
+    double x0,
+    double y0,
+    double z0,
+    double x1,
+    double y1,
+    double z1,
+    Color c, {
+    double outline = 0.8,
+  }) {
+    final fill = Paint()..isAntiAlias = true;
+    final left = [
+      _p(x0, y1, z0),
+      _p(x1, y1, z0),
+      _p(x1, y1, z1),
+      _p(x0, y1, z1),
+    ];
+    final right = [
+      _p(x1, y0, z0),
+      _p(x1, y1, z0),
+      _p(x1, y1, z1),
+      _p(x1, y0, z1),
+    ];
+    final top = [
+      _p(x0, y0, z1),
+      _p(x1, y0, z1),
+      _p(x1, y1, z1),
+      _p(x0, y1, z1),
+    ];
+    canvas.drawPath(Path()..addPolygon(left, true), fill..color = c);
+    canvas.drawPath(
+      Path()..addPolygon(right, true),
+      fill..color = IsoPainter.darken(c, 0.16),
+    );
+    canvas.drawPath(
+      Path()..addPolygon(top, true),
+      fill..color = IsoPainter.lighten(c, 0.18),
+    );
+    canvas.drawPath(
+      Path()..addPolygon([
+        _p(x0, y0, z1),
+        _p(x1, y0, z1),
+        _p(x1, y0, z0),
+        _p(x1, y1, z0),
+        _p(x0, y1, z0),
+        _p(x0, y1, z1),
+      ], true),
+      _stroke(IsoPainter.darken(c, 0.5).withValues(alpha: 0.7), outline),
     );
   }
 

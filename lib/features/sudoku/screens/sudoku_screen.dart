@@ -137,7 +137,7 @@ class _SudokuBodyState extends State<_SudokuBody> {
               // ── Background ───────────────────────────────────────────────
               Positioned.fill(
                 child: Image.asset(
-                  'assets/backgrounds/math-background-1080x1920.jpg',
+                  'assets/backgrounds/felt-background.jpg',
                   fit: BoxFit.cover,
                 ),
               ),

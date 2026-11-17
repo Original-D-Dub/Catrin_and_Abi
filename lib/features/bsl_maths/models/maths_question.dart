@@ -44,8 +44,6 @@ class MathsQuestion {
   String toString() => '$operand1 $operatorSymbol $operand2 = $answer';
 }
 
-
-
 /// Generates random maths questions for the BSL maths game.
 ///
 /// Questions are generated based on the configured maximum answer value:
@@ -127,7 +125,7 @@ class MathsQuestionGenerator {
       // Ensure new question differs from the previous one
       if (question != previousQuestion) return question;
     }
-  } 
+  }
 
   /// Generates a random addition question.
   ///
@@ -145,8 +143,10 @@ class MathsQuestionGenerator {
     MathsQuestion? previousQuestion,
   }) {
     // Cap operands at 10 (BSL number assets only exist for 0-10)
-    final maxOperand =
-        (maxAnswer - minOperand).clamp(minOperand, maxAllowedOperand);
+    final maxOperand = (maxAnswer - minOperand).clamp(
+      minOperand,
+      maxAllowedOperand,
+    );
 
     while (true) {
       // Pick first operand: 1 to maxOperand (max 10)
@@ -154,8 +154,7 @@ class MathsQuestionGenerator {
 
       // Calculate maximum second operand to keep sum <= maxAnswer
       // Also cap at 10 since we only have BSL assets for 1-10
-      final maxOperand2 =
-          (maxAnswer - operand1).clamp(0, maxAllowedOperand);
+      final maxOperand2 = (maxAnswer - operand1).clamp(0, maxAllowedOperand);
 
       // Safety check
       if (maxOperand2 < minOperand) continue;

@@ -35,7 +35,7 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: 'https://dczagvdllqhzbiqljzfi.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjemFndmRsbHFoemJpcWxqemZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjEwNTMsImV4cCI6MjA5MTI5NzA1M30.-reWzVGeuc69wVDi9-PeLxjBFhxsGeKJPwjU9I5xV5U',
+    publishableKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjemFndmRsbHFoemJpcWxqemZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjEwNTMsImV4cCI6MjA5MTI5NzA1M30.-reWzVGeuc69wVDi9-PeLxjBFhxsGeKJPwjU9I5xV5U',
     // Keychain (iOS/macOS) / encrypted Keystore-backed (Android) session
     // storage, in place of the SDK's default plain SharedPreferences — the
     // JWT access token, refresh token, and PKCE code verifier stay

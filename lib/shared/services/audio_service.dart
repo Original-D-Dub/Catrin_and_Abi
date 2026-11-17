@@ -75,6 +75,10 @@ class AudioService {
       correctSfx: 'bubble_pop/pop_correct.mp3',
       wrongSfx: 'bubble_pop/pop.mp3',
     ),
+    'bubble_shooter': GameAudioConfig(
+      correctSfx: 'bubble_pop/pop_correct.mp3',
+      wrongSfx: 'bubble_pop/pop.mp3',
+    ),
     'counting_game': GameAudioConfig(
       correctSfx: 'counting_game/correct.wav',
       wrongSfx: 'counting_game/wrong.wav',

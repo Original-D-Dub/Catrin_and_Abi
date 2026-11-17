@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/asset_paths.dart';
 import '../providers/letter_quest_provider.dart';
+import '../../../core/theme/digraph_letter_spacing.dart';
 
 /// Bottom overlay showing the current word with letter tiles.
 ///
@@ -174,9 +175,7 @@ class _LetterTileState extends State<_LetterTile>
       width: _tileSize,
       height: _tileSize,
       decoration: BoxDecoration(
-        color: widget.isCollected
-            ? AppColors.success
-            : Colors.white,
+        color: widget.isCollected ? AppColors.success : Colors.white,
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
         border: Border.all(
           color: widget.isCollected
@@ -189,15 +188,20 @@ class _LetterTileState extends State<_LetterTile>
         child: widget.isCollected
             ? Text(
                 widget.letter.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: AppSizes.fontSizeTitle,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                style: digraphAwareStyle(
+                  widget.letter.toUpperCase(),
+                  TextStyle(
+                    fontFamily: 'OpenDyslexic',
+                    fontSize: AppSizes.fontSizeTitle,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               )
             : Text(
                 widget.letter.toUpperCase(),
                 style: TextStyle(
+                  fontFamily: 'OpenDyslexic',
                   fontSize: AppSizes.fontSizeTitle,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textSecondary.withValues(alpha: 0.2),
@@ -208,10 +212,7 @@ class _LetterTileState extends State<_LetterTile>
 
     // Wrap with scale animation when pulsing
     if (widget.isPulsing) {
-      return ScaleTransition(
-        scale: _scaleAnimation,
-        child: child,
-      );
+      return ScaleTransition(scale: _scaleAnimation, child: child);
     }
 
     return child;

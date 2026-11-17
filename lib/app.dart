@@ -6,6 +6,7 @@ import 'core/config/routes.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/providers/trail_provider.dart';
 import 'features/letter_bingo/providers/bingo_collection_provider.dart';
+import 'features/sports_collection/providers/sports_collection_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
 import 'shared/services/audio_service.dart';
 import 'shared/services/auth_provider.dart';
@@ -38,6 +39,7 @@ class CatrinAbiApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => TrailProvider()),
         ChangeNotifierProvider(create: (_) => BingoCollectionProvider()),
+        ChangeNotifierProvider(create: (_) => SportsCollectionProvider()),
       ],
       child: MaterialApp(
         title: 'Catrin & Abi BSL',

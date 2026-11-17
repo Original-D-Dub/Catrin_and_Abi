@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/auth_provider.dart';
-import '../../../shared/widgets/button.dart';
 import '../../../shared/widgets/cached_asset_image.dart';
-import '../../../shared/widgets/game_header_bar.dart';
+import '../../../shared/widgets/collection_screen.dart';
 import '../models/animal_model.dart';
 import '../models/letter_bingo_level.dart';
 import '../providers/bingo_collection_provider.dart';
@@ -44,9 +42,9 @@ class _AnimalCollectionScreenState extends State<AnimalCollectionScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<BingoCollectionProvider>().preload(
-            signSystem: widget.signSystem,
-            playerId: context.read<AuthProvider>().userId,
-          );
+        signSystem: widget.signSystem,
+        playerId: context.read<AuthProvider>().userId,
+      );
     });
   }
 
@@ -63,10 +61,7 @@ class _AnimalCollectionScreenState extends State<AnimalCollectionScreen> {
           .where(animalsByLetter.containsKey)
           .toList();
     }
-    return List.generate(
-      26,
-      (i) => String.fromCharCode('a'.codeUnitAt(0) + i),
-    );
+    return List.generate(26, (i) => String.fromCharCode('a'.codeUnitAt(0) + i));
   }
 
   @override
@@ -74,293 +69,68 @@ class _AnimalCollectionScreenState extends State<AnimalCollectionScreen> {
     final localizer = AppLocalizations(locale: widget.locale);
     final playerId = context.watch<AuthProvider>().userId;
     final bingoCollection = context.watch<BingoCollectionProvider>();
-    final loading = playerId != null &&
+    final loading =
+        playerId != null &&
         (!bingoCollection.isRewardsLoaded(widget.signSystem) ||
             !bingoCollection.isCollectedLoaded(playerId));
     final animalsByLetter = <String, Animal>{
       for (final animal in bingoCollection.rewardsFor(widget.signSystem))
         animal.letter.toLowerCase(): animal,
     };
-    final collected =
-        playerId == null ? const <String>{} : bingoCollection.collectedLetters;
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(
-                'assets/backgrounds/math-background-1080x1920.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              GameHeaderBar(
-                onBack: () => Navigator.pop(context),
-                scoreLabel: localizer('letter_bingo.cards_label'),
-                scoreValue: '${collected.length}',
-                showLevel: false,
-                centerContent: Center(
-                  child: Text(
-                    localizer('letter_bingo.animals_header'),
-                    style: const TextStyle(
-                      fontFamily: 'Quicksand',
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: loading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: Colors.white))
-                    : Stack(
-                        children: [
-                          LayoutBuilder(
-                      builder: (context, constraints) {
-                        final width = constraints.maxWidth;
-                        final crossAxisCount = width < 374
-                            ? 2
-                            : width < 600
-                                ? 3
-                                : 4;
-                        final gridLetters = _gridLetters(animalsByLetter);
-                        return GridView.builder(
-                          // bottom padding keeps last row above the floating button
-                          padding:
-                              const EdgeInsets.fromLTRB(12, 12, 12, 84),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            mainAxisSpacing: 8,
-                            crossAxisSpacing: 8,
-                          ),
-                          itemCount: gridLetters.length,
-                          itemBuilder: (context, index) {
-                            final letter = gridLetters[index];
-                            final isCollected = collected.contains(letter);
-                            return _AnimalTile(
-                              letter: letter,
-                              animal: isCollected
-                                  ? animalsByLetter[letter]
-                                  : null,
-                              localizer: localizer,
-                            );
-                          },
-                        );
-                      },
-                    ),
-                    Positioned(
-                      bottom: 16,
-                      left: 16,
-                      right: 16,
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 600),
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                  AppSizes.borderRadiusLarge),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black45,
-                                  blurRadius: 12,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: PrimaryButton(
-                              label: localizer('general.play_again'),
-                              icon: Icons.replay,
-                              expanded: true,
-                              onPressed: () {
-                                Navigator.pop(context);
-                                widget.onPlayAgain?.call();
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    final collected = playerId == null
+        ? const <String>{}
+        : bingoCollection.collectedLetters;
+
+    return CollectionScreen(
+      locale: widget.locale,
+      title: localizer('letter_bingo.animals_header'),
+      countLabel: localizer('letter_bingo.cards_label'),
+      loading: loading,
+      onPlayAgain: widget.onPlayAgain,
+      overlayGradient: bingoOverlayGradient,
+      items: [
+        for (final letter in _gridLetters(animalsByLetter))
+          if (collected.contains(letter) && animalsByLetter[letter] != null)
+            CollectionItem(
+              id: letter,
+              name: animalsByLetter[letter]!.name,
+              collected: true,
+              artBuilder: (_) => _AnimalArt(animalsByLetter[letter]!),
+            )
+          else
+            CollectionItem(
+              id: letter,
+              name: letter,
+              collected: false,
+              placeholder: letter,
+              artBuilder: (_) => const SizedBox.shrink(),
+            ),
+      ],
     );
   }
 }
 
-class _AnimalTile extends StatelessWidget {
-  final String letter;
-  final Animal? animal;
-  final AppLocalizations localizer;
+/// An animal's reward picture, falling back to the sign system's
+/// placeholder image and then a paw icon.
+class _AnimalArt extends StatelessWidget {
+  final Animal animal;
 
-  const _AnimalTile({
-    required this.letter,
-    required this.animal,
-    required this.localizer,
-  });
-
-  void _showOverlay(BuildContext context) {
-    showGeneralDialog<void>(
-      context: context,
-      // The barrier only takes a flat colour, so it is left transparent and
-      // the success page's gradient is painted in the transition instead.
-      barrierColor: Colors.transparent,
-      barrierDismissible: true,
-      barrierLabel: localizer('general.close'),
-      transitionDuration: const Duration(milliseconds: 350),
-      transitionBuilder: (context, animation, _, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutBack,
-          reverseCurve: Curves.easeIn,
-        );
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            // Ignores taps so they still reach the barrier and dismiss.
-            Positioned.fill(
-              child: IgnorePointer(
-                child: FadeTransition(
-                  opacity: animation,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(gradient: bingoOverlayGradient),
-                  ),
-                ),
-              ),
-            ),
-            FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(scale: curved, child: child),
-            ),
-          ],
-        );
-      },
-      pageBuilder: (context, _, _) {
-        final width = MediaQuery.of(context).size.width * 0.75;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: SizedBox(
-            width: width,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AspectRatio(
-                    aspectRatio: 1,
-                    child: CachedAssetImage(
-                      url: animal!.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => CachedAssetImage(
-                        url: animal!.placeholderUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
-                          color: const Color(0xFFEEEEEE),
-                          child: const Icon(Icons.pets,
-                              size: 80, color: Colors.grey),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: double.infinity,
-                    height: 64,
-                    color: Colors.white,
-                    child: Center(
-                      child: Text(
-                        animal!.name,
-                        style: const TextStyle(
-                          fontFamily: 'Quicksand',
-                          fontSize: 40,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF002D97),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+  const _AnimalArt(this.animal);
 
   @override
   Widget build(BuildContext context) {
-    final collected = animal != null;
-    final wide = MediaQuery.of(context).size.width > 600;
-    final labelHeight = wide ? 48.0 : 24.0;
-    final labelFontSize = wide ? 28.0 : 14.0;
-    return GestureDetector(
-      onTap: collected ? () => _showOverlay(context) : null,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          color: Colors.white.withValues(alpha: 0.55),
-          child: collected
-              ? Column(
-                  children: [
-                    Expanded(
-                      child: CachedAssetImage(
-                        url: animal!.imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (_, _, _) => CachedAssetImage(
-                          url: animal!.placeholderUrl,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          errorBuilder: (_, _, _) => Container(
-                            color: const Color(0xFFEEEEEE),
-                            child: const Icon(Icons.pets,
-                                size: 40, color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: labelHeight,
-                      width: double.infinity,
-                      child: ColoredBox(
-                        color: Colors.white,
-                        child: Center(
-                          child: Text(
-                            animal!.name,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Quicksand',
-                              fontSize: labelFontSize,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF002D97),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Center(
-                  child: Text(
-                    letter,
-                    style: const TextStyle(
-                      fontFamily: 'ComicRelief',
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF002D97),
-                    ),
-                  ),
-                ),
+    return CachedAssetImage(
+      url: animal.imageUrl,
+      fit: BoxFit.contain,
+      width: double.infinity,
+      semanticLabel: animal.name,
+      errorBuilder: (_, _, _) => CachedAssetImage(
+        url: animal.placeholderUrl,
+        fit: BoxFit.contain,
+        width: double.infinity,
+        errorBuilder: (_, _, _) => Container(
+          color: const Color(0xFFEEEEEE),
+          child: const Icon(Icons.pets, size: 40, color: Colors.grey),
         ),
       ),
     );

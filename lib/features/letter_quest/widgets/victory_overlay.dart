@@ -118,6 +118,7 @@ class CompletedWordRow extends StatelessWidget {
               child: Text(
                 word[i].toUpperCase(),
                 style: const TextStyle(
+                  fontFamily: 'OpenDyslexic',
                   fontSize: AppSizes.fontSizeLarge,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,

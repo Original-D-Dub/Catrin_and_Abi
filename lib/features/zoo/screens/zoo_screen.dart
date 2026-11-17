@@ -119,7 +119,7 @@ class _ZooScreenState extends State<ZooScreen> {
               return Positioned(
                 left: left,
                 top: top,
-                child: PrimaryButton(
+                child: Primary2Button(
                   label:
                       '${localizer('zoo.enter')} — '
                       '${localizer(zone.titleKey)}',

@@ -44,7 +44,7 @@ class _HouseQuestScreenState extends State<HouseQuestScreen> {
               alignment: Alignment.bottomLeft,
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 100, left: 20),
-                child: PrimaryButton(
+                child: Primary2Button(
                   label:
                       AppLocalizations(locale: widget.locale)('letter_quest.jump_button'),
                   onPressed: () => game.player.jump(),

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/constants/game_constants.dart';
 import '../../../core/constants/game_filters.dart';
+import '../../../shared/services/game_instructions_service.dart';
 import '../../../shared/services/game_stats_service.dart';
 import '../../../shared/widgets/choose_character_grid.dart';
 import '../models/card_model.dart';
@@ -32,8 +33,111 @@ class CardGameProvider extends ChangeNotifier {
   final SignSystem _signSystem;
   SignSystem get signSystem => _signSystem;
 
-  /// Levels available for the current sign system.
-  List<GameLevel> get levels => GameLevel.forSignSystem(_signSystem);
+  /// Levels available for the current sign system — the two-player tablet
+  /// set when two players share a tablet.
+  List<GameLevel> get levels => _usesTwoPlayerTabletLevels
+      ? GameLevel.twoPlayerTabletForSignSystem(_signSystem)
+      : GameLevel.forSignSystem(_signSystem);
+
+  bool get _usesTwoPlayerTabletLevels => _isTwoPlayer && isTabletDevice;
+
+  /// Game id whose recorded level-name clips match [levels] — the
+  /// two-player tablet set has its own (`card_matching_2player_*`).
+  String get levelNameAudioId =>
+      _usesTwoPlayerTabletLevels ? 'card_matching_2player' : 'card_matching';
+
+  /// Whether the game is running on a tablet. Set by the screen from the
+  /// screen size; only affects which [levels] two-player mode offers.
+  bool isTabletDevice = false;
+
+  // ─────────────────────────────────────────
+  // Champion Mode
+  // ─────────────────────────────────────────
+
+  /// Champion Mode unlocks once every level in the sign system's level
+  /// list has been played — each has a recorded personal best. Gameplay
+  /// is unchanged; every card's colour-coded pair border is replaced with
+  /// white (invisible against the card face), so matches must be found from the signs and
+  /// letters alone.
+  bool _isChampionModeUnlocked = false;
+  bool get isChampionModeUnlocked => _isChampionModeUnlocked;
+
+  /// Whether Champion Mode is switched on (only ever true once unlocked).
+  bool _championMode = false;
+  bool get championMode => _championMode;
+
+  /// True while the "Champion Mode Unlocked!" banner should show: Champion
+  /// Mode is unlocked but this player hasn't yet dismissed the banner (see
+  /// [_championBannerSeenId]). Cleared by
+  /// [dismissChampionModeUnlockedBanner].
+  bool _justUnlockedChampionMode = false;
+  bool get justUnlockedChampionMode => _justUnlockedChampionMode;
+
+  final GameInstructionsService _instructionsService =
+      GameInstructionsService();
+
+  /// Seen-flag id recording that this player has dismissed the unlock
+  /// banner for this sign system. Stored per player rather than tied to
+  /// the unlocking game, so a player who unlocked Champion Mode before the
+  /// banner existed — or whose unlock was first spotted on opening the game
+  /// rather than straight after their last level — still sees it once.
+  String get _championBannerSeenId => '${_statsGameId}_champion_unlocked';
+
+  /// Clears [justUnlockedChampionMode] once the unlock banner has been
+  /// shown and dismissed, and remembers that so it isn't shown again.
+  void dismissChampionModeUnlockedBanner() {
+    _justUnlockedChampionMode = false;
+    _instructionsService.markInstructionsSeen(_championBannerSeenId);
+    notifyListeners();
+  }
+
+  /// Set when the player long-presses the Champion rosette to switch
+  /// Champion Mode off. Static so it lasts for the rest of the app session
+  /// (every new provider starts with Champion Mode off), then resets — once
+  /// unlocked, Champion Mode is on by default.
+  static bool _championModeOffThisSession = false;
+
+  /// Enables or disables Champion Mode for the rest of this app session
+  /// (see [_championModeOffThisSession]). No-ops if not yet unlocked.
+  void setChampionMode(bool value) {
+    if (!_isChampionModeUnlocked) return;
+    _championMode = value;
+    _championModeOffThisSession = !value;
+    notifyListeners();
+  }
+
+  /// The `player_stats` game id this sign system's results record under.
+  String get _statsGameId => _signSystem == SignSystem.iac
+      ? GameIds.welshCardMatching
+      : GameIds.cardMatching;
+
+  /// Unlocks Champion Mode once every level in the sign system's level
+  /// list has been played — each has a recorded personal best — and sets
+  /// it on. Only ever raises [isChampionModeUnlocked], never lowers it:
+  /// guest play isn't persisted by [GameStatsService] (it no-ops for
+  /// anonymous users), so this check always comes back empty for guests —
+  /// if it were allowed to clear the flag, a guest who just unlocked
+  /// Champion Mode by playing in this session would see it re-locked the
+  /// moment they returned to level select.
+  ///
+  /// On unlocking, raises [justUnlockedChampionMode] if this player hasn't
+  /// dismissed the unlock banner before.
+  Future<void> _refreshChampionModeUnlock() async {
+    if (_isChampionModeUnlocked) return;
+    final bests = await Future.wait([
+      for (final level in GameLevel.forSignSystem(_signSystem))
+        _statsService.getPersonalBest('${_statsGameId}_${level.levelNumber}'),
+    ]);
+    if (_isChampionModeUnlocked || !bests.every((best) => best != null)) {
+      return;
+    }
+    final bannerSeen =
+        await _instructionsService.hasSeenInstructions(_championBannerSeenId);
+    _isChampionModeUnlocked = true;
+    _championMode = !_championModeOffThisSession;
+    _justUnlockedChampionMode = !bannerSeen;
+    notifyListeners();
+  }
 
   /// The current game level configuration
   late GameLevel _level;
@@ -54,8 +158,45 @@ class CardGameProvider extends ChangeNotifier {
   CardModel? _secondSelection;
   CardModel? get secondSelection => _secondSelection;
 
-  /// Whether we're currently processing a match check
-  /// Prevents rapid tapping during the delay
+  /// Most Champion Mode hints a player can use in one game.
+  static const int maxHints = 3;
+
+  /// Champion Mode hints used so far this game. Recorded with the result so
+  /// the scores page can show how many hints a personal best used.
+  int _hintsUsed = 0;
+  int get hintsUsed => _hintsUsed;
+  int get hintsRemaining => maxHints - _hintsUsed;
+
+  /// Whether one card is turned over and the player hasn't flipped a second
+  /// card yet — the moment a hint can reveal its pair.
+  bool get isAwaitingSecondCard =>
+      _firstSelection != null && _secondSelection == null;
+
+  /// Whether the Champion Mode hint button is enabled: a card is waiting
+  /// for its partner and the player has hints left.
+  bool get canShowHint =>
+      _championMode && isAwaitingSecondCard && hintsRemaining > 0;
+
+  /// Spends one hint. Returns false (spending nothing) if [canShowHint] is
+  /// false.
+  bool useHint() {
+    if (!canShowHint) return false;
+    _hintsUsed++;
+    notifyListeners();
+    return true;
+  }
+
+  /// The card that matches [firstSelection], for the Champion Mode hint.
+  CardModel? get hintPair {
+    final first = _firstSelection;
+    if (first == null) return null;
+    for (final card in _cards) {
+      if (card.pairId == first.pairId && card.id != first.id) return card;
+    }
+    return null;
+  }
+
+  /// Whether we're currently processing a match check  /// Prevents rapid tapping during the delay
   bool _isProcessing = false;
   bool get isProcessing => _isProcessing;
 
@@ -95,7 +236,7 @@ class CardGameProvider extends ChangeNotifier {
   int get totalPairs => _level.totalPairs;
 
   /// Whether this is a two-player game — players take turns flipping two
-  /// cards, and whoever makes a pair scores it. Chosen on the level-select
+  /// cards, and whoever makes a pair scores it and goes again. Chosen on the level-select
   /// tabs (players then pick characters before choosing a level); uses the
   /// same levels as one-player.
   bool _isTwoPlayer = false;
@@ -137,6 +278,7 @@ class CardGameProvider extends ChangeNotifier {
   CardGameProvider({SignSystem signSystem = SignSystem.bsl, int? initialLevelNumber})
       : _signSystem = signSystem {
     _initializeGame(GameLevel.forSignSystem(_signSystem).first);
+    _refreshChampionModeUnlock();
     if (initialLevelNumber != null) {
       startLevel(levels[initialLevelNumber - 1]);
     }
@@ -155,6 +297,7 @@ class CardGameProvider extends ChangeNotifier {
     _hasWon = false;
     _matchCount = 0;
     _moveCount = 0;
+    _hintsUsed = 0;
     _currentPlayer = 1;
     _player1Score = 0;
     _player2Score = 0;
@@ -200,6 +343,7 @@ class CardGameProvider extends ChangeNotifier {
   void showLevelSelection() {
     _showLevelSelect = true;
     _pickingPlayer = null;
+    _refreshChampionModeUnlock();
     notifyListeners();
   }
 
@@ -272,8 +416,9 @@ class CardGameProvider extends ChangeNotifier {
       _handleMismatch();
     }
 
-    // Players alternate after every two-card attempt, match or not.
-    if (_isTwoPlayer && !_hasWon) {
+    // Finding a pair earns another turn; a miss passes play to the other
+    // player.
+    if (_isTwoPlayer && !isMatch && !_hasWon) {
       _currentPlayer = _currentPlayer == 1 ? 2 : 1;
     }
 
@@ -335,9 +480,13 @@ class CardGameProvider extends ChangeNotifier {
             _moveCount,
             level: _level.levelNumber,
             higherIsBetter: false,
+            hints: _hintsUsed,
           )
           .then((result) {
         _lastResult = result;
+        // This play may have been the last unplayed level — re-check the
+        // Champion Mode unlock.
+        _refreshChampionModeUnlock();
         notifyListeners();
       });
     }

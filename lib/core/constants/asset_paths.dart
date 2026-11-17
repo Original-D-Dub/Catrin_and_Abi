@@ -8,7 +8,7 @@
 /// Assets are organized by category:
 /// - Logos (English and Welsh variants)
 /// - Characters (Abi, Catrin, Pero)
-/// - BSL Alphabet (A-Z hand signs)
+/// - Sign alphabet (BSL & IAC hand signs, incl. Welsh digraphs)
 /// - Game assets
 class AssetPaths {
   // Private constructor to prevent instantiation
@@ -19,8 +19,7 @@ class AssetPaths {
   // -------------------------
   static const String _logos = 'assets/logos';
   static const String _characters = 'assets/characters';
-  static const String _bslAlphabet = 'assets/bsl_alphabet';
-  static const String _bslAlphabetSvg = 'assets/bsl_alphabet_svg';
+  static const String _signAlphabetPng = 'assets/bsl_alphabet_png';
   static const String _games = 'assets/games';
   static const String _backgrounds = 'assets/backgrounds';
 
@@ -99,82 +98,62 @@ class AssetPaths {
   static const String peroProfile = '$_characters/pero/pero_profile.png';
 
   // -------------------------
-  // BSL Alphabet
+  // Sign Alphabet (BSL & IAC)
   // -------------------------
 
-  /// Base directory for BSL alphabet images
-  static const String bslAlphabetDir = _bslAlphabet;
-
-  /// Gets the asset path for a specific BSL letter image.
+  /// Gets the asset path for an alphabet sign PNG.
   ///
-  /// [letter] should be a single letter (case-insensitive).
-  /// Returns the path to the corresponding hand sign image.
+  /// One folder serves both BSL and IAC: it holds the single letters a–z
+  /// plus the Welsh digraphs (ch, dd, ff, ll, ng, ph, rh, th).
   ///
   /// Example:
   /// ```dart
-  /// final pathA = AssetPaths.bslLetter('a'); // 'assets/bsl_alphabet/A.png'
-  /// final pathZ = AssetPaths.bslLetter('Z'); // 'assets/bsl_alphabet/Z.png'
+  /// AssetPaths.signLetterPng('A');  // 'assets/bsl_alphabet_png/bsl-sign-alp-a.png'
+  /// AssetPaths.signLetterPng('ch'); // 'assets/bsl_alphabet_png/bsl-sign-alp-ch.png'
   /// ```
-  static String bslLetter(String letter) {
-    if (letter.length != 1) {
-      throw ArgumentError('bslLetter expects a single letter, got: $letter');
-    }
-    return '$_bslAlphabet/${letter.toUpperCase()}.png';
-  }
-
-  /// Gets the asset path for a BSL letter sign SVG.
-  static String bslLetterSvg(String letter) {
-    if (letter.length != 1) {
-      throw ArgumentError('bslLetterSvg expects a single letter, got: $letter');
-    }
-    return '$_bslAlphabetSvg/${letter.toLowerCase()}.svg';
-  }
-
-  // -------------------------
-  // Welsh Alphabet (Wyddor IAC)
-  // -------------------------
-
-  static const String _wyddorIacSvg = 'assets/wyddor_iac_svg';
-
-  /// Gets the asset path for a Welsh letter sign SVG.
-  /// Supports single letters and digraphs (ch, dd, ff, ll, ng, ph, rh, th).
-  static String welshLetterSvg(String letter) {
-    return '$_wyddorIacSvg/${letter.toLowerCase()}.svg';
+  static String signLetterPng(String letter) {
+    return '$_signAlphabetPng/bsl-sign-alp-${letter.toLowerCase()}.png';
   }
 
   // -------------------------
   // BSL Numbers (for maths game)
   // -------------------------
 
-  /// Base directory for BSL number sign SVG images
-  static const String _bslNumbers = 'assets/bsl_numbers';
+  /// Base directory for BSL number sign PNG images
+  static const String _bslNumbersPng = 'assets/bsl_numbers_png';
 
-  /// Gets the asset path for a BSL number sign SVG.
+  /// Gets the asset path for a BSL number sign PNG.
   ///
-  /// [number] should be between 0 and 10.
-  /// Returns the path to the corresponding BSL number SVG.
-  ///
-  /// Example:
-  /// ```dart
-  /// final path0 = AssetPaths.bslNumber(0); // 'assets/bsl_numbers/0.svg'
-  /// final path3 = AssetPaths.bslNumber(3); // 'assets/bsl_numbers/3.svg'
-  /// final path10 = AssetPaths.bslNumber(10); // 'assets/bsl_numbers/10.svg'
-  /// ```
-  static String bslNumber(int number) {
-    if (number < 0 || number > 10) {
-      throw ArgumentError('bslNumber expects 0-10, got: $number');
+  /// [number] should be between 0 and 9. The sign for 10 is two-handed —
+  /// compose it from [bslNumber10LeftPng] and [bslNumber10RightPng].
+  static String bslNumberPng(int number) {
+    if (number < 0 || number > 9) {
+      throw ArgumentError('bslNumberPng expects 0-9, got: $number');
     }
-    return '$_bslNumbers/$number.svg';
+    return '$_bslNumbersPng/bsl-sign-number-$number.png';
   }
 
-  /// Rive file for BSL number 11.
-  static const String bslNumber11Riv = '$_bslNumbers/11.riv';
+  /// Left hand of the two-handed BSL sign for 10.
+  static const String bslNumber10LeftPng =
+      '$_bslNumbersPng/bsl-sign-number-10-left.png';
 
-  /// Rive file for BSL number 12.
-  static const String bslNumber12Riv = '$_bslNumbers/12.riv';
+  /// Right hand of the two-handed BSL sign for 10.
+  static const String bslNumber10RightPng =
+      '$_bslNumbersPng/bsl-sign-number-10-right.png';
 
-  /// Single Rive file for BSL teen numbers 13–19 (one artboard, ViewModel1).
-  static const String bslNumbers1319Riv = '$_bslNumbers/numbers13-19.riv';
+  /// One of the three frames of the moving BSL sign for 11 or 12.
+  ///
+  /// [number] must be 11 or 12 and [part] 1–3. All frames share the same
+  /// framing, so they can be swapped in place to animate the sign.
+  static String bslNumberPartPng(int number, int part) {
+    if (number != 11 && number != 12) {
+      throw ArgumentError('bslNumberPartPng expects 11 or 12, got: $number');
+    }
+    if (part < 1 || part > 3) {
+      throw ArgumentError('bslNumberPartPng expects part 1-3, got: $part');
+    }
+    return '$_bslNumbersPng/bsl-sign-number-$number-part-$part.png';
+  }
 
   // -------------------------
   // Game Assets
@@ -249,8 +228,7 @@ class AssetPaths {
       '$_letterQuestAudio/collect_correct.wav';
 
   /// Descending buzz for wrong letter collection
-  static const String letterQuestWrong =
-      '$_letterQuestAudio/collect_wrong.wav';
+  static const String letterQuestWrong = '$_letterQuestAudio/collect_wrong.wav';
 
   /// Arpeggio for word completion
   static const String letterQuestWordComplete =
@@ -280,10 +258,7 @@ class AssetPaths {
   /// final path = AssetPaths.wordThumbnail(word: 'cat', vowel: 'a');
   /// // Returns: 'assets/images/word_thumbnails/a/cat.jpg'
   /// ```
-  static String wordThumbnail({
-    required String word,
-    required String vowel,
-  }) {
+  static String wordThumbnail({required String word, required String vowel}) {
     return '$_wordThumbnails/$vowel/$word.jpg';
   }
 

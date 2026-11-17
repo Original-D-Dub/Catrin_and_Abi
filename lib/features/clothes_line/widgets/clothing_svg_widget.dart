@@ -56,52 +56,17 @@ class ClothingSvgWidget extends StatefulWidget {
   // ── Colour injection ─────────────────────────────────────────────────────────
 
   static String _applyColours(String svg, String colourName) {
-    final main    = _bslColour(colourName);
-    final outline = _bslOutline(colourName);
+    final main    = AppColors.bslFabricFor(colourName);
+    final outline = AppColors.bslOutlineFor(colourName);
     const button  = Color(0xFFe4ddc9); // warm cream – hat bands, buttons, hems
 
     var result = svg;
-    result = result.replaceAll('class="colour"',  'fill="${_toHex(main)}"');
-    result = result.replaceAll('class="outline"', 'fill="${_toHex(outline)}"');
-    result = result.replaceAll('class="button"',  'fill="${_toHex(button)}"');
+    result = result.replaceAll('class="colour"',  'fill="${AppColors.toSvgHex(main)}"');
+    result = result.replaceAll('class="outline"', 'fill="${AppColors.toSvgHex(outline)}"');
+    result = result.replaceAll('class="button"',  'fill="${AppColors.toSvgHex(button)}"');
     result = result.replaceAll('class="shadow"',  'fill="#000000" fill-opacity="0.2" style="mix-blend-mode: multiply;"');
     return result;
   }
-
-  static String _toHex(Color c) {
-    int ch(double v) => (v * 255.0).round().clamp(0, 255);
-    return '#${ch(c.r).toRadixString(16).padLeft(2, '0')}'
-        '${ch(c.g).toRadixString(16).padLeft(2, '0')}'
-        '${ch(c.b).toRadixString(16).padLeft(2, '0')}';
-  }
-
-  static Color _bslColour(String name) => switch (name) {
-        'red'    => AppColors.bslRed,
-        'blue'   => AppColors.bslBlue,
-        'green'  => AppColors.bslGreen,
-        'yellow' => AppColors.bslYellow,
-        'orange' => AppColors.bslOrange,
-        'purple' => AppColors.bslPurple,
-        'pink'   => AppColors.bslPink,
-        'brown'  => AppColors.bslBrown,
-        'black'  => AppColors.bslBlack,
-        'white'  => AppColors.bslWhite,
-        _        => AppColors.bslWhite,
-      };
-
-  static Color _bslOutline(String name) => switch (name) {
-        'red'    => AppColors.bslRedOutline,
-        'blue'   => AppColors.bslBlueOutline,
-        'green'  => AppColors.bslGreenOutline,
-        'yellow' => AppColors.bslYellowOutline,
-        'orange' => AppColors.bslOrangeOutline,
-        'purple' => AppColors.bslPurpleOutline,
-        'pink'   => AppColors.bslPinkOutline,
-        'brown'  => AppColors.bslBrownOutline,
-        'black'  => AppColors.bslBlackOutline,
-        'white'  => AppColors.bslWhiteOutline,
-        _        => AppColors.bslWhiteOutline,
-      };
 
   @override
   State<ClothingSvgWidget> createState() => _ClothingSvgWidgetState();

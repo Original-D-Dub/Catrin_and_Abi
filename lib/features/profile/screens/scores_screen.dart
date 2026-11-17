@@ -205,6 +205,7 @@ class _ScoresList extends StatelessWidget {
     }
     final isCompact = MediaQuery.of(context).size.width < _kTabletBreakpoint;
     final levelLabel = t('level_select.level_prefix');
+    final hintsLabel = t('profile.scores_hints_used');
 
     return ListView.separated(
       padding: const EdgeInsets.all(AppSizes.paddingLarge),
@@ -219,6 +220,7 @@ class _ScoresList extends StatelessWidget {
           pillIcon: entry.pillIcon,
           suffix: entry.suffixKey != null ? t(entry.suffixKey!) : '',
           levelLabel: levelLabel,
+          hintsLabel: hintsLabel,
           showPillLabel: entry.showPillLabel,
           color: _rowColors[i % _rowColors.length],
           isCompact: isCompact,
@@ -313,6 +315,9 @@ class _ScoreRow extends StatefulWidget {
   final IconData? pillIcon;
   final String suffix;
   final String levelLabel;
+
+  /// "{n} hints used" template, read out for [_HintsBadge].
+  final String hintsLabel;
   final Color color;
   final bool isCompact;
   final bool showPillLabel;
@@ -324,6 +329,7 @@ class _ScoreRow extends StatefulWidget {
     required this.pillIcon,
     required this.suffix,
     required this.levelLabel,
+    required this.hintsLabel,
     required this.color,
     required this.isCompact,
     required this.showPillLabel,
@@ -394,6 +400,10 @@ class _ScoreRowState extends State<_ScoreRow> {
                     ),
                   ),
                 ),
+                if (_highest.hints > 0) ...[
+                  const SizedBox(width: AppSizes.spacingSmall),
+                  _HintsBadge(hints: _highest.hints, label: widget.hintsLabel),
+                ],
                 const SizedBox(width: AppSizes.spacingMedium),
                 SizedBox(
                   width: _scoreColumnWidth,
@@ -427,6 +437,7 @@ class _ScoreRowState extends State<_ScoreRow> {
                         levels: widget.levels.reversed.toList(),
                         suffix: widget.suffix,
                         levelLabel: widget.levelLabel,
+                        hintsLabel: widget.hintsLabel,
                       ),
                     )
                   : const SizedBox(width: double.infinity),
@@ -447,11 +458,13 @@ class _LevelTable extends StatelessWidget {
   final List<LevelScore> levels;
   final String suffix;
   final String levelLabel;
+  final String hintsLabel;
 
   const _LevelTable({
     required this.levels,
     required this.suffix,
     required this.levelLabel,
+    required this.hintsLabel,
   });
 
   @override
@@ -475,6 +488,20 @@ class _LevelTable extends StatelessWidget {
                   '$levelLabel ${level.level}',
                   style: rowStyle.copyWith(color: Colors.white70, fontSize: 14),
                 ),
+                // Marks a level whose best was scored in Champion Mode.
+                if (level.isChampion) ...[
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.emoji_events,
+                    size: 14,
+                    color: AppColors.celebrationGold,
+                  ),
+                ],
+                // Marks a level whose best used Champion Mode hints.
+                if (level.hints > 0) ...[
+                  const SizedBox(width: AppSizes.spacingSmall),
+                  _HintsBadge(hints: level.hints, label: hintsLabel),
+                ],
                 const Spacer(),
                 SizedBox(
                   width: _scoreColumnWidth,
@@ -489,6 +516,40 @@ class _LevelTable extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Lightbulb plus count marking a personal best that used card matching's
+/// Champion Mode hints. [label] is the "{n} hints used" template, given to
+/// screen readers in place of the bare icon and number.
+class _HintsBadge extends StatelessWidget {
+  final int hints;
+  final String label;
+
+  const _HintsBadge({required this.hints, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: label.replaceAll('{n}', '$hints'),
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.lightbulb, size: 14, color: Colors.white70),
+          const SizedBox(width: 2),
+          Text(
+            '$hints',
+            style: const TextStyle(
+              fontFamily: 'Quicksand',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white70,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

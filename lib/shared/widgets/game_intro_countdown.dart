@@ -222,7 +222,11 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
                   painter: _SpeechBubblePainter(),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
-                        32, 32, 32, 32 + _SpeechBubblePainter._dTipY),
+                      32,
+                      32,
+                      32,
+                      32 + _SpeechBubblePainter._dTipY,
+                    ),
                     child: Text(
                       localizer('${widget.gameId}.intro'),
                       textAlign: TextAlign.center,
@@ -304,17 +308,18 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
                   Text(
                     widget.topText!,
                     textAlign: TextAlign.center,
-                    style: AppTheme.celebrationAt(_topTextFontSize(context)).copyWith(
-                      height: 1,
-                      color: Colors.white,
-                      shadows: const [
-                        Shadow(
-                          color: Color(0x80013595),
-                          offset: Offset(0, 4),
-                          blurRadius: 8,
+                    style: AppTheme.celebrationAt(_topTextFontSize(context))
+                        .copyWith(
+                          height: 1,
+                          color: Colors.white,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x80013595),
+                              offset: Offset(0, 4),
+                              blurRadius: 8,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
                   ),
                 ],
 
@@ -333,8 +338,10 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border:
-                        Border.all(color: const Color(0xFF0091CE), width: 1),
+                    border: Border.all(
+                      color: const Color(0xFF0091CE),
+                      width: 1,
+                    ),
                   ),
                   child: Text(
                     localizer('${widget.gameId}.intro'),
@@ -382,7 +389,7 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: PrimaryButton(
+            child: Primary2Button(
               label: localizer('general.play'),
               onPressed: _onPlayTapped,
               expanded: true,
@@ -416,7 +423,11 @@ class _GameIntroCountdownState extends State<GameIntroCountdown> {
             fontWeight: FontWeight.w600,
             color: color,
             shadows: const [
-              Shadow(blurRadius: 30, color: Colors.black54, offset: Offset(0, 4)),
+              Shadow(
+                blurRadius: 30,
+                color: Colors.black54,
+                offset: Offset(0, 4),
+              ),
             ],
           ),
         ),
@@ -445,10 +456,10 @@ class _SpeechBubblePainter extends CustomPainter {
   static const double _bl = 24;
 
   // Diamond tail dimensions
-  static const double _dLeft = 48;   // left base point x
-  static const double _dRight = 96;  // right base point x
-  static const double _dTipX = 64;   // tip x
-  static const double _dTipY = 32;   // how far tip protrudes below bubble
+  static const double _dLeft = 48; // left base point x
+  static const double _dRight = 96; // right base point x
+  static const double _dTipX = 64; // tip x
+  static const double _dTipY = 32; // how far tip protrudes below bubble
 
   @override
   void paint(Canvas canvas, Size size) {

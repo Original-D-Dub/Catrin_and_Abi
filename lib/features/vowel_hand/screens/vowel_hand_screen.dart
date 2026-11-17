@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -12,14 +13,22 @@ import '../../../features/home/providers/trail_provider.dart';
 import '../../../features/home/widgets/trail_navigation.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../shared/services/auth_provider.dart';
+import '../../../shared/services/game_stats_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_intro_countdown.dart';
+import '../../../shared/widgets/game_level_map.dart';
 import '../../../shared/widgets/level_select_screen.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
+import '../../profile/models/profile_catalog.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../models/vowel_target.dart';
 import '../providers/vowel_hand_provider.dart';
+import '../services/vowel_hand_map_prefs.dart';
+import '../widgets/badge_award_dialog.dart';
 import '../widgets/hand_display.dart';
+import '../widgets/hint_flash.dart';
 import '../widgets/multi_vowel_word_display.dart';
 import '../widgets/pointy_finger_cursor.dart';
 import '../widgets/vowel_badge.dart';
@@ -58,6 +67,29 @@ class VowelHandScreen extends StatefulWidget {
 class _VowelHandScreenState extends State<VowelHandScreen> {
   bool _showingIntro = false;
 
+  /// The ages 1–3 level map's treasure chests: the level 4 chest guards
+  /// the Vowels profile badge, the level 8 chest the Spelling badge.
+  static const int _vowelsChestLevel = 4;
+  static const int _spellingChestLevel = 8;
+
+  /// Map progress for the ages 1–3 level map.
+  final _mapPrefs = VowelHandMapPrefs();
+  final _statsService = GameStatsService();
+
+  /// Highest toddler level completed (0 if none) — done levels show gold
+  /// on the map and the character stands on the next one.
+  int _highestCompleted = 0;
+
+  /// The level just finished, when it moved the player on — the map then
+  /// shows the character walking from it to the next one.
+  int? _movedFromLevel;
+
+  /// Whether the ages 1–3 "Try again" message is showing after a wrong tap.
+  bool _showTryAgain = false;
+
+  /// Hides [_showTryAgain] a few seconds after the latest wrong tap.
+  Timer? _tryAgainTimer;
+
   /// Current size of the hand display widget (for coordinate calculations)
   Size _handSize = Size.zero;
 
@@ -72,33 +104,56 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<VowelHandProvider>();
-      if (widget.trailNodeId != null) {
-        final node = bslTrail.firstWhere((n) => n.id == widget.trailNodeId);
-        context.read<TrailProvider>().enterTrail(widget.trailNodeId!);
-        provider.onLevelComplete = (score) {
+      _mapPrefs.highestCompleted().then((level) {
+        if (mounted) setState(() => _highestCompleted = level);
+      });
+      // Finished levels feed the ages 1–3 map's progress, and the Learn
+      // BSL trail (when playing from it) advances its node.
+      provider.onLevelComplete = (score) {
+        _recordMapProgress(provider);
+        if (widget.trailNodeId != null) {
+          final node = bslTrail.firstWhere((n) => n.id == widget.trailNodeId);
           if (node.minScore == null || score >= node.minScore!) {
             context.read<TrailProvider>().completeNode(widget.trailNodeId!);
           }
-        };
+        }
+      };
+      if (widget.trailNodeId != null) {
+        final node = bslTrail.firstWhere((n) => n.id == widget.trailNodeId);
+        context.read<TrailProvider>().enterTrail(widget.trailNodeId!);
         provider.prepareForIntro(
           level: VowelHandLevel.forSignSystem(provider.signSystem)[node.level - 1],
         );
         setState(() => _showingIntro = true);
-      } else if (VowelHandLevel.forSignSystem(provider.signSystem).length <= 1) {
+      } else if (provider.availableLevels.length <= 1) {
         // Only one level available — skip level selection and go straight
         // into the intro countdown.
-        provider.prepareForIntro(level: VowelHandLevel.vowelMatch);
+        provider.prepareForIntro(level: provider.availableLevels.first);
         setState(() => _showingIntro = true);
       } else {
         provider.showLevelSelection();
       }
-      provider.onAnswerResult = (isCorrect) {
-        if (isCorrect) {
-          AudioService.playCorrect('vowel_hand');
-        } else {
-          AudioService.playWrong('vowel_hand');
-        }
-      };
+      provider.onTryAgain = _handleTryAgain;
+    });
+  }
+
+  /// Records a finished level on the ages 1–3 map's progress, and sets the
+  /// character walking from it when that moved the player on.
+  Future<void> _recordMapProgress(VowelHandProvider provider) async {
+    if (provider.ageGroup != AgeGroup.years1to3) return;
+    // Any level from the age group's list — including the timed CCVC level
+    // at position 8 — feeds the map. Its map position, not the level's
+    // internal number, is the key here.
+    if (!provider.availableLevels.contains(provider.selectedLevel)) return;
+    final level = provider.displayNumberOf(provider.selectedLevel);
+    await _mapPrefs.recordCompleted(level);
+    if (!mounted) return;
+    final levelCount = provider.availableLevels.length;
+    setState(() {
+      if (level > _highestCompleted && level < levelCount) {
+        _movedFromLevel = level;
+      }
+      _highestCompleted = math.max(_highestCompleted, level);
     });
   }
 
@@ -119,8 +174,24 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     }
   }
 
+  /// Shows "Try again" (in the UI language) with its matching audio after
+  /// a wrong tap. Further wrong taps while it is showing keep it up for
+  /// longer but don't restart the audio over itself.
+  void _handleTryAgain() {
+    if (!mounted) return;
+    if (!_showTryAgain) {
+      AudioService.playTryAgain(locale: widget.locale);
+      setState(() => _showTryAgain = true);
+    }
+    _tryAgainTimer?.cancel();
+    _tryAgainTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) setState(() => _showTryAgain = false);
+    });
+  }
+
   @override
   void dispose() {
+    _tryAgainTimer?.cancel();
     AudioService.stopTts();
     super.dispose();
   }
@@ -128,6 +199,13 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
   /// The `<gameId>[.levelN]` id used to look up both the instruction text
   /// (`'<id>.intro'`) and its matching audio for the current level.
   String _introGameId(VowelHandProvider provider) {
+    final level = provider.selectedLevel;
+    if (provider.isIacWarmUp) return 'iac_vowels.warmup';
+    if (level.isToddler) {
+      final base =
+          provider.signSystem == SignSystem.iac ? 'iac_vowels' : 'vowel_hand';
+      return '$base.toddler.level${level.number}';
+    }
     return provider.signSystem == SignSystem.iac
         ? (provider.selectedLevel == VowelHandLevel.vowelMatch
             ? 'iac_vowels'
@@ -154,13 +232,18 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(
-                    'assets/backgrounds/math-background-1080x1920.jpg'),
+                    'assets/backgrounds/felt-background.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
             child: Stack(
               children: [
                 SafeArea(
+                  // The ages 1–3 level map paints its own meadow, so it
+                  // runs full-bleed to the bottom edge — the grass covers
+                  // the safe area. Everything else keeps the inset.
+                  bottom: !(provider.showLevelSelect &&
+                      provider.ageGroup == AgeGroup.years1to3),
                   child: provider.showLevelSelect
                       ? _buildLevelSelectScreen(context, provider)
                       : Stack(
@@ -181,11 +264,22 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                                     }
                                   },
                                   scoreValue: '${provider.score}',
-                                  levelNumber: provider.selectedLevel.number,
-                                  centerContent: (provider.selectedLevel ==
-                                              VowelHandLevel.vowelWordsMulti ||
-                                          provider.selectedLevel ==
-                                              VowelHandLevel.noMistakes)
+                                  levelNumber: provider.displayNumberOf(
+                                      provider.selectedLevel),
+                                  centerContent: provider.selectedLevel.isToddler
+                                      // Untimed — show letters done instead.
+                                      ? Center(
+                                          child: Text(
+                                            '${provider.score} / ${provider.totalRounds}',
+                                            style: const TextStyle(
+                                              fontFamily: 'Quicksand',
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      : provider.selectedLevel.isMultiVowel
                                       ? Center(
                                           child: Text(
                                             '${provider.completedWords.length} / ${VowelHandProvider.targetWords} ${AppLocalizations(locale: widget.locale).translate('vowel_hand.words_label')}',
@@ -226,12 +320,17 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                   GameIntroCountdown(
                     gameId: _introGameId(provider),
                     levelNumber: provider.selectedLevel.number,
-                    levelNameGameId: 'vowel_hand',
+                    // Recorded level-name clips only exist for the main
+                    // levels; an id with no clips keeps toddler levels silent
+                    // rather than announcing the main level of that number.
+                    levelNameGameId: provider.selectedLevel.isToddler
+                        ? 'vowel_hand_toddler'
+                        : 'vowel_hand',
                     signSystem: provider.signSystem,
                     locale: widget.locale,
                     characterImage: AssetPaths.vowelHandIntroImage,
                     backgroundImage:
-                        'assets/backgrounds/math-background-1080x1920.jpg',
+                        'assets/backgrounds/felt-background.jpg',
                     topText: AppLocalizations(locale: widget.locale)
                         .translate('vowel_hand.intro_heading'),
                     roundedBubble: true,
@@ -309,31 +408,22 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                       onPlayAgain: () => provider.startGame(),
                       onNextLevel: context.watch<TrailProvider>().activeNodeId != null
                           ? () => advanceTrail(context, context.read<TrailProvider>())
-                          : switch (provider.selectedLevel) {
-                        VowelHandLevel.vowelMatch =>
-                          () => provider.startGame(level: VowelHandLevel.vowelWords),
-                        VowelHandLevel.vowelWords => () {
-                            provider.prepareForIntro(level: VowelHandLevel.ccvc);
-                            setState(() => _showingIntro = true);
-                          },
-                        VowelHandLevel.ccvc => () {
-                            provider.prepareForIntro(
-                              level: provider.signSystem == SignSystem.iac
-                                  ? VowelHandLevel.vowelWordsMulti
-                                  : VowelHandLevel.cvcc,
-                            );
-                            setState(() => _showingIntro = true);
-                          },
-                        VowelHandLevel.cvcc => () {
-                            provider.prepareForIntro(level: VowelHandLevel.vowelWordsMulti);
-                            setState(() => _showingIntro = true);
-                          },
-                        VowelHandLevel.vowelWordsMulti => () {
-                            provider.prepareForIntro(level: VowelHandLevel.noMistakes);
-                            setState(() => _showingIntro = true);
-                          },
-                        VowelHandLevel.noMistakes => null,
-                      },
+                          : provider.nextLevel == null
+                              ? null
+                              : () {
+                                  // Ages 1–3 return to the level map: the
+                                  // character walks on to the next level
+                                  // there, and its chest state updates.
+                                  if (provider.ageGroup == AgeGroup.years1to3) {
+                                    provider.showLevelSelection();
+                                    return;
+                                  }
+                                  // Ends at the last level for the player's
+                                  // age group (see VowelHandLevel.forAgeGroup).
+                                  provider.prepareForIntro(
+                                      level: provider.nextLevel);
+                                  setState(() => _showingIntro = true);
+                                },
                       onChangeLevel: () {
                         final trail = context.read<TrailProvider>();
                         if (trail.activeNodeId != null) {
@@ -358,14 +448,25 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     VowelHandProvider provider,
   ) {
     final l = AppLocalizations(locale: widget.locale);
+    // Ages 1–3 pick from the winding level map (with the level 4 treasure
+    // chest); everyone else uses the standard level list.
+    if (provider.ageGroup == AgeGroup.years1to3) {
+      return _buildToddlerLevelMap(provider, l);
+    }
     return LevelSelectScreen(
       locale: widget.locale,
-      levels: VowelHandLevel.forSignSystem(provider.signSystem).map((level) {
+      levels: provider.availableLevels.map((level) {
+        final number = provider.displayNumberOf(level);
         return LevelSelectItem(
-          number: level.number,
-          name: _levelText(l, provider.signSystem, level.number, 'name'),
-          // description: _levelText(l, provider.signSystem, level.number, 'description'),
-          color: levelColor(level.number - 1),
+          number: number,
+          name: level == VowelHandLevel.toddlerVowels &&
+                  provider.availableLevels.first == level
+              // Ages 3+ warm-up Level 1 — named separately from the same
+              // level's place as ages 1–3 Level 2.
+              ? l.translate('vowel_hand.warmup.name')
+              : _levelText(l, provider.signSystem, level, 'name'),
+          // description: _levelText(l, provider.signSystem, level, 'description'),
+          color: levelColor(number - 1),
           onTap: () {
             provider.prepareForIntro(level: level);
             setState(() => _showingIntro = true);
@@ -375,18 +476,115 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     );
   }
 
-  /// Looks up the level-select label for [field] ('name'/'description') at
-  /// [number], preferring an IAC-specific override (`vowel_hand.iac.levelN.*`)
+  /// Looks up the level-select label for [field] ('name'/'description') for
+  /// [level], preferring an IAC-specific override (`vowel_hand.iac.levelN.*`)
   /// when one exists and falling back to the shared BSL/English text
   /// otherwise (e.g. Levels 1 & 2, whose wording already fits both sign
-  /// systems).
-  String _levelText(AppLocalizations l, SignSystem signSystem, int number, String field) {
+  /// systems). Toddler levels use `vowel_hand[.iac].toddler.levelN.*`.
+  String _levelText(AppLocalizations l, SignSystem signSystem,
+      VowelHandLevel level, String field) {
+    final levelKey = level.isToddler
+        ? 'toddler.level${level.number}'
+        : 'level${level.number}';
     if (signSystem == SignSystem.iac) {
-      final iacKey = 'vowel_hand.iac.level$number.$field';
+      final iacKey = 'vowel_hand.iac.$levelKey.$field';
       final iacText = l.translate(iacKey);
       if (iacText != iacKey) return iacText;
     }
-    return l.translate('vowel_hand.level$number.$field');
+    return l.translate('vowel_hand.$levelKey.$field');
+  }
+
+  /// The ages 1–3 level map: the eight toddler-and-CCVC levels along a
+  /// winding path, with treasure chests guarding profile badges — the
+  /// Vowels badge at level 4, the Spelling badge at level 8.
+  Widget _buildToddlerLevelMap(
+    VowelHandProvider provider,
+    AppLocalizations localizer,
+  ) {
+    final stats = context.watch<ProfileProvider>().stats;
+    String playLabel(int level) => localizer('vowel_hand.play_level')
+        .replaceAll('{n}', '$level');
+    return GameLevelMap(
+      levelCount: provider.availableLevels.length,
+      highestCompleted: _highestCompleted,
+      characterThumb: 'assets/images/characters/abi_thumb.png',
+      characterLabel: 'Abi',
+      isChestLevel: (level) =>
+          level == _vowelsChestLevel || level == _spellingChestLevel,
+      chestState: (level) {
+        if (_chestBadgeEarned(level, stats)) return ChestState.opened;
+        return _highestCompleted >= level
+            ? ChestState.ready
+            : ChestState.locked;
+      },
+      onLevelSelected: (level) => _startMapLevel(provider, level),
+      onChestTapped: (level) => _onChestTapped(provider, level, localizer),
+      levelLabel: playLabel,
+      movedFromLevel: _movedFromLevel,
+      chestLabel: (level) =>
+          '${playLabel(level)}, ${localizer('vowel_hand.chest_title')}',
+    );
+  }
+
+  /// The badge guarded by the chest on [level].
+  ProfileBadge _chestBadge(int level) =>
+      badgeById(level == _spellingChestLevel ? 'spelling' : 'vowels');
+
+  /// The `player_stats` game id that records opening the chest on [level].
+  String _chestBadgeGameId(int level) => level == _spellingChestLevel
+      ? spellingBadgeGameId
+      : vowelsBadgeGameId;
+
+  /// The award-dialog heading for the chest on [level].
+  String _chestBadgeHeadingKey(int level) => level == _spellingChestLevel
+      ? 'vowel_hand.spelling_badge_won'
+      : 'vowel_hand.badge_won';
+
+  /// Whether the badge guarded by the chest on [level] has been earned.
+  bool _chestBadgeEarned(int level, List<Map<String, dynamic>> stats) =>
+      _chestBadge(level).isEarned(stats);
+
+  void _startMapLevel(VowelHandProvider provider, int level) {
+    // The walk has been seen; don't replay it on the next visit to the map.
+    _movedFromLevel = null;
+    provider.prepareForIntro(level: provider.availableLevels[level - 1]);
+    setState(() => _showingIntro = true);
+  }
+
+  /// A chest level: once the level is finished and its badge not yet
+  /// earned, opens the chest (awarding the profile badge); once open — or
+  /// still locked — plays the level, like any other level.
+  Future<void> _onChestTapped(
+    VowelHandProvider provider,
+    int level,
+    AppLocalizations localizer,
+  ) async {
+    final profile = context.read<ProfileProvider>();
+    if (_chestBadgeEarned(level, profile.stats) || _highestCompleted < level) {
+      _startMapLevel(provider, level);
+      return;
+    }
+    final auth = context.read<AuthProvider>();
+    if (auth.userId == null || auth.isAnonymous) {
+      await showBadgeMapMessage(
+        context,
+        message: localizer('general.sign_in_to_save_scores'),
+        localizer: localizer,
+      );
+      return;
+    }
+    // The badge award is a player_stats row under the chest's game id —
+    // the same store every profile badge reads its earned state from.
+    await _statsService.recordGameResult(_chestBadgeGameId(level), 1);
+    await profile.refresh();
+    if (!mounted) return;
+    AudioService.playCorrect('vowel_hand');
+    await showBadgeAwardDialog(
+      context,
+      badge: _chestBadge(level),
+      heading: localizer(_chestBadgeHeadingKey(level)),
+      localizer: localizer,
+    );
   }
 
   /// Height of the letter/word slot below the header: 13% of the screen
@@ -415,8 +613,7 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
   Widget? _buildTopLetterContent(VowelHandProvider provider) {
     if (provider.gameState != VowelHandGameState.playing) return null;
 
-    if (provider.selectedLevel == VowelHandLevel.vowelWordsMulti ||
-        provider.selectedLevel == VowelHandLevel.noMistakes) {
+    if (provider.selectedLevel.isMultiVowel) {
       if (provider.currentMultiPuzzle == null) return null;
       return MultiVowelWordDisplay(
         puzzle: provider.currentMultiPuzzle!,
@@ -424,11 +621,15 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
       );
     }
 
-    if (provider.selectedLevel != VowelHandLevel.vowelMatch) {
+    if (!provider.selectedLevel.isVowelMatch) {
       if (provider.currentPuzzle == null) return null;
       // No thumbnail artwork exists for the Welsh CVC word list (IAC).
-      final hasThumbnail = provider.selectedLevel == VowelHandLevel.vowelWords &&
-          provider.signSystem == SignSystem.bsl;
+      // The fixed-word levels and ages 1–3 Level 8 use English words with
+      // pictures for both sign systems, so their thumbnails always apply.
+      final hasThumbnail = provider.selectedLevel.isFixedWords ||
+          provider.isPictureWordLevel ||
+          (provider.selectedLevel.isShortWords &&
+              provider.signSystem == SignSystem.bsl);
       return WordDisplay(
         puzzle: provider.currentPuzzle!,
         guessedVowel: provider.guessedVowel,
@@ -465,6 +666,7 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
       child: Text(
         letter,
         style: TextStyle(
+          fontFamily: 'OpenDyslexic',
           fontSize: AppSizes.fontSizeTitle * 2,
           fontWeight: FontWeight.bold,
           color: color,
@@ -473,12 +675,12 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
     );
   }
 
-  /// Size of the open hand box: 95% of the screen width (80% for IAC, leaving
-  /// room for the W/Y badges) at the image's aspect ratio. Derived purely from
-  /// the screen size, so it is known up front and never changes as content
-  /// elsewhere on the screen appears.
+  /// Size of the open hand box: 95% of the screen width (80% when the W/Y
+  /// badges are shown, leaving room for them) at the image's aspect ratio.
+  /// Derived purely from the screen size and level, so it is known up front
+  /// and never changes as content elsewhere on the screen appears.
   Size _handSizeFor(BuildContext context, VowelHandProvider provider) {
-    final widthFraction = provider.signSystem == SignSystem.iac ? 0.8 : 0.95;
+    final widthFraction = provider.showsWyBadges ? 0.8 : 0.95;
     final width = MediaQuery.sizeOf(context).width * widthFraction;
     return Size(
       width,
@@ -528,11 +730,26 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
                     // fingertip outlines still line up.
                     child: Transform.rotate(
                       angle: -15 * math.pi / 180,
-                      child: HandDisplay(
-                        key: _handKey,
-                        // IAC: drop the sleeve below the cuff so it overlaps
-                        // the W/Y badges less.
-                        clipBelowCuff: provider.signSystem == SignSystem.iac,
+                      child: Stack(
+                        children: [
+                          HandDisplay(
+                            key: _handKey,
+                            // IAC: drop the sleeve below the cuff so it
+                            // overlaps the W/Y badges less.
+                            clipBelowCuff: provider.showsWyBadges,
+                          ),
+                          // Toddler-level hint: the correct fingertip
+                          // flashes red.
+                          if (_hintTarget(provider) case final target?)
+                            Positioned.fill(
+                              child: HintFlash(
+                                key: ValueKey(provider.hintToken),
+                                child: CustomPaint(
+                                  painter: FingertipHintPainter(target),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -542,13 +759,15 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
           ),
 
           // W and Y vowel badges (IAC only) — bottom corners
-          if (provider.signSystem == SignSystem.iac) ...[
+          if (provider.showsWyBadges) ...[
             Positioned(
               left: 16,
               bottom: 0,
               child: VowelBadge(
                 vowel: 'w',
                 onTap: () => provider.onTapAdditionalVowel('w'),
+                hintToken:
+                    provider.hintVowel == 'w' ? provider.hintToken : null,
               ),
             ),
             Positioned(
@@ -557,9 +776,57 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
               child: VowelBadge(
                 vowel: 'y',
                 onTap: () => provider.onTapAdditionalVowel('y'),
+                hintToken:
+                    provider.hintVowel == 'y' ? provider.hintToken : null,
               ),
             ),
           ],
+
+          // "Try again" after a wrong tap, over the palm so it doesn't
+          // cover any fingertip. Ignores touches so taps still reach the
+          // hand underneath.
+          Align(
+            alignment: const Alignment(0, 0.35),
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: _showTryAgain &&
+                        provider.gameState == VowelHandGameState.playing
+                    ? 1.0
+                    : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.paddingLarge,
+                    vertical: AppSizes.paddingMedium,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.circular(AppSizes.borderRadiusXLarge),
+                    border: Border.all(color: AppColors.accentRed, width: 4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.refresh,
+                          color: AppColors.accentRed, size: 28),
+                      const SizedBox(width: AppSizes.spacingSmall),
+                      Text(
+                        AppLocalizations(locale: widget.locale)
+                            .translate('general.try_again'),
+                        style: const TextStyle(
+                          fontFamily: 'Quicksand',
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.accentRed,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
 
           // Pointy finger cursor (proportionally sized to hand)
           if (provider.isPointerVisible && provider.pointerPosition != null)
@@ -571,6 +838,17 @@ class _VowelHandScreenState extends State<VowelHandScreen> {
         ],
       ),
     );
+  }
+
+  /// The fingertip currently flashing as a hint, or null (no hint, or the
+  /// hint is on a w/y badge instead).
+  VowelTarget? _hintTarget(VowelHandProvider provider) {
+    final vowel = provider.hintVowel;
+    if (vowel == null) return null;
+    for (final target in VowelHandConstants.targets) {
+      if (target.vowel == vowel) return target;
+    }
+    return null;
   }
 
   /// Handles touch events on the game area.

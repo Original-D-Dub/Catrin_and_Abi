@@ -42,7 +42,7 @@ class OutdoorQuestGame extends BaseLetterQuestGame {
     // Set image prefix to match project asset structure
     images.prefix = 'assets/';
 
-    await loadSignSvgs();
+    await loadSignImages();
 
     // Pre-load Pero sprite sheet
     await images.load('games/letter_quest/peroSprite4.png');

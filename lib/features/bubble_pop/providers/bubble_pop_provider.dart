@@ -45,6 +45,43 @@ class Bubble {
   });
 }
 
+/// Champion Mode "x2 multiplier" text that replaces the bubble whose pop
+/// reached a new multiplier tier. It keeps floating along that bubble's
+/// path, can't be tapped, and fades out after [BubblePopProvider
+/// .multiplierLabelHoldMs].
+class MultiplierLabel {
+  final String id;
+  final int multiplier;
+  double x;
+  double y;
+  final double speedX;
+  final double speedY;
+
+  /// Milliseconds since the label appeared, advanced by the game loop.
+  double ageMs = 0;
+
+  MultiplierLabel({
+    required this.id,
+    required this.multiplier,
+    required this.x,
+    required this.y,
+    required this.speedX,
+    required this.speedY,
+  });
+
+  /// 1.0 until the hold delay ends, then fades linearly to 0.
+  double get opacity {
+    final fadeT = (ageMs - BubblePopProvider.multiplierLabelHoldMs) /
+        BubblePopProvider.multiplierLabelFadeMs;
+    return (1 - fadeT).clamp(0.0, 1.0);
+  }
+
+  bool get isFinished =>
+      ageMs >=
+      BubblePopProvider.multiplierLabelHoldMs +
+          BubblePopProvider.multiplierLabelFadeMs;
+}
+
 /// Game level configuration with progressive letter sets.
 class GameLevel {
   /// Level number (1-6)
@@ -89,14 +126,14 @@ class GameLevels {
     letters: ['a', 'b', 'c', 'd', 'e'],
   );
 
-  /// Level 3: Letters a to j
+  /// Level 3: Letters a to i
   static const GameLevel bslLevel3 = GameLevel(
     number: 3,
     name: 'bubble_pop.bsl.level3.name',
     letters: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
   );
 
-  /// Level 4: Letters i to r
+  /// Level 4: Letters a to o
   static const GameLevel bslLevel4 = GameLevel(
     number: 4,
     name: 'bubble_pop.bsl.level4.name',
@@ -105,7 +142,7 @@ class GameLevels {
     ],
   );
 
-  /// Level 5: Letters q to z
+  /// Level 5: Letters a to u
   static const GameLevel bslLevel5 = GameLevel(
     number: 5,
     name: 'bubble_pop.bsl.level5.name',
@@ -247,8 +284,16 @@ class BubblePopProvider extends ChangeNotifier {
   /// level directly (bubbles spawned, timer not yet running) — used when
   /// launched from the "Learn BSL trail", so the screen can still show the
   /// intro countdown before [startGame] actually starts the clock.
-  BubblePopProvider({SignSystem signSystem = SignSystem.bsl, int? initialLevelNumber})
-      : _signSystem = signSystem,
+  BubblePopProvider({
+    SignSystem signSystem = SignSystem.bsl,
+    AgeGroup ageGroup = AgeGroup.all,
+    int? initialLevelNumber,
+  })  : _signSystem = signSystem,
+        _speedScale = switch (ageGroup) {
+          AgeGroup.years1to3 => 0.5,
+          AgeGroup.years3to5 => 0.75,
+          _ => 1.0,
+        },
         _currentLevel = initialLevelNumber != null
             ? GameLevels.getLevel(initialLevelNumber, signSystem)
             : GameLevels.forSignSystem(signSystem).first {
@@ -258,6 +303,10 @@ class BubblePopProvider extends ChangeNotifier {
   /// The sign system (BSL or IAC) this game instance uses.
   final SignSystem _signSystem;
   SignSystem get signSystem => _signSystem;
+
+  /// Multiplier on every bubble's movement: ages 1–3 play at half speed,
+  /// ages 3–5 at three-quarter speed.
+  final double _speedScale;
 
   /// Levels available for the current sign system.
   List<GameLevel> get levels => GameLevels.forSignSystem(_signSystem);
@@ -326,6 +375,128 @@ class BubblePopProvider extends ChangeNotifier {
   String? _lastPoppedBubbleId;
   String? get lastPoppedBubbleId => _lastPoppedBubbleId;
 
+  // ─────────────────────────────────────────
+  // Champion Mode
+  // ─────────────────────────────────────────
+
+  /// The level that must be completed (played until the timer runs out) to
+  /// unlock Champion Mode.
+  static const int championModeUnlockLevel = 6;
+
+  /// Champion Mode points for a correct pop, before the streak multiplier.
+  static const int championCorrectPoints = 10;
+
+  /// Champion Mode points lost for a wrong pop (never multiplied).
+  static const int championWrongPenalty = 5;
+
+  /// Streak length → multiplier, highest threshold first. A streak below
+  /// every threshold scores ×1.
+  static const List<(int streak, int multiplier)> championMultipliers = [
+    (20, 10),
+    (10, 5),
+    (5, 2),
+  ];
+
+  /// Whether Champion Mode scoring is enabled for the next game.
+  bool _championMode = false;
+  bool get championMode => _championMode;
+
+  /// Whether the player has unlocked Champion Mode by completing level
+  /// [championModeUnlockLevel].
+  bool _isChampionModeUnlocked = false;
+  bool get isChampionModeUnlocked => _isChampionModeUnlocked;
+
+  /// True for one session only: the player just completed level
+  /// [championModeUnlockLevel] for the first time. The screen shows a
+  /// celebratory banner while this is true, then calls
+  /// [dismissChampionModeUnlockedBanner] to clear it.
+  bool _justUnlockedChampionMode = false;
+  bool get justUnlockedChampionMode => _justUnlockedChampionMode;
+
+  /// Consecutive correct pops in the current Champion Mode game. Reset to
+  /// zero by a wrong pop.
+  int _streak = 0;
+  int get streak => _streak;
+
+  /// Current Champion Mode score multiplier, derived from [streak].
+  int get multiplier {
+    for (final (threshold, value) in championMultipliers) {
+      if (_streak >= threshold) return value;
+    }
+    return 1;
+  }
+
+  /// How long a [MultiplierLabel] stays fully visible, then how long it
+  /// takes to fade out.
+  static const double multiplierLabelHoldMs = 2000;
+  static const double multiplierLabelFadeMs = 500;
+
+  /// Active "x2 multiplier" labels floating in the play area.
+  final List<MultiplierLabel> _multiplierLabels = [];
+  List<MultiplierLabel> get multiplierLabels =>
+      List.unmodifiable(_multiplierLabels);
+
+  /// Points awarded (positive) or lost (negative) by the most recent pop
+  /// in Champion Mode, for the floating "+20" / "-5" feedback. Null when
+  /// there's nothing to show.
+  int? _lastPointsDelta;
+  int? get lastPointsDelta => _lastPointsDelta;
+
+  /// Incremented on every Champion Mode pop so the screen can restart the
+  /// points feedback animation even when [lastPointsDelta] is unchanged.
+  int _pointsDeltaSerial = 0;
+  int get pointsDeltaSerial => _pointsDeltaSerial;
+
+  /// Unlocks Champion Mode from the player's stats for level
+  /// [championModeUnlockLevel], if it isn't already unlocked.
+  ///
+  /// Only ever raises [isChampionModeUnlocked], never lowers it: guest play
+  /// isn't persisted by [GameStatsService], so this lookup always comes back
+  /// empty for guests — if it could clear the flag, a guest who just
+  /// unlocked Champion Mode this session would see it re-locked on returning
+  /// to level select.
+  Future<void> _refreshChampionModeUnlock() async {
+    if (_isChampionModeUnlocked) return;
+    final best = await _statsService
+        .getPersonalBest('${_statsGameId}_$championModeUnlockLevel');
+    if (best != null && !_isChampionModeUnlocked) {
+      _isChampionModeUnlocked = true;
+      _championMode = !_championModeOffThisSession;
+      notifyListeners();
+    }
+  }
+
+  /// Set when the player long-presses the Champion rosette to switch
+  /// Champion Mode off. Static so it lasts for the rest of the app session
+  /// (every new provider starts with Champion Mode off), then resets — once
+  /// unlocked, Champion Mode is on by default.
+  static bool _championModeOffThisSession = false;
+
+  /// Enables or disables Champion Mode for the rest of this app session
+  /// (see [_championModeOffThisSession]). No-ops if not yet unlocked.
+  void setChampionMode(bool value) {
+    if (!_isChampionModeUnlocked) return;
+    _championMode = value;
+    _championModeOffThisSession = !value;
+    notifyListeners();
+  }
+
+  /// Clears [justUnlockedChampionMode] once the unlock banner has been
+  /// shown and dismissed.
+  void dismissChampionModeUnlockedBanner() {
+    _justUnlockedChampionMode = false;
+    notifyListeners();
+  }
+
+  /// Stats id for this sign system's Bubble Pop.
+  String get _statsGameId =>
+      _signSystem == SignSystem.iac ? GameIds.welshBubblePop : GameIds.bubblePop;
+
+  /// Stats id for this sign system's Bubble Pop Champion Mode.
+  String get _championStatsGameId => _signSystem == SignSystem.iac
+      ? GameIds.welshBubblePopChampion
+      : GameIds.bubblePopChampion;
+
   /// Called once, with the final [_score], the moment the level ends. Set
   /// by the screen when launched from the "Learn BSL trail" so it can
   /// decide (score-gated, since this game has no other win condition)
@@ -345,7 +516,16 @@ class BubblePopProvider extends ChangeNotifier {
     _showLevelSelect = true;
     _isPlaying = false;
     _gameOver = false;
+    _refreshChampionModeUnlock();
     notifyListeners();
+  }
+
+  /// Resets per-game Champion Mode state (streak and points feedback).
+  void _resetChampionState() {
+    _streak = 0;
+    _lastPointsDelta = null;
+    _justUnlockedChampionMode = false;
+    _multiplierLabels.clear();
   }
 
   /// Transitions to game view and initialises bubbles without starting the timer.
@@ -363,8 +543,8 @@ class BubblePopProvider extends ChangeNotifier {
     _tappedSequence = '';
     _easterEggTriggered = null;
     _lastPoppedBubbleId = null;
-    _sameTargetRun = 0;
-
+    _resetChampionState();
+    _resetTargetQueue();
     _selectNewTarget();
     _spawnInitialBubbles();
     notifyListeners();
@@ -382,8 +562,8 @@ class BubblePopProvider extends ChangeNotifier {
     _tappedSequence = '';
     _easterEggTriggered = null;
     _lastPoppedBubbleId = null;
-    _sameTargetRun = 0;
-
+    _resetChampionState();
+    _resetTargetQueue();
     _selectNewTarget();
     _spawnInitialBubbles();
     _startCountdown();
@@ -393,7 +573,10 @@ class BubblePopProvider extends ChangeNotifier {
   }
 
   /// Stops the game.
-  void stopGame() {
+  ///
+  /// [completed] is true when the timer ran out (the level was played to
+  /// the end), as opposed to the player leaving early.
+  void stopGame({bool completed = false}) {
     _isPlaying = false;
     _gameOver = true;
     _lastResult = null;
@@ -403,10 +586,26 @@ class BubblePopProvider extends ChangeNotifier {
 
     onLevelComplete?.call(_score);
 
-    final gameId =
-        _signSystem == SignSystem.iac ? GameIds.welshBubblePop : GameIds.bubblePop;
+    // Only games played until the timer runs out count towards stats —
+    // leaving early (or backing out of level select) would otherwise record
+    // a partial or zero score and inflate the play count.
+    if (!completed) return;
+
+    // Champion Mode scores are on a different scale, so they're recorded
+    // under their own id (e.g. 'bubble_pop_champion_3') rather than mixed
+    // into the normal per-level personal bests.
+    final gameId = _championMode ? _championStatsGameId : _statsGameId;
+    final unlocksChampionMode = completed &&
+        !_championMode &&
+        !_isChampionModeUnlocked &&
+        _currentLevel.number == championModeUnlockLevel;
     _statsService.recordGameResult(gameId, _score, level: _currentLevel.number).then((result) {
       _lastResult = result;
+      if (unlocksChampionMode && !_isChampionModeUnlocked) {
+        _isChampionModeUnlocked = true;
+        _championMode = !_championModeOffThisSession;
+        _justUnlockedChampionMode = true;
+      }
       notifyListeners();
     }).catchError((e) {
       debugPrint('recordGameResult error ($gameId): $e');
@@ -416,25 +615,53 @@ class BubblePopProvider extends ChangeNotifier {
   /// Most consecutive times the same target letter may be called.
   static const int _maxSameTargetRun = 2;
 
-  /// How many times in a row the current [_targetLetter] has been called.
-  int _sameTargetRun = 0;
+  /// Number of upcoming target letters calculated in advance.
+  static const int _upcomingTargetCount = 4;
 
-  /// Selects a new random target letter from the current level's letters,
-  /// never calling the same letter three times in a row.
+  /// Target letters queued to be shown after [_targetLetter], in order.
+  /// When a target is matched, the first entry becomes the new target, the
+  /// rest shift up one, and a new random letter is appended to the end.
+  final List<String> _upcomingTargets = [];
+  List<String> get upcomingTargets => List.unmodifiable(_upcomingTargets);
+
+  /// Picks a random letter to follow [sequence] (the current target plus
+  /// queued targets), never allowing the same letter three times in a row.
+  String _randomNextTarget(List<String> sequence) {
+    var letters = _currentLevel.letters;
+    if (sequence.length >= _maxSameTargetRun) {
+      final last = sequence.last;
+      final tail = sequence.sublist(sequence.length - _maxSameTargetRun);
+      if (tail.every((l) => l == last)) {
+        final others = letters.where((l) => l != last).toList();
+        if (others.isNotEmpty) letters = others;
+      }
+    }
+    return letters[_random.nextInt(letters.length)];
+  }
+
+  /// Clears the target queue and refills it with [_upcomingTargetCount]
+  /// random letters for the current level.
+  void _resetTargetQueue() {
+    _targetLetter = '';
+    _upcomingTargets.clear();
+    for (int i = 0; i < _upcomingTargetCount; i++) {
+      _upcomingTargets.add(_randomNextTarget(_upcomingTargets));
+    }
+  }
+
+  /// Advances to the next target letter: takes the first queued letter as
+  /// the new target, shifts the queue up one and appends a new random
+  /// letter to the end.
   ///
   /// Audio call-out is chosen by [_signSystem]: BSL levels use the English
   /// alphabet, IAC levels use the Welsh vowel set (consonants stay silent
-  /// since there's no recording for them yet).
+  /// since there's no recording for them yet). Champion Mode has no
+  /// call-out — the player reads the sign alone.
   void _selectNewTarget() {
-    var letters = _currentLevel.letters;
-    if (_sameTargetRun >= _maxSameTargetRun) {
-      final others = letters.where((l) => l != _targetLetter).toList();
-      if (others.isNotEmpty) letters = others;
-    }
-    final letter = letters[_random.nextInt(letters.length)];
-    _sameTargetRun = letter == _targetLetter ? _sameTargetRun + 1 : 1;
-    _targetLetter = letter;
-    if (_isPlaying) {
+    _targetLetter = _upcomingTargets.removeAt(0);
+    _upcomingTargets
+        .add(_randomNextTarget([_targetLetter, ..._upcomingTargets]));
+    if (_isPlaying && !_championMode) {
       AudioService.playLetterMp3(_targetLetter, signSystem: _signSystem).ignore();
     }
   }
@@ -463,13 +690,8 @@ class BubblePopProvider extends ChangeNotifier {
 
   /// Spawns a new bubble with random properties.
   ///
-  /// The target letter is weighted more likely to appear than other letters.
-  /// Base weight is 1.5x, with higher levels getting additional boosts:
-  /// - Levels 1-2: 1.5x (base)
-  /// - Level 3: +75% (2.625x)
-  /// - Level 4: +150% (3.75x)
-  /// - Level 5: +225% (4.875x)
-  /// - Level 6: +300% (6.0x)
+  /// The letter is chosen by [_pickWeightedLetter], which favours the
+  /// current target and the queued [_upcomingTargets].
   ///
   /// Letters already at [_maxDuplicateLetters] copies on screen are excluded
   /// from selection so the same letter doesn't keep piling up, and a letter
@@ -507,45 +729,7 @@ class BubblePopProvider extends ChangeNotifier {
       if (withoutRepeat.isNotEmpty) eligibleLetters = withoutRepeat;
     }
 
-    // Calculate level-specific target weight
-    final double targetWeight;
-    switch (_currentLevel.number) {
-      case 3:
-        targetWeight = 2.625; // Base 1.5x + 75%
-      case 4:
-        targetWeight = 3.75; // Base 1.5x + 150%
-      case 5:
-        targetWeight = 4.875; // Base 1.5x + 225%
-      case 6:
-        targetWeight = 6.0; // Base 1.5x + 300%
-      default:
-        targetWeight = 1.5; // Base weight for levels 1-2
-    }
-
-    final targetEligible =
-        _targetLetter.isNotEmpty && eligibleLetters.contains(_targetLetter);
-
-    // Total weight = (n-1)*1 + targetWeight when the target is eligible,
-    // or n*1 (uniform) when it isn't.
-    final n = eligibleLetters.length;
-    final totalWeight = targetEligible ? n - 1 + targetWeight : n.toDouble();
-    final randomValue = _random.nextDouble() * totalWeight;
-
-    String letter;
-    if (targetEligible && randomValue < targetWeight) {
-      // Select target letter with level-specific weight
-      letter = _targetLetter;
-    } else {
-      // Select from non-target letters (or all eligible letters if no
-      // target yet, or the target isn't eligible)
-      final otherLetters =
-          eligibleLetters.where((l) => l != _targetLetter).toList();
-      if (otherLetters.isEmpty) {
-        letter = eligibleLetters[_random.nextInt(eligibleLetters.length)];
-      } else {
-        letter = otherLetters[_random.nextInt(otherLetters.length)];
-      }
-    }
+    final letter = _pickWeightedLetter(eligibleLetters);
 
     if (letter == _lastSpawnedLetter) {
       _sameLetterSpawnRun++;
@@ -569,13 +753,97 @@ class BubblePopProvider extends ChangeNotifier {
     _bubbles.add(bubble);
   }
 
+  /// First level that uses the queue-based spawn chances below; earlier
+  /// levels use [_levelTargetWeight] instead.
+  static const int _queueWeightingFromLevel = 4;
+
+  /// Whether the queue-based spawn chances below apply to the current level.
+  bool get _usesQueueWeighting =>
+      _currentLevel.number >= _queueWeightingFromLevel;
+
+  /// On levels without queue weighting, how many times as likely the target
+  /// letter is to spawn as each other letter.
+  double get _levelTargetWeight {
+    switch (_currentLevel.number) {
+      case 3:
+        return 2.625; // Base 1.5x + 75%
+      default:
+        return 1.5; // Base weight for levels 1-2
+    }
+  }
+
+  /// Spawn chance (%) for the current target letter, then for each queued
+  /// target in [_upcomingTargets] order. Applies only when
+  /// [_usesQueueWeighting] is true.
+  static const double _targetSpawnChance = 15;
+  static const List<double> _upcomingSpawnChances = [10, 7, 5, 3];
+
+  /// Picks a letter from [eligibleLetters] for a new bubble.
+  ///
+  /// Without queue weighting, every letter has weight 1 except the current
+  /// target, which has [_levelTargetWeight].
+  ///
+  /// From level [_queueWeightingFromLevel] onward, the current target gets [_targetSpawnChance]% and each queued target
+  /// gets its [_upcomingSpawnChances] slot (a letter in several slots gets
+  /// the sum). The remaining chance is split evenly across the other
+  /// letters. Ineligible letters are dropped and the remaining weights
+  /// renormalised, so the chances are exact only when every letter is
+  /// eligible and at least one non-queued letter exists.
+  String _pickWeightedLetter(List<String> eligibleLetters) {
+    final weights = <String, double>{};
+    void addWeight(String letter, double chance) {
+      if (letter.isEmpty) return;
+      weights[letter] = (weights[letter] ?? 0) + chance;
+    }
+
+    if (!_usesQueueWeighting) {
+      for (final l in _currentLevel.letters) {
+        weights[l] = 1;
+      }
+      if (_targetLetter.isNotEmpty) {
+        weights[_targetLetter] = _levelTargetWeight;
+      }
+    } else {
+      addWeight(_targetLetter, _targetSpawnChance);
+      for (int i = 0;
+          i < _upcomingTargets.length && i < _upcomingSpawnChances.length;
+          i++) {
+        addWeight(_upcomingTargets[i], _upcomingSpawnChances[i]);
+      }
+
+      final reserved = weights.values.fold<double>(0, (sum, w) => sum + w);
+      final otherLetters =
+          _currentLevel.letters.where((l) => !weights.containsKey(l)).toList();
+      if (otherLetters.isNotEmpty) {
+        final share = (100 - reserved) / otherLetters.length;
+        for (final l in otherLetters) {
+          weights[l] = share;
+        }
+      }
+    }
+
+    final candidates =
+        eligibleLetters.where((l) => (weights[l] ?? 0) > 0).toList();
+    if (candidates.isEmpty) {
+      return eligibleLetters[_random.nextInt(eligibleLetters.length)];
+    }
+
+    final total = candidates.fold<double>(0, (sum, l) => sum + weights[l]!);
+    var roll = _random.nextDouble() * total;
+    for (final l in candidates) {
+      roll -= weights[l]!;
+      if (roll < 0) return l;
+    }
+    return candidates.last;
+  }
+
   /// Starts the countdown timer.
   void _startCountdown() {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _timeRemaining--;
 
       if (_timeRemaining <= 0) {
-        stopGame();
+        stopGame(completed: true);
       } else {
         notifyListeners();
       }
@@ -597,8 +865,8 @@ class BubblePopProvider extends ChangeNotifier {
     // Update positions
     for (final bubble in _bubbles) {
       if (!bubble.isPopped) {
-        bubble.x += bubble.speedX;
-        bubble.y += bubble.speedY;
+        bubble.x += bubble.speedX * _speedScale;
+        bubble.y += bubble.speedY * _speedScale;
 
         // Bounce off horizontal edges
         if (bubble.x < 0.05 || bubble.x > 0.95) {
@@ -609,6 +877,13 @@ class BubblePopProvider extends ChangeNotifier {
 
     // Remove bubbles that floated off screen (top) or are popped
     _bubbles.removeWhere((b) => b.y < -0.2 || b.isPopped);
+
+    for (final label in _multiplierLabels) {
+      label.x = (label.x + label.speedX * _speedScale).clamp(0.05, 0.95);
+      label.y += label.speedY * _speedScale;
+      label.ageMs += 16;
+    }
+    _multiplierLabels.removeWhere((l) => l.isFinished || l.y < -0.2);
 
     // Spawn replacement bubbles one at a time on a randomized cooldown so
     // they trickle in steadily instead of arriving together in a batch
@@ -646,13 +921,48 @@ class BubblePopProvider extends ChangeNotifier {
 
     // Check if correct
     final isCorrect = bubble.letter == _targetLetter;
-    if (isCorrect) {
+    if (_championMode) {
+      _applyChampionScoring(isCorrect, bubble);
+    } else if (isCorrect) {
       _score++;
-      _selectNewTarget();
     }
+    if (isCorrect) _selectNewTarget();
 
     notifyListeners();
     return isCorrect;
+  }
+
+  /// Champion Mode scoring: a correct pop extends the streak and scores
+  /// [championCorrectPoints] × [multiplier] (the multiplier includes this
+  /// pop, so the 5th in a row already scores ×2); a wrong pop costs
+  /// [championWrongPenalty] and resets the streak. The score never drops
+  /// below zero.
+  ///
+  /// When a correct pop reaches a new multiplier tier, [bubble] is replaced
+  /// by a [MultiplierLabel] that carries on along its path.
+  void _applyChampionScoring(bool isCorrect, Bubble bubble) {
+    final int delta;
+    if (isCorrect) {
+      final previousMultiplier = multiplier;
+      _streak++;
+      delta = championCorrectPoints * multiplier;
+      if (multiplier > previousMultiplier) {
+        _multiplierLabels.add(MultiplierLabel(
+          id: 'multiplier_${bubble.id}',
+          multiplier: multiplier,
+          x: bubble.x,
+          y: bubble.y,
+          speedX: bubble.speedX,
+          speedY: bubble.speedY,
+        ));
+      }
+    } else {
+      _streak = 0;
+      delta = -min(championWrongPenalty, _score);
+    }
+    _score += delta;
+    _lastPointsDelta = isCorrect ? delta : -championWrongPenalty;
+    _pointsDeltaSerial++;
   }
 
   /// Checks if the tapped sequence contains easter egg words.

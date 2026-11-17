@@ -17,34 +17,39 @@ Future<SpriteAnimation>? _peroAnimationFuture;
 /// Gary's walk cycle — row 0 of the same 256px sprite sheet used for him in
 /// Letter Quest. The sheet faces left by default.
 Future<SpriteAnimation> _loadGaryAnimation() {
-  return _garyAnimationFuture ??=
-      _spriteImages.load('characters/Gary/Gary-sprite.png').then((image) {
-    final sheet = SpriteSheet(image: image, srcSize: Vector2.all(256));
-    return sheet.createAnimation(row: 0, stepTime: 0.1);
-  });
+  return _garyAnimationFuture ??= _spriteImages
+      .load('characters/Gary/Gary-sprite.png')
+      .then((image) {
+        final sheet = SpriteSheet(image: image, srcSize: Vector2.all(256));
+        return sheet.createAnimation(row: 0, stepTime: 0.1);
+      });
 }
 
 /// Pero's right-facing walk cycle, sliced from the same 3x4 grid of
 /// 200x150 frames used for him in Letter Quest (frames 6-11 are the
 /// right-facing half of the sheet).
 Future<SpriteAnimation> _loadPeroAnimation() {
-  return _peroAnimationFuture ??=
-      _spriteImages.load('games/letter_quest/peroSprite4.png').then((image) {
-    const columns = 3;
-    const rows = 4;
-    const frameWidth = 200.0;
-    const frameHeight = 150.0;
-    final allSprites = <Sprite>[
-      for (int row = 0; row < rows; row++)
-        for (int col = 0; col < columns; col++)
-          Sprite(
-            image,
-            srcPosition: Vector2(col * frameWidth, row * frameHeight),
-            srcSize: Vector2(frameWidth, frameHeight),
-          ),
-    ];
-    return SpriteAnimation.spriteList(allSprites.sublist(6, 12), stepTime: 0.15);
-  });
+  return _peroAnimationFuture ??= _spriteImages
+      .load('games/letter_quest/peroSprite4.png')
+      .then((image) {
+        const columns = 3;
+        const rows = 4;
+        const frameWidth = 200.0;
+        const frameHeight = 150.0;
+        final allSprites = <Sprite>[
+          for (int row = 0; row < rows; row++)
+            for (int col = 0; col < columns; col++)
+              Sprite(
+                image,
+                srcPosition: Vector2(col * frameWidth, row * frameHeight),
+                srcSize: Vector2(frameWidth, frameHeight),
+              ),
+        ];
+        return SpriteAnimation.spriteList(
+          allSprites.sublist(6, 12),
+          stepTime: 0.15,
+        );
+      });
 }
 
 /// Renders a racer using the same animated walk-cycle sprite sheet as its

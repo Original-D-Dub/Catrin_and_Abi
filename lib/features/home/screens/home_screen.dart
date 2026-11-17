@@ -13,6 +13,8 @@ import '../../../shared/services/settings_provider.dart';
 import '../../../shared/widgets/learn_sign_system_tile.dart';
 import '../../../shared/widgets/sign_system_toggle.dart';
 import '../models/home_game_entry.dart';
+import '../widgets/profile_dot.dart';
+import '../../profile/providers/profile_provider.dart';
 
 /// Home screen displaying game selection tiles.
 ///
@@ -100,10 +102,21 @@ class _HomeScreenState extends State<HomeScreen> {
               tooltip: auth.isAnonymous
                   ? localizer('profile.save_scores_heading')
                   : localizer('profile.title'),
-              icon: Icon(
-                auth.isAnonymous ? Icons.person_outline : Icons.person,
-                color: Colors.white,
-                size: 28,
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    auth.isAnonymous ? Icons.person_outline : Icons.person,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  if (context.watch<ProfileProvider>().hasUnseenBadges)
+                    const Positioned(
+                      top: -1,
+                      right: -1,
+                      child: ProfileDot(),
+                    ),
+                ],
               ),
               onPressed: () => Navigator.pushNamed(context, AppRoutes.profile),
             ),
@@ -208,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? 'assets/images/home_screen/iac-vowels.jpg'
                 : 'assets/images/home_screen/bsl-vowels.jpg',
             category: GameCategory.alphabet,
-            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5, AgeGroup.years5plus},
             arguments: 'en',
           ),
           homeGameEntry(
@@ -216,12 +229,12 @@ class _HomeScreenState extends State<HomeScreen> {
             titleKey: 'card_matching.title',
             imagePath: 'assets/images/home_screen/card-match.jpg',
             category: GameCategory.alphabet,
-            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+            ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5, AgeGroup.years5plus},
           ),
           homeGameEntry(
             route: AppRoutes.bubblePop,
             titleKey: 'bubble_pop.title',
-            imagePath: 'assets/images/home_screen/bubble-pop.jpg',
+            imagePath: 'assets/images/home_screen/bubble-pop2.jpg',
             category: GameCategory.alphabet,
             ageGroups: const {AgeGroup.years1to3},
             arguments: 'en',
@@ -244,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           homeGameEntry(
             route: AppRoutes.countingGame,
-            titleKey: 'counting.title',
+            titleKey: 'counting_game.title',
             imagePath: 'assets/images/home_screen/counting-game.jpg',
             category: GameCategory.numeracy,
             ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
@@ -278,6 +291,18 @@ class _HomeScreenState extends State<HomeScreen> {
             imagePath: 'assets/images/home_screen/bsl-number-builder.jpg',
             category: GameCategory.numeracy,
             ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
+            arguments: 'en',
+          ),
+          homeGameEntry(
+            route: AppRoutes.bubbleShooter,
+            titleKey: 'bubble_shooter.title',
+            imagePath: 'assets/images/home_screen/bubble-shoot.jpg',
+            category: GameCategory.vocabulary,
+            ageGroups: const {
+              AgeGroup.years1to3,
+              AgeGroup.years3to5,
+              AgeGroup.years5plus,
+            },
             arguments: 'en',
           ),
           homeGameEntry(

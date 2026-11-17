@@ -83,6 +83,9 @@ class IsoPainter {
 
   /// The screen outline of [p] (a hexagon, or the top quad if flat).
   static Path hull(IsoPart p) {
+    if (p.recessed) {
+      return Path()..addPolygon(_recessOpening(boxOfPart(p), p.w < p.d), true);
+    }
     final x0 = p.x, y0 = p.y, z0 = p.z;
     final x1 = p.x + p.w, y1 = p.y + p.d, z1 = p.z + p.h;
     final pts = p.h == 0
@@ -194,6 +197,21 @@ class IsoPainter {
   /// the top's front edges, and a chunky outline around the whole shape.
   static void paintPart(Canvas canvas, IsoPart p) {
     if (!p.visible) return;
+    if (p.recessed) {
+      paintRecess(
+        canvas,
+        boxOfPart(p),
+        intoX: p.w < p.d,
+        wall: p.color,
+        glass: p.insetColor ?? const Color(0xFFAEDCF2),
+        panes: switch (p.decal) {
+          IsoDecal.window => (m) => _paintPanes(canvas, m),
+          IsoDecal.door => (m) => _paintDoor(canvas, m, p.insetColor!),
+          _ => null,
+        },
+      );
+      return;
+    }
     final x0 = p.x, y0 = p.y, z0 = p.z;
     final x1 = p.x + p.w, y1 = p.y + p.d, z1 = p.z + p.h;
     final c = p.color;
@@ -260,6 +278,133 @@ class IsoPainter {
         _outline..color = outline.withValues(alpha: 0.35 * c.a),
       );
     }
+  }
+
+  // ── Recessed windows ──────────────────────────────────────────────────────
+
+  /// Corners of a recess's opening on the wall face — the face at `x1`
+  /// when [intoX] (the hole runs back into -x), else `y1`.
+  static List<Offset> _recessOpening(IsoBox b, bool intoX) => intoX
+      ? [
+          project(b.x1, b.y0, b.z0),
+          project(b.x1, b.y1, b.z0),
+          project(b.x1, b.y1, b.z1),
+          project(b.x1, b.y0, b.z1),
+        ]
+      : [
+          project(b.x0, b.y1, b.z0),
+          project(b.x1, b.y1, b.z0),
+          project(b.x1, b.y1, b.z1),
+          project(b.x0, b.y1, b.z1),
+        ];
+
+  /// Paints [hole] as a window or doorway set into a [wall]: nothing
+  /// stands proud of the wall face — through the opening you see the inner
+  /// side (reveal) and the sill or threshold, both in the wall's colour,
+  /// and the frame with [glass] (or a door) filling it at the back. Everything is clipped to the opening, so the wall above the
+  /// hole hides the top of the glass as it would in real life. [panes]
+  /// draws glazing bars on the glass, given a mapper with `u` along the
+  /// wall and `v` up.
+  static void paintRecess(
+    Canvas canvas,
+    IsoBox hole, {
+    required bool intoX,
+    required Color wall,
+    Color glass = const Color(0xFFAEDCF2),
+    void Function(Offset Function(double u, double v) m)? panes,
+  }) {
+    final b = hole;
+    final opening = Path()..addPolygon(_recessOpening(b, intoX), true);
+    canvas.save();
+    canvas.clipPath(opening);
+    final dz = b.z1 - b.z0;
+    final Offset Function(double, double) back = intoX
+        ? (u, v) => project(b.x0, b.y0 + u * (b.y1 - b.y0), b.z0 + v * dz)
+        : (u, v) => project(b.x0 + u * (b.x1 - b.x0), b.y0, b.z0 + v * dz);
+    _rect(canvas, back, 0, 0, 1, 1, glass);
+    panes?.call(back);
+    // The frame, at the back of the hole — no bottom rail on a doorway.
+    const frame = Color(0xFFF8F8F4);
+    for (final (u0, v0, u1, v1) in [
+      if (b.z0 > 0) (0.0, 0.0, 1.0, 0.0),
+      (0.0, 1.0, 1.0, 1.0),
+      (0.0, 0.0, 0.0, 1.0),
+      (1.0, 0.0, 1.0, 1.0),
+    ]) {
+      _line(canvas, back, u0, v0, u1, v1, frame, 5);
+    }
+    // Shade cast by the lintel across the top.
+    _rect(canvas, back, 0, 1 - 0.4 / dz, 1, 1, const Color(0x33000000));
+    // The far inner side of the hole (the near one faces away from us),
+    // in shadow.
+    final reveal = intoX
+        ? [
+            project(b.x0, b.y0, b.z0),
+            project(b.x1, b.y0, b.z0),
+            project(b.x1, b.y0, b.z1),
+            project(b.x0, b.y0, b.z1),
+          ]
+        : [
+            project(b.x0, b.y0, b.z0),
+            project(b.x0, b.y1, b.z0),
+            project(b.x0, b.y1, b.z1),
+            project(b.x0, b.y0, b.z1),
+          ];
+    canvas.drawPath(
+      Path()..addPolygon(reveal, true),
+      _fill..color = darken(wall, intoX ? 0.2 : 0.3),
+    );
+    // The sill, seen from above and catching the light.
+    canvas.drawPath(
+      Path()..addPolygon([
+        project(b.x0, b.y0, b.z0),
+        project(b.x1, b.y0, b.z0),
+        project(b.x1, b.y1, b.z0),
+        project(b.x0, b.y1, b.z0),
+      ], true),
+      _fill..color = lighten(wall, 0.12),
+    );
+    canvas.restore();
+
+    canvas.drawPath(
+      opening,
+      _outline..color = darken(wall, 0.45).withValues(alpha: 0.7),
+    );
+  }
+
+  /// Glazing bars for a small window: two uprights, a cross bar and a
+  /// glint of sky.
+  static void _paintPanes(Canvas canvas, Offset Function(double, double) m) {
+    const frame = Color(0xDDFFFFFF);
+    for (var i = 1; i < 3; i++) {
+      _line(canvas, m, i / 3, 0, i / 3, 1, frame, 2);
+    }
+    _line(canvas, m, 0, 0.5, 1, 0.5, frame, 2);
+    _line(canvas, m, 0.08, 0.7, 0.2, 0.9, const Color(0x99FFFFFF), 2);
+  }
+
+  /// A door, seen at the back of its doorway: a glass vision panel, a
+  /// moulded lower panel and a round handle.
+  static void _paintDoor(
+    Canvas canvas,
+    Offset Function(double, double) m,
+    Color colour,
+  ) {
+    _rect(canvas, m, 0.18, 0.62, 0.42, 0.86, const Color(0xFFAEDCF2));
+    final moulding = darken(colour, 0.25);
+    for (final (u0, v0, u1, v1) in const [
+      (0.18, 0.1, 0.82, 0.1),
+      (0.18, 0.45, 0.82, 0.45),
+      (0.18, 0.1, 0.18, 0.45),
+      (0.82, 0.1, 0.82, 0.45),
+    ]) {
+      _line(canvas, m, u0, v0, u1, v1, moulding, 1.5);
+    }
+    canvas.drawCircle(
+      m(0.88, 0.5),
+      3.5,
+      _fill..color = const Color(0xFFF2C94C),
+    );
   }
 
   // ── Decals ────────────────────────────────────────────────────────────────
@@ -333,40 +478,42 @@ class IsoPainter {
         final m = _faceMapper(p, face);
         final len = _faceLength(p, face);
         if (len > 4) {
-          // A long wall (school building): a row of windows.
+          // A long wall (school building): a row of windows set into it.
+          const inset = 0.35;
           final count = (len / 2).floor();
+          final z0 = p.z + 0.45 * p.h, z1 = p.z + 0.85 * p.h;
           for (var i = 0; i < count; i++) {
-            final u0 = (i + 0.25) / count;
-            final u1 = (i + 0.75) / count;
-            _rect(canvas, m, u0, 0.45, u1, 0.85, const Color(0xFFFFFFFF));
-            _rect(
+            final a = (i + 0.25) / count * len;
+            final b = (i + 0.75) / count * len;
+            final hole = face == _Face.left
+                ? IsoBox(p.x + a, p.y + p.d - inset, z0, p.x + b, p.y + p.d, z1)
+                : IsoBox(
+                    p.x + p.w - inset,
+                    p.y + a,
+                    z0,
+                    p.x + p.w,
+                    p.y + b,
+                    z1,
+                  );
+            paintRecess(
               canvas,
-              m,
-              u0 + 0.01,
-              0.47,
-              u1 - 0.01,
-              0.83,
-              const Color(0xFFAEDCF2),
-            );
-            _line(
-              canvas,
-              m,
-              (u0 + u1) / 2,
-              0.47,
-              (u0 + u1) / 2,
-              0.83,
-              const Color(0xFFFFFFFF),
-              1.5,
+              hole,
+              intoX: face == _Face.right,
+              wall: p.color,
+              panes: (m) => _line(
+                canvas,
+                m,
+                0.5,
+                0,
+                0.5,
+                1,
+                const Color(0xFFFFFFFF),
+                1.5,
+              ),
             );
           }
         } else {
-          const frame = Color(0xDDFFFFFF);
-          for (var i = 1; i < 3; i++) {
-            _line(canvas, m, i / 3, 0, i / 3, 1, frame, 2);
-          }
-          _line(canvas, m, 0, 0.5, 1, 0.5, frame, 2);
-          // A glint of sky.
-          _line(canvas, m, 0.08, 0.7, 0.2, 0.9, const Color(0x99FFFFFF), 2);
+          _paintPanes(canvas, m);
         }
       case IsoDecal.books:
         final m = _faceMapper(p, _mainSide(p));
@@ -476,6 +623,9 @@ class IsoPainter {
             );
           }
         }
+      case IsoDecal.door:
+        // Only drawn on recessed parts (see paintRecess).
+        return;
       case IsoDecal.pianoKeys:
         // A keyboard seen from above: black keys over the back 60% of the
         // white keys, in the 2-3 grouping of a real piano.

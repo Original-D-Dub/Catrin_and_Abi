@@ -50,7 +50,10 @@ class _SignInBannerButtonState extends State<SignInBannerButton>
   void initState() {
     super.initState();
     if (context.read<AuthProvider>().isAnonymous) {
-      AudioService.playSpeechMp3('sign_in_to_save_scores', locale: widget.locale);
+      AudioService.playSpeechMp3(
+        'sign_in_to_save_scores',
+        locale: widget.locale,
+      );
     }
     _pulseController = AnimationController(vsync: this, duration: _pulseCycle)
       ..repeat();
@@ -116,8 +119,8 @@ class _SignInBannerButtonState extends State<SignInBannerButton>
           arguments: widget.locale,
         ),
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.paddingMedium,
-          vertical: AppSizes.paddingSmall,
+          horizontal: AppSizes.paddingMedium + 2,
+          vertical: AppSizes.paddingSmall + 2,
         ),
       ),
     );

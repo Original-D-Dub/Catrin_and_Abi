@@ -1,9 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
@@ -12,13 +9,20 @@ import '../../../features/home/providers/trail_provider.dart';
 import '../../../features/home/widgets/trail_navigation.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/game_instructions_service.dart';
+import '../../../shared/widgets/button.dart';
+import '../../../shared/widgets/instruction_bubble.dart';
 import '../../../shared/widgets/choose_character_grid.dart';
+import '../../../shared/widgets/champion_rosette.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/level_select_screen.dart';
 import '../../../shared/widgets/level_transition_overlay.dart';
+import '../../bsl_maths/widgets/champion_mode_explainer.dart';
+import '../../bsl_maths/widgets/champion_mode_unlocked_banner.dart';
 import '../providers/card_game_provider.dart';
+import '../widgets/champion_borders_demo.dart';
+import '../widgets/champion_hint_overlay.dart';
 import '../widgets/card_grid.dart';
 import '../widgets/character_select_screen.dart';
 import '../widgets/player_mode_tabs.dart';
@@ -53,7 +57,7 @@ class CardGameScreen extends StatefulWidget {
 
 class _CardGameScreenState extends State<CardGameScreen>
     with LevelTransitionMixin<CardGameScreen> {
-  final _tapInstructionBubbleKey = GlobalKey<_TapInstructionBubbleState>();
+  final _tapInstructionBubbleKey = GlobalKey<InstructionBubbleState>();
   final _instructionsService = GameInstructionsService();
 
   /// Whether the "tap the first/second card" bubble should show — false
@@ -63,10 +67,15 @@ class _CardGameScreenState extends State<CardGameScreen>
 
   static const _tapInstructionsGameId = 'card_matching_tap_instructions';
 
+  /// Whether the Champion Mode hint overlay is open.
+  bool _showHint = false;
+
   @override
   void initState() {
     super.initState();
-    _instructionsService.hasSeenInstructions(_tapInstructionsGameId).then((seen) {
+    _instructionsService.hasSeenInstructions(_tapInstructionsGameId).then((
+      seen,
+    ) {
       if (mounted && !seen) setState(() => _showTapInstructions = true);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -93,9 +102,17 @@ class _CardGameScreenState extends State<CardGameScreen>
         }
       };
       provider.onSecondCardFlipped = () {
-        _tapInstructionBubbleKey.currentState?._dismiss();
+        _tapInstructionBubbleKey.currentState?.dismiss();
       };
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Tablets (shortest side ≥ 600) get their own two-player level set.
+    context.read<CardGameProvider>().isTabletDevice =
+        MediaQuery.sizeOf(context).shortestSide >= 600;
   }
 
   /// Marks the tap instructions seen for good — via the bubble's "got it"
@@ -122,8 +139,7 @@ class _CardGameScreenState extends State<CardGameScreen>
           body: Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(
-                    'assets/backgrounds/math-background-1080x1920.jpg'),
+                image: AssetImage('assets/backgrounds/felt-background.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
@@ -172,12 +188,15 @@ class _CardGameScreenState extends State<CardGameScreen>
                       gameId: 'card_matching',
                       locale: widget.locale,
                       scoreStyle: SuccessScoreStyle.custom,
-                      customScoreLine: localizer('card_matching.success_moves')
-                          .replaceAll('{n}', '${provider.moveCount}'),
+                      customScoreLine: localizer(
+                        'card_matching.success_moves',
+                      ).replaceAll('{n}', '${provider.moveCount}'),
                       scoreAudioPrefix: 'card_matching_success_moves',
                       scoreAudioNumber: provider.moveCount,
                       scoreAudioSuffix: 'card_matching_moves_suffix',
-                      personalBestSuffix: localizer('card_matching.moves_suffix'),
+                      personalBestSuffix: localizer(
+                        'card_matching.moves_suffix',
+                      ),
                       imageAsset: 'assets/success/Abi-as-Holmes.png',
                       showPersonalBest: true,
                       isNewPersonalBest:
@@ -197,8 +216,37 @@ class _CardGameScreenState extends State<CardGameScreen>
                       },
                     ),
                   ),
+                // Shown once per player after Champion Mode unlocks: over
+                // the success overlay when this game completed the set, or
+                // over the level select when the unlock was found on
+                // opening the game (e.g. levels finished before the banner
+                // existed). Never mid-game or during character select.
+                if (provider.justUnlockedChampionMode &&
+                    (provider.showLevelSelect
+                        ? provider.pickingPlayer == null
+                        : provider.hasWon))
+                  Positioned.fill(
+                    child: ChampionModeUnlockedBanner(
+                      locale: widget.locale,
+                      textKey: 'card_matching.champion_mode.unlocked_banner',
+                      onContinue: () {
+                        provider.dismissChampionModeUnlockedBanner();
+                        provider.showLevelSelection();
+                        showChampionModeExplainer(
+                          context,
+                          locale: widget.locale,
+                          bodyKey: 'card_matching.champion_mode.explainer',
+                          demo: ChampionBordersDemo(
+                            signSystem: provider.signSystem,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 Positioned.fill(
-                  child: LevelTransitionOverlay(opacity: levelTransitionOpacity),
+                  child: LevelTransitionOverlay(
+                    opacity: levelTransitionOpacity,
+                  ),
                 ),
               ],
             ),
@@ -215,8 +263,9 @@ class _CardGameScreenState extends State<CardGameScreen>
     int player,
     AppLocalizations localizer,
   ) {
-    final character =
-        player == 1 ? provider.player1Character : provider.player2Character;
+    final character = player == 1
+        ? provider.player1Character
+        : provider.player2Character;
     return character != null
         ? character.name
         : localizer('card_matching.player$player');
@@ -229,8 +278,9 @@ class _CardGameScreenState extends State<CardGameScreen>
   ) {
     final winner = provider.twoPlayerWinner;
     if (winner == null) return localizer('card_matching.draw');
-    return localizer('card_matching.player_wins')
-        .replaceAll('{name}', _playerName(provider, winner, localizer));
+    return localizer(
+      'card_matching.player_wins',
+    ).replaceAll('{name}', _playerName(provider, winner, localizer));
   }
 
   /// Character select for whichever player is choosing; once player 2 has
@@ -280,6 +330,13 @@ class _CardGameScreenState extends State<CardGameScreen>
 
     return LevelSelectScreen(
       subtitle: localizer(introKey),
+      titleBadge: provider.isChampionModeUnlocked
+          ? ChampionRosette(
+              value: provider.championMode,
+              onChanged: provider.setChampionMode,
+              localizer: localizer,
+            )
+          : null,
       aboveTitle: PlayerModeTabs(
         isTwoPlayer: provider.isTwoPlayer,
         onChanged: provider.setTwoPlayer,
@@ -294,12 +351,12 @@ class _CardGameScreenState extends State<CardGameScreen>
           // Two-player characters are already chosen by now — picking them
           // happens when the Two Players tab is tapped.
           onTap: () => startLevelWithTransition(
-                gameId: 'card_matching',
-                levelNumber: level.levelNumber,
-                locale: widget.locale,
-                signSystem: provider.signSystem,
-                startLevel: () => provider.startLevel(level),
-              ),
+            gameId: provider.levelNameAudioId,
+            levelNumber: level.levelNumber,
+            locale: widget.locale,
+            signSystem: provider.signSystem,
+            startLevel: () => provider.startLevel(level),
+          ),
         );
       }).toList(),
     );
@@ -312,7 +369,8 @@ class _CardGameScreenState extends State<CardGameScreen>
     AppLocalizations localizer,
   ) {
     final mediaQuery = MediaQuery.of(context);
-    final isTabletLandscape = mediaQuery.size.width >= 768 &&
+    final isTabletLandscape =
+        mediaQuery.size.width >= 768 &&
         mediaQuery.orientation == Orientation.landscape;
 
     final cardGrid = CardGrid(
@@ -321,6 +379,7 @@ class _CardGameScreenState extends State<CardGameScreen>
       onCardTap: (cardId) => provider.selectCard(cardId: cardId),
       signSystem: provider.signSystem,
       locale: widget.locale,
+      championMode: provider.championMode,
     );
 
     return Stack(
@@ -354,35 +413,67 @@ class _CardGameScreenState extends State<CardGameScreen>
                       currentPlayer: provider.currentPlayer,
                     )
                   : Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      localizer(provider.level.name),
-                      style: const TextStyle(
-                        fontFamily: 'Quicksand',
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            localizer(provider.level.name),
+                            style: const TextStyle(
+                              fontFamily: 'Quicksand',
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            '${provider.matchCount}/${provider.totalPairs} ${localizer('card_matching.pairs_label')}',
+                            style: const TextStyle(
+                              fontFamily: 'Quicksand',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white70,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                    Text(
-                      '${provider.matchCount}/${provider.totalPairs} ${localizer('card_matching.pairs_label')}',
-                      style: const TextStyle(
-                        fontFamily: 'Quicksand',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white70,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
             ),
 
             const SizedBox(height: 8),
+
+            // Champion Mode hint: reveals the pair of the card just turned
+            // over. Enabled only while one card is waiting for its partner
+            // and the player has hints left (see CardGameProvider.maxHints).
+            if (provider.championMode)
+              Padding(
+                padding: const EdgeInsets.only(
+                  bottom: 8,
+                  right: AppSizes.paddingMedium,
+                ),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: TertiaryButton(
+                    label: localizer(
+                      'card_matching.hint',
+                    ).replaceAll('{n}', '${provider.hintsRemaining}'),
+                    icon: Icons.lightbulb,
+                    fontSize: AppSizes.fontSizeBody,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.paddingMedium,
+                      vertical: AppSizes.spacingXSmall,
+                    ),
+                    onPressed: provider.canShowHint
+                        ? () {
+                            if (provider.useHint()) {
+                              setState(() => _showHint = true);
+                            }
+                          }
+                        : null,
+                  ),
+                ),
+              ),
 
             Expanded(
               child: isTabletLandscape
@@ -395,8 +486,7 @@ class _CardGameScreenState extends State<CardGameScreen>
                       // child unbounded height along the scroll axis.
                       builder: (context, playAreaConstraints) {
                         return SingleChildScrollView(
-                          padding:
-                              const EdgeInsets.all(AppSizes.paddingMedium),
+                          padding: const EdgeInsets.all(AppSizes.paddingMedium),
                           child: CardGrid(
                             cards: provider.cards,
                             levelNumber: provider.level.levelNumber,
@@ -404,7 +494,9 @@ class _CardGameScreenState extends State<CardGameScreen>
                                 provider.selectCard(cardId: cardId),
                             signSystem: provider.signSystem,
                             locale: widget.locale,
-                            availableHeight: playAreaConstraints.maxHeight -
+                            championMode: provider.championMode,
+                            availableHeight:
+                                playAreaConstraints.maxHeight -
                                 AppSizes.paddingMedium * 2,
                           ),
                         );
@@ -421,9 +513,13 @@ class _CardGameScreenState extends State<CardGameScreen>
               // small breathing gap, so the bubble sits just below the
               // header bar instead of overlapping it.
               child: Padding(
-                padding: const EdgeInsets.only(top: 8 + 88 + AppSizes.spacingSmall),
-                child: _TapInstructionBubble(
+                padding: const EdgeInsets.only(
+                  top: 8 + 88 + AppSizes.spacingSmall,
+                ),
+                child: InstructionBubble(
                   key: _tapInstructionBubbleKey,
+                  audioGameId: 'card_matching',
+                  autoHideAfter: const Duration(milliseconds: 3000),
                   messageKey: provider.firstSelection != null
                       ? 'tap_second'
                       : 'tap_first',
@@ -435,6 +531,21 @@ class _CardGameScreenState extends State<CardGameScreen>
                   onDismiss: _dismissTapInstructions,
                 ),
               ),
+            ),
+          ),
+        // Keyed on isAwaitingSecondCard, not canShowHint — spending the
+        // last hint must not close the overlay it just opened.
+        if (_showHint &&
+            provider.isAwaitingSecondCard &&
+            provider.hintPair != null)
+          Positioned.fill(
+            child: ChampionHintOverlay(
+              card: provider.firstSelection!,
+              pair: provider.hintPair!,
+              signSystem: provider.signSystem,
+              title: localizer('card_matching.hint_title'),
+              dismissLabel: localizer('card_matching.got_it'),
+              onDismiss: () => setState(() => _showHint = false),
             ),
           ),
       ],
@@ -465,8 +576,9 @@ class _TwoPlayerWinnerImage extends StatelessWidget {
               child: character.fullAssetPath != null
                   ? Image.asset(character.fullAssetPath!, fit: BoxFit.contain)
                   : ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(AppSizes.borderRadiusMedium),
+                      borderRadius: BorderRadius.circular(
+                        AppSizes.borderRadiusMedium,
+                      ),
                       child: Image.asset(
                         character.assetPath,
                         fit: BoxFit.contain,
@@ -475,176 +587,6 @@ class _TwoPlayerWinnerImage extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// Pink instruction bubble that stays visible for 3 seconds and then fades
-/// out over 300ms. Switches from the "tap first" to the "tap second"
-/// prompt (and reappears, playing that prompt's spoken clip) as soon as
-/// the player flips their first card, then is dismissed for good — via
-/// [onDismiss] — once they flip their second, since by then they've shown
-/// they know how to play. Includes a "got it" link that dismisses it
-/// immediately.
-class _TapInstructionBubble extends StatefulWidget {
-  final String text;
-
-  /// Identifies which prompt [text] is — `'tap_first'` or `'tap_second'` —
-  /// so the matching `card_matching_<messageKey>` clip can be played
-  /// whenever it's the one being shown.
-  final String messageKey;
-
-  final String dismissLabel;
-  final String locale;
-
-  /// Called when the bubble is dismissed for good — via the "got it" link
-  /// or by completing a first pair-matching attempt — used to persist that
-  /// instructions shouldn't be shown again.
-  final VoidCallback onDismiss;
-
-  const _TapInstructionBubble({
-    super.key,
-    required this.text,
-    required this.messageKey,
-    required this.dismissLabel,
-    required this.locale,
-    required this.onDismiss,
-  });
-
-  @override
-  State<_TapInstructionBubble> createState() => _TapInstructionBubbleState();
-}
-
-class _TapInstructionBubbleState extends State<_TapInstructionBubble> {
-  static const _visibleDuration = Duration(milliseconds: 3000);
-  static const _fadeDuration = Duration(milliseconds: 300);
-
-  bool _visible = true;
-  Timer? _hideTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _playMessageAudio();
-    _scheduleHide();
-  }
-
-  @override
-  void didUpdateWidget(_TapInstructionBubble oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.text != oldWidget.text) {
-      setState(() => _visible = true);
-      _playMessageAudio();
-      _scheduleHide();
-    }
-  }
-
-  void _playMessageAudio() {
-    AudioService.playInstructionClip(
-      'card_matching',
-      widget.messageKey,
-      locale: widget.locale,
-    );
-  }
-
-  void _scheduleHide() {
-    _hideTimer?.cancel();
-    _hideTimer = Timer(_visibleDuration, () {
-      if (mounted) setState(() => _visible = false);
-    });
-  }
-
-  void _hide() {
-    _hideTimer?.cancel();
-    setState(() => _visible = false);
-  }
-
-  void _dismiss() {
-    _hide();
-    widget.onDismiss();
-  }
-
-  @override
-  void dispose() {
-    _hideTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isWideScreen = MediaQuery.of(context).size.width >= 600;
-
-    return AnimatedOpacity(
-      opacity: _visible ? 1.0 : 0.0,
-      duration: _fadeDuration,
-      child: Container(
-        width: isWideScreen ? 320 : 280,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.accentPurple,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              fit: StackFit.passthrough,
-              children: [
-                Text(
-                  widget.text,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    foreground: Paint()
-                      ..style = PaintingStyle.stroke
-                      ..strokeWidth = 1
-                      ..color = const Color(0xFF0F57DD),
-                  ),
-                ),
-                Text(
-                  widget.text,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                GestureDetector(
-                  onTap: _dismiss,
-                  behavior: HitTestBehavior.opaque,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.dismissLabel,
-                        style: const TextStyle(
-                          fontFamily: 'Quicksand',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          decoration: TextDecoration.underline,
-                          decorationColor: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.thumb_up, size: 16, color: Colors.white),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

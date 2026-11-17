@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/bsl_till.dart';
 import '../../../shared/widgets/game_app_bar.dart';
+import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/level_select_screen.dart';
 import '../../../shared/widgets/rotate_device_overlay.dart';
@@ -53,6 +53,11 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
     with SingleTickerProviderStateMixin {
   static const double _beltTop = 0.45;
   static const double _beltBottom = 0.71;
+
+  /// Pixels the belt's metal rail (and the floor line under it) is drawn
+  /// below where [_beltTop]/[_beltBottom] put it, deepening the bed; items
+  /// don't move.
+  static const double _railDrop = 20;
 
   /// Fraction of the belt's height where items rest: on the dark belt
   /// surface, just above the front rail.
@@ -305,7 +310,7 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage(
-              'assets/backgrounds/math-background-1080x1920.jpg',
+              'assets/backgrounds/felt-background.jpg',
             ),
             fit: BoxFit.cover,
           ),
@@ -380,7 +385,7 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
             // Lowered so the screen's bottom edge cuts the drawer keyhole
             // in half, freeing up height.
             ? h - tillHeight * layout.keyholeY / layout.canvas.height
-            : h * 0.04;
+            : h * 0.04 + 5;
         final beltTopY = h * _beltTop;
         final beltHeight = h * (_beltBottom - _beltTop);
 
@@ -400,13 +405,14 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
               child: FactoryBackground(
                 beltTop: _beltTop,
                 beltBottom: _beltBottom,
+                railDrop: _railDrop,
               ),
             ),
             // Belt runs from just right of the left edge to behind the middle
             // of the till.
             Positioned(
               left: _beltLeft,
-              top: beltTopY,
+              top: beltTopY + _railDrop,
               height: beltHeight,
               width: tillLeft + tillWidth * 0.5 - _beltLeft,
               child: const ConveyorBelt(),
@@ -445,38 +451,34 @@ class _BslNumberBuilderScreenState extends State<BslNumberBuilderScreen>
             Positioned(
               top: 0,
               left: 0,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSizes.spacingSmall),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: _showLevelSelect,
-                        icon: const BackArrowIcon(size: 40),
-                      ),
-                      const SizedBox(width: AppSizes.spacingSmall),
-                      _ItemProgress(
-                        done: _game.itemsDone,
-                        total: _level!.itemCount,
-                      ),
-                      if (_level!.timeLimit != null) ...[
-                        const SizedBox(width: AppSizes.spacingSmall),
-                        _Countdown(secondsLeft: _secondsLeft),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 0,
               right: 0,
               child: SafeArea(
+                bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.all(AppSizes.spacingSmall),
-                  child: CoinCounter(
-                    coins: _bankedCoins,
-                    coinKey: _counterCoinKey,
+                  padding: const EdgeInsets.only(top: AppSizes.spacingSmall),
+                  child: GameHeaderBar(
+                    onBack: _showLevelSelect,
+                    scoreLabel: AppLocalizations(
+                      locale: widget.locale,
+                    )('bsl_number_builder.coins_label'),
+                    scoreChild: CoinCounter(
+                      coins: _bankedCoins,
+                      coinKey: _counterCoinKey,
+                    ),
+                    levelNumber: _level!.number,
+                    centerContent: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _ItemProgress(
+                          done: _game.itemsDone,
+                          total: _level!.itemCount,
+                        ),
+                        if (_level!.timeLimit != null) ...[
+                          const SizedBox(width: AppSizes.spacingSmall),
+                          _Countdown(secondsLeft: _secondsLeft),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               ),

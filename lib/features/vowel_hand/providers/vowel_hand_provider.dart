@@ -50,6 +50,33 @@ class VowelHandProvider extends ChangeNotifier {
   final SignSystem _signSystem;
   SignSystem get signSystem => _signSystem;
 
+  /// The player's age group from Settings, which decides which levels are
+  /// offered on level select.
+  final AgeGroup _ageGroup;
+  AgeGroup get ageGroup => _ageGroup;
+
+  /// Levels offered on level select for this sign system and age group.
+  List<VowelHandLevel> get availableLevels =>
+      VowelHandLevel.forAgeGroup(_signSystem, _ageGroup);
+
+  /// The "Level N" number shown for [level]: its position in
+  /// [availableLevels], so each age group's list counts 1, 2, 3… Falls back
+  /// to [VowelHandLevel.number] for a level outside the list (e.g. one
+  /// opened from the Learn BSL trail). Stats and level-name audio stay keyed
+  /// on [VowelHandLevel.number].
+  int displayNumberOf(VowelHandLevel level) {
+    final i = availableLevels.indexOf(level);
+    return i >= 0 ? i + 1 : level.number;
+  }
+
+  /// The level after [_selectedLevel] within [availableLevels], or null if
+  /// it is the last one for this age group.
+  VowelHandLevel? get nextLevel {
+    final levels = availableLevels;
+    final i = levels.indexOf(_selectedLevel);
+    return (i >= 0 && i + 1 < levels.length) ? levels[i + 1] : null;
+  }
+
   GameResult? _lastResult;
   GameResult? get lastResult => _lastResult;
 
@@ -79,6 +106,107 @@ class VowelHandProvider extends ChangeNotifier {
   /// The current vowel the player needs to tap (Level 1)
   String _currentVowel = 'a';
   String get currentVowel => _currentVowel;
+
+  // -------------------------
+  // Ages 1–3 (toddler) Level State
+  // -------------------------
+
+  /// Letters still to be called after [_currentVowel] in a toddler level.
+  List<String> _vowelQueue = [];
+
+  /// Total letters (Levels 1–4) or words (Levels 5–7) in the current
+  /// toddler level, shown as progress in place of the timer.
+  int _totalRounds = 0;
+  int get totalRounds => _totalRounds;
+
+  /// The letter whose fingertip/badge is flashing red as a hint, or null.
+  String? _hintVowel;
+  String? get hintVowel => _hintVowel;
+
+  /// Bumped on every new hint flash so the screen restarts the animation
+  /// even when the same letter flashes again.
+  int _hintToken = 0;
+  int get hintToken => _hintToken;
+
+  /// Clears [_hintVowel] once the flash has run its course.
+  Timer? _hintTimer;
+
+  /// How long the hint flashes for. BSL Level 3 has no w/y to add, so it
+  /// is made harder with a shorter flash instead.
+  Duration get _hintDuration =>
+      _selectedLevel == VowelHandLevel.toddlerChallenge &&
+              _signSystem == SignSystem.bsl
+          ? const Duration(milliseconds: 1000)
+          : const Duration(milliseconds: 3000);
+
+  /// Whether the IAC w/y badges are shown. Toddler Levels 1 & 2 never call
+  /// w or y, so they leave the badges out.
+  bool get showsWyBadges =>
+      _signSystem == SignSystem.iac &&
+      _selectedLevel != VowelHandLevel.toddlerAei &&
+      (_selectedLevel != VowelHandLevel.toddlerVowels || isIacWarmUp);
+
+  /// Whether this is the IAC warm-up Level 1 for ages 3+ — [toddlerVowels]
+  /// played outside the ages 1–3 group — which also calls w and y, and so
+  /// has its own name and intro text.
+  bool get isIacWarmUp =>
+      _signSystem == SignSystem.iac &&
+      _selectedLevel == VowelHandLevel.toddlerVowels &&
+      _ageGroup != AgeGroup.years1to3;
+
+  /// Letters called in toddler Level 4.
+  static const int _toddlerAllRounds = 15;
+
+  /// Words completed in the random toddler word level before it ends.
+  static const int _toddlerWordRounds = 10;
+
+  /// The fixed word list for ages 1–3 Five Words — the same five words, in
+  /// the same order, every game.
+  static const List<String> _toddlerFiveWords = [
+    'bed', 'dog', 'cat', 'sun', 'pin',
+  ];
+
+  /// The fixed word list for ages 1–3 Ten Words — the same ten words every
+  /// game, shuffled into a new random order each game.
+  static const List<String> _toddlerTenWords = [
+    'bed', 'dog', 'cat', 'sun', 'pin', 'pot', 'hen', 'hat', 'run', 'bin',
+  ];
+
+  /// Every three-letter word with a picture in
+  /// `assets/images/word_thumbnails/` — the word list for ages 1–3 Level 8
+  /// (see [isPictureWordLevel]), in place of the CCVC words that level
+  /// plays for older children.
+  static const List<String> _pictureWords = [
+    'bag', 'bat', 'can', 'cap', 'cat', 'fan', 'hat', 'jam', 'man', 'map',
+    'mat', 'pan', 'tag', 'van', 'wag',
+    'bed', 'den', 'hen', 'jet', 'men', 'net', 'pen', 'pet', 'red', 'ten',
+    'wet',
+    'bib', 'big', 'bin', 'dig', 'fin', 'fit', 'hit', 'pig', 'pin', 'sit',
+    'tin', 'wig', 'win',
+    'box', 'dog', 'dot', 'fog', 'fox', 'got', 'hog', 'hop', 'hot', 'jog',
+    'log', 'lot', 'pot', 'top',
+    'bug', 'bun', 'bus', 'cup', 'cut', 'dug', 'fun', 'gun', 'hug', 'jug',
+    'mug', 'nut', 'run', 'sun',
+  ];
+
+  /// Whether this is ages 1–3 Level 8 — the [VowelHandLevel.ccvc] slot,
+  /// which for this age group plays [_pictureWords] (shown with their
+  /// pictures) rather than CCVC words. Like the fixed-word levels, these
+  /// are English words for both sign systems.
+  bool get isPictureWordLevel =>
+      _selectedLevel == VowelHandLevel.ccvc &&
+      _ageGroup == AgeGroup.years1to3;
+
+  /// Words still to come in the current game of a fixed-word level
+  /// ([VowelHandLevel.isFixedWords]).
+  List<String> _fixedWordQueue = [];
+
+  /// How many words the selected toddler word level plays before it ends.
+  int get _toddlerWordRoundsForLevel => _selectedLevel.isFixedWords
+      ? (_selectedLevel == VowelHandLevel.toddlerFiveWords
+          ? _toddlerFiveWords.length
+          : _toddlerTenWords.length)
+      : _toddlerWordRounds;
 
   // -------------------------
   // Level 2: Vowel Words State
@@ -155,6 +283,11 @@ class VowelHandProvider extends ChangeNotifier {
   bool _isInputLocked = false;
   bool get isInputLocked => _isInputLocked;
 
+  /// Whether the just-completed word is still on show during the extra
+  /// pause before the next word appears (ages 1–3 word levels, Levels 5–7).
+  /// Blocks input so the pause can't be double-scored.
+  bool _awaitingNextWord = false;
+
   /// Recently used words to avoid repeats
   final List<String> _recentWords = [];
 
@@ -193,8 +326,9 @@ class VowelHandProvider extends ChangeNotifier {
   // Internal State
   // -------------------------
 
-  /// Called after answer checking with `true` for correct, `false` for wrong.
-  Function(bool isCorrect)? onAnswerResult;
+  /// Called when a player taps the wrong fingertip or badge on any level,
+  /// so the screen can show "Try again" in the UI language.
+  VoidCallback? onTryAgain;
 
   /// Called once, with the final [_score], the moment the level ends. Set
   /// by the screen when launched from the "Learn BSL trail" so it can
@@ -214,8 +348,11 @@ class VowelHandProvider extends ChangeNotifier {
   bool get showScoreAnimation => _showScoreAnimation;
 
   /// Initializes the provider.
-  VowelHandProvider({SignSystem signSystem = SignSystem.bsl})
-      : _signSystem = signSystem {
+  VowelHandProvider({
+    SignSystem signSystem = SignSystem.bsl,
+    AgeGroup ageGroup = AgeGroup.all,
+  })  : _signSystem = signSystem,
+        _ageGroup = ageGroup {
     if (_signSystem == SignSystem.iac) {
       _showLevelSelect = false;
     }
@@ -237,12 +374,14 @@ class VowelHandProvider extends ChangeNotifier {
     _scoreAnimationTimer = null;
     _wrongAnswerTimer?.cancel();
     _wrongAnswerTimer = null;
+    _clearHint();
 
     _showLevelSelect = true;
     _gameState = VowelHandGameState.ready;
     _isPointerVisible = false;
     _pointerPosition = null;
     _isInputLocked = false;
+    _awaitingNextWord = false;
     _guessedVowel = null;
     _isGuessCorrect = null;
 
@@ -262,6 +401,7 @@ class VowelHandProvider extends ChangeNotifier {
     _wrongAnswerTimer?.cancel();
     _scoreAnimationTimer?.cancel();
     _pointerHideTimer?.cancel();
+    _clearHint();
 
     if (level != null) {
       _selectedLevel = level;
@@ -276,20 +416,25 @@ class VowelHandProvider extends ChangeNotifier {
     _hasScored = false;
     _showScoreAnimation = false;
     _isInputLocked = false;
+    _awaitingNextWord = false;
     _guessedVowel = null;
     _isGuessCorrect = null;
     _lastResult = null;
 
-    if (_selectedLevel == VowelHandLevel.vowelMatch) {
-      _selectRandomVowel();
-    } else if (_selectedLevel == VowelHandLevel.vowelWordsMulti ||
-        _selectedLevel == VowelHandLevel.noMistakes) {
+    if (_selectedLevel.isVowelMatch) {
+      _startVowels();
+    } else if (_selectedLevel.isMultiVowel) {
       _completedWords.clear();
       _currentMultiPuzzle = null;
       _selectMultiVowelPuzzle();
     } else {
+      _totalRounds = _toddlerWordRoundsForLevel;
       _remoteWords = [];
-      if (_selectedLevel == VowelHandLevel.vowelWords && _signSystem == SignSystem.iac) {
+      // Each new game starts its fixed sequence (or shuffle) from scratch.
+      _fixedWordQueue = [];
+      if (isPictureWordLevel) {
+        // Local list: nothing to fetch.
+      } else if (_selectedLevel.isShortWords && _signSystem == SignSystem.iac) {
         _loadRemoteWelshWords();
       } else if (_selectedLevel == VowelHandLevel.ccvc && _signSystem == SignSystem.iac) {
         _loadRemoteWelshWordsLevel3();
@@ -322,24 +467,29 @@ class VowelHandProvider extends ChangeNotifier {
     _hasScored = false;
     _lastResult = null;
     _isInputLocked = false;
+    _awaitingNextWord = false;
     _guessedVowel = null;
     _isGuessCorrect = null;
 
     // Initialize based on level
-    if (_selectedLevel == VowelHandLevel.vowelMatch) {
-      _selectRandomVowel();
-    } else if (_selectedLevel == VowelHandLevel.vowelWordsMulti ||
-        _selectedLevel == VowelHandLevel.noMistakes) {
+    if (_selectedLevel.isVowelMatch) {
+      _startVowels();
+    } else if (_selectedLevel.isMultiVowel) {
       _completedWords.clear();
       _currentMultiPuzzle = null;
       _selectMultiVowelPuzzle();
     } else {
-      _selectRandomPuzzle();
+      _totalRounds = _toddlerWordRoundsForLevel;
+      // A fixed-word level keeps the word chosen in prepareForIntro so its
+      // sequence isn't advanced twice; only select when starting cold.
+      if (_fixedWordQueue.isEmpty || !_selectedLevel.isFixedWords) {
+        _selectRandomPuzzle();
+      }
     }
 
-    // Levels 5 & 6 are word-count-based — no countdown timer
-    if (_selectedLevel != VowelHandLevel.vowelWordsMulti &&
-        _selectedLevel != VowelHandLevel.noMistakes) {
+    // Levels 5 & 6 are word-count-based and the toddler levels end after a
+    // fixed set of letters — neither uses the countdown timer.
+    if (_selectedLevel.isTimed) {
       _gameTimer?.cancel();
       _gameTimer = Timer.periodic(const Duration(seconds: 1), _onTimerTick);
     }
@@ -364,18 +514,28 @@ class VowelHandProvider extends ChangeNotifier {
     _gameTimer = null;
     _wrongAnswerTimer?.cancel();
     _wrongAnswerTimer = null;
+    _clearHint();
     _gameState = VowelHandGameState.finished;
     _isPointerVisible = false;
     _pointerPosition = null;
     _isInputLocked = false;
+    _awaitingNextWord = false;
     _lastResult = null;
     notifyListeners();
 
     onLevelComplete?.call(_score);
 
-    final resultFuture = _signSystem == SignSystem.iac
-        ? _statsService.recordGameResult(GameIds.welshVowels, _score)
-        : _statsService.recordGameResult(GameIds.vowelHand, _score, level: _selectedLevel.number);
+    final gameId =
+        _signSystem == SignSystem.iac ? GameIds.welshVowels : GameIds.vowelHand;
+    // Toddler levels reuse level numbers 1–3, so keep their stats separate
+    // from the timed levels' personal bests.
+    final resultFuture = _selectedLevel.isToddler
+        ? _statsService.recordGameResult('${gameId}_toddler', _score,
+            level: _selectedLevel.number)
+        : _signSystem == SignSystem.iac
+            ? _statsService.recordGameResult(gameId, _score)
+            : _statsService.recordGameResult(gameId, _score,
+                level: _selectedLevel.number);
 
     resultFuture.then((result) {
       _lastResult = result;
@@ -395,6 +555,7 @@ class VowelHandProvider extends ChangeNotifier {
     _scoreAnimationTimer = null;
     _wrongAnswerTimer?.cancel();
     _wrongAnswerTimer = null;
+    _clearHint();
 
     _gameState = VowelHandGameState.ready;
     _score = 0;
@@ -404,12 +565,15 @@ class VowelHandProvider extends ChangeNotifier {
     _hasScored = false;
     _showScoreAnimation = false;
     _isInputLocked = false;
+    _awaitingNextWord = false;
     _guessedVowel = null;
     _isGuessCorrect = null;
 
-    if (_selectedLevel == VowelHandLevel.vowelMatch) {
-      _selectRandomVowel();
+    if (_selectedLevel.isVowelMatch) {
+      _startVowels();
     } else {
+      // A fixed-word level restarts its sequence from the first word.
+      if (_selectedLevel.isFixedWords) _fixedWordQueue = [];
       _selectRandomPuzzle();
     }
 
@@ -450,15 +614,14 @@ class VowelHandProvider extends ChangeNotifier {
     }
 
     // Handle input lock for word mode
-    if (_selectedLevel != VowelHandLevel.vowelMatch && _isInputLocked) {
+    if (!_selectedLevel.isVowelMatch && _isInputLocked) {
       _revertWrongAnswer();
     }
 
     // Check for hit based on current level
-    if (_selectedLevel == VowelHandLevel.vowelMatch) {
+    if (_selectedLevel.isVowelMatch) {
       _checkHitVowelMode(position: position, handSize: handSize);
-    } else if (_selectedLevel == VowelHandLevel.vowelWordsMulti ||
-        _selectedLevel == VowelHandLevel.noMistakes) {
+    } else if (_selectedLevel.isMultiVowel) {
       _checkHitMultiVowelMode(position: position, handSize: handSize);
     } else {
       _checkHitWordMode(position: position, handSize: handSize);
@@ -490,15 +653,15 @@ class VowelHandProvider extends ChangeNotifier {
   }) {
     if (_hasScored) return;
 
-    // Find the target for the current vowel. IAC-only vowels (w, y) have no
-    // fingertip target — they're matched via onTapAdditionalVowel instead.
-    final matches = VowelHandConstants.targets.where((t) => t.vowel == _currentVowel);
-    if (matches.isEmpty) return;
-    final target = matches.first;
+    // IAC-only vowels (w, y) have no fingertip target — they're matched via
+    // onTapAdditionalVowel instead, so a fingertip tap for them is a miss.
+    final tappedVowel = VowelHandConstants.targetAt(position, handSize)?.vowel;
+    if (tappedVowel == null) return;
 
-    // Check if touch is within the fingertip outline
-    if (target.containsPoint(position, handSize)) {
+    if (tappedVowel == _currentVowel) {
       _scoreCorrectVowel();
+    } else {
+      _handleWrongVowelTap();
     }
   }
 
@@ -512,18 +675,21 @@ class VowelHandProvider extends ChangeNotifier {
   void onTapAdditionalVowel(String vowel) {
     if (_gameState != VowelHandGameState.playing) return;
 
-    if (_selectedLevel == VowelHandLevel.vowelMatch) {
+    if (_selectedLevel.isVowelMatch) {
       if (vowel == _currentVowel) {
         _scoreCorrectVowel();
         // This tap is a standalone gesture, not part of an onTouchEnd cycle,
         // so clear the flag immediately rather than leaving it to block the
         // next fingertip hit check.
         _hasScored = false;
+      } else {
+        _handleWrongVowelTap();
       }
       return;
     }
 
     if (_hasScored || _currentPuzzle == null || _isInputLocked) return;
+    if (_awaitingNextWord) return;
     _guessedVowel = vowel;
     _hasScored = true;
     AudioService.playLetterMp3(vowel, signSystem: _signSystem);
@@ -537,6 +703,14 @@ class VowelHandProvider extends ChangeNotifier {
     _hasScored = false;
   }
 
+  /// Handles a wrong fingertip/badge in a vowel-match level: every level
+  /// says "Try again", and the toddler match levels also re-flash their
+  /// hint.
+  void _handleWrongVowelTap() {
+    onTryAgain?.call();
+    if (_selectedLevel.hasHint) _flashHint();
+  }
+
   /// Awards a point for a correct vowel match, advances to the next vowel,
   /// and briefly shows the score animation.
   void _scoreCorrectVowel() {
@@ -544,7 +718,17 @@ class VowelHandProvider extends ChangeNotifier {
     _score++;
     _hasScored = true;
     _showScoreAnimation = true;
-    _selectRandomVowel();
+    _clearHint();
+    if (_selectedLevel.isToddlerMatch) {
+      if (_vowelQueue.isEmpty) {
+        // Every letter has been called — the level is complete.
+        _endGame();
+      } else {
+        _setCurrentVowel(_vowelQueue.removeAt(0));
+      }
+    } else {
+      _selectRandomVowel();
+    }
     notifyListeners();
 
     // Hide score animation after 300ms
@@ -567,7 +751,7 @@ class VowelHandProvider extends ChangeNotifier {
     required Offset position,
     required Size handSize,
   }) {
-    if (_hasScored || _currentPuzzle == null) return;
+    if (_hasScored || _currentPuzzle == null || _awaitingNextWord) return;
 
     // Check all fingertips to find which one was tapped
     final tappedVowel = VowelHandConstants.targetAt(position, handSize)?.vowel;
@@ -601,7 +785,9 @@ class VowelHandProvider extends ChangeNotifier {
 
   /// Handles a correct word guess.
   ///
-  /// Shows green feedback, increments score, and moves to next word.
+  /// Shows green feedback, increments score, and moves to next word. The
+  /// ages 1–3 word levels (Levels 5–7) hold the completed word on show for
+  /// an extra 1.5s — spoken aloud — before the next word appears.
   void _handleCorrectWordGuess() {
     final word = _currentPuzzle!.word;
     _isGuessCorrect = true;
@@ -613,22 +799,43 @@ class VowelHandProvider extends ChangeNotifier {
     _scoreAnimationTimer?.cancel();
     _scoreAnimationTimer = Timer(const Duration(milliseconds: 300), () {
       _showScoreAnimation = false;
+      AudioService.speak(word);
+      // The toddler word levels are untimed and end after a fixed number
+      // of words (5 or 10), with a pause between words.
+      if (_selectedLevel.isToddlerWordLevel) {
+        if (_score >= _totalRounds) {
+          _guessedVowel = null;
+          _isGuessCorrect = null;
+          _endGame();
+          return;
+        }
+        // Extra 1.5s pause with the completed word still on show (in
+        // green, spoken aloud) before the next word replaces it.
+        _awaitingNextWord = true;
+        _scoreAnimationTimer = Timer(const Duration(milliseconds: 1500), () {
+          _awaitingNextWord = false;
+          _guessedVowel = null;
+          _isGuessCorrect = null;
+          _selectRandomPuzzle();
+          notifyListeners();
+        });
+        return;
+      }
       _guessedVowel = null;
       _isGuessCorrect = null;
       _selectRandomPuzzle();
-      AudioService.speak(word);
       notifyListeners();
     });
   }
 
   /// Handles a wrong word guess.
   ///
-  /// Shows red feedback and locks input. Reverts after 3 seconds
-  /// or when the player taps again.
+  /// Shows red feedback and locks input, and — on every level — says
+  /// "Try again". Reverts after 3 seconds or when the player taps again.
   void _handleWrongWordGuess() {
     _isGuessCorrect = false;
     _isInputLocked = true;
-    onAnswerResult?.call(false);
+    onTryAgain?.call();
     notifyListeners();
 
     // Start 3-second timer to revert
@@ -732,9 +939,9 @@ class VowelHandProvider extends ChangeNotifier {
     _hadMistakeOnCurrentWord = true;
     _isGuessCorrect = false;
     _isInputLocked = true;
+    // The screen shows the "Try again" message, with its audio.
+    onTryAgain?.call();
     notifyListeners();
-
-    AudioService.playTryAgain();
 
     _wrongAnswerTimer?.cancel();
     _wrongAnswerTimer = Timer(const Duration(milliseconds: 2500), () {
@@ -756,26 +963,136 @@ class VowelHandProvider extends ChangeNotifier {
       newVowel = vowels[_random.nextInt(vowels.length)];
     } while (newVowel == _currentVowel && vowels.length > 1);
 
-    _currentVowel = newVowel;
+    _setCurrentVowel(newVowel);
+  }
+
+  /// Makes [vowel] the letter to tap and, once play is running, calls it
+  /// out (and, in the toddler levels, flashes its fingertip/badge).
+  void _setCurrentVowel(String vowel) {
+    _currentVowel = vowel;
     if (_gameState == VowelHandGameState.playing) {
       Future.delayed(const Duration(milliseconds: 600), () {
-        if (_gameState == VowelHandGameState.playing && _currentVowel == newVowel) {
-          AudioService.playLetterMp3(newVowel, signSystem: _signSystem);
+        if (_gameState == VowelHandGameState.playing && _currentVowel == vowel) {
+          AudioService.playLetterMp3(vowel, signSystem: _signSystem);
+          if (_selectedLevel.hasHint) _flashHint();
         }
       });
     }
   }
 
+  /// Sets up the first letter for a vowel-match level: a fresh shuffled
+  /// sequence for the toddler levels, otherwise a random vowel.
+  void _startVowels() {
+    if (!_selectedLevel.isToddlerMatch) {
+      _selectRandomVowel();
+      return;
+    }
+    _vowelQueue = _buildToddlerSequence();
+    _totalRounds = _vowelQueue.length;
+    _setCurrentVowel(_vowelQueue.removeAt(0));
+  }
+
+  /// The letters called in the current toddler level, in random order:
+  /// - Level 1: a, e, i — twice each.
+  /// - Level 2: a, e, i, o, u — twice each (BSL and IAC alike). As the
+  ///   ages 3+ warm-up Level 1 in IAC, w and y are called twice each too.
+  /// - Level 3: BSL — a, e, i, o, u three times each. IAC — as Level 2,
+  ///   plus w and y four times each.
+  /// - Level 4: [_toddlerAllRounds] picks from every vowel for the sign
+  ///   system.
+  List<String> _buildToddlerSequence() {
+    if (_selectedLevel == VowelHandLevel.toddlerAll) {
+      final vowels = VowelHandConstants.vowelsForSignSystem(_signSystem);
+      final letters = <String>[];
+      while (letters.length < _toddlerAllRounds) {
+        final v = vowels[_random.nextInt(vowels.length)];
+        if (letters.isEmpty || letters.last != v) letters.add(v);
+      }
+      return letters;
+    }
+    const fingertips = VowelHandConstants.vowels;
+    final counts = <String, int>{
+      if (_selectedLevel == VowelHandLevel.toddlerAei)
+        for (final v in const ['a', 'e', 'i']) v: 2
+      else
+        for (final v in fingertips)
+          v: _selectedLevel == VowelHandLevel.toddlerChallenge &&
+                  _signSystem == SignSystem.bsl
+              ? 3
+              : 2,
+      if (_selectedLevel == VowelHandLevel.toddlerChallenge &&
+          _signSystem == SignSystem.iac) ...{'w': 4, 'y': 4},
+      if (isIacWarmUp) ...{'w': 2, 'y': 2},
+    };
+    final letters = [
+      for (final e in counts.entries)
+        for (var i = 0; i < e.value; i++) e.key,
+    ];
+    // Reshuffle until no letter is called twice in a row, so each new call
+    // is visibly a new letter.
+    for (var attempt = 0; attempt < 100; attempt++) {
+      letters.shuffle(_random);
+      var ok = true;
+      for (var i = 1; i < letters.length; i++) {
+        if (letters[i] == letters[i - 1]) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) break;
+    }
+    return letters;
+  }
+
+  /// Flashes the current letter's fingertip/badge red for [_hintDuration].
+  void _flashHint() {
+    _hintTimer?.cancel();
+    _hintVowel = _currentVowel;
+    _hintToken++;
+    notifyListeners();
+    _hintTimer = Timer(_hintDuration, () {
+      _hintVowel = null;
+      notifyListeners();
+    });
+  }
+
+  /// Stops any hint flash. Callers notify listeners themselves.
+  void _clearHint() {
+    _hintTimer?.cancel();
+    _hintTimer = null;
+    _hintVowel = null;
+  }
+
   /// Selects a new random word puzzle, avoiding recently used words.
   ///
+  /// The fixed-word toddler levels (Five Words / Ten Words) take the next
+  /// word from their fixed list instead.
   /// Level 2 uses the local English CVC word list for BSL, or Welsh CVC
   /// words fetched from Supabase (`Geiriau`) for IAC.
-  /// Levels 3 and 4 use English words fetched from Supabase (`words`).
+  /// Levels 3 and 4 use English words fetched from Supabase (`words`),
+  /// except ages 1–3 Level 8, which uses the local [_pictureWords].
   void _selectRandomPuzzle() {
+    if (_selectedLevel.isFixedWords) {
+      _selectFixedWordPuzzle();
+      return;
+    }
+    if (isPictureWordLevel) {
+      final available =
+          _pictureWords.where((w) => !_recentWords.contains(w)).toList();
+      final candidates = available.isNotEmpty ? available : _pictureWords;
+      // English words, so parsed with the English alphabet (w is never a
+      // vowel) whatever the sign system.
+      _currentPuzzle =
+          WordPuzzle(word: candidates[_random.nextInt(candidates.length)]);
+      _recentWords.add(_currentPuzzle!.word);
+      if (_recentWords.length > WordPuzzleConstants.maxRecentWords) {
+        _recentWords.removeAt(0);
+      }
+      return;
+    }
     if (_selectedLevel == VowelHandLevel.ccvc ||
         _selectedLevel == VowelHandLevel.cvcc ||
-        (_selectedLevel == VowelHandLevel.vowelWords &&
-            _signSystem == SignSystem.iac)) {
+        (_selectedLevel.isShortWords && _signSystem == SignSystem.iac)) {
       if (_remoteWords.isEmpty) {
         _currentPuzzle = null;
         return;
@@ -798,6 +1115,22 @@ class VowelHandProvider extends ChangeNotifier {
     if (_recentWords.length > WordPuzzleConstants.maxRecentWords) {
       _recentWords.removeAt(0);
     }
+  }
+
+  /// Selects the next word for a fixed-word level (ages 1–3 Five Words /
+  /// Ten Words): (re)building the queue when it is empty — in list order
+  /// for Five Words, shuffled for Ten Words — then taking the first word
+  /// left. The words are English CVC words, so they always parse with the
+  /// English alphabet rules regardless of sign system.
+  void _selectFixedWordPuzzle() {
+    if (_fixedWordQueue.isEmpty) {
+      if (_selectedLevel == VowelHandLevel.toddlerFiveWords) {
+        _fixedWordQueue = List.of(_toddlerFiveWords);
+      } else {
+        _fixedWordQueue = List.of(_toddlerTenWords)..shuffle(_random);
+      }
+    }
+    _currentPuzzle = WordPuzzle(word: _fixedWordQueue.removeAt(0));
   }
 
   /// Selects a new multi-vowel word puzzle (Levels 5 & 6), avoiding the
@@ -886,6 +1219,7 @@ class VowelHandProvider extends ChangeNotifier {
     _pointerHideTimer?.cancel();
     _scoreAnimationTimer?.cancel();
     _wrongAnswerTimer?.cancel();
+    _hintTimer?.cancel();
     super.dispose();
   }
 }

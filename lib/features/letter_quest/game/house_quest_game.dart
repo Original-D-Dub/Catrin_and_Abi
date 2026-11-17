@@ -22,7 +22,7 @@ class HouseQuestGame extends BaseLetterQuestGame {
   Future<void> onLoad() async {
     images.prefix = 'assets/';
 
-    await loadSignSvgs();
+    await loadSignImages();
 
     await images.load('games/letter_quest/peroSprite4.png');
     await images.load('games/letter_quest/wall-tile-brick.png');

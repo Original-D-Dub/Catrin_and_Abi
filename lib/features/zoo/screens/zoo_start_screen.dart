@@ -73,7 +73,7 @@ class _ZooStartScreenState extends State<ZooStartScreen> {
                 ),
               ),
             ),
-            PrimaryButton(
+            Primary2Button(
               label: localizer('general.play'),
               onPressed: () {
                 final lastCharacter =

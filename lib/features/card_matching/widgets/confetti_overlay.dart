@@ -151,7 +151,7 @@ class _ConfettiOverlayState extends State<ConfettiOverlay> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Play Again button
-                      PrimaryButton(
+                      Primary2Button(
                         label: widget.playAgainLabel,
                         icon: Icons.replay,
                         expanded: true,

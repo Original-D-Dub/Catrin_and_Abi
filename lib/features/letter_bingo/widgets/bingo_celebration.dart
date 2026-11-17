@@ -12,6 +12,7 @@ import '../../../shared/services/auth_provider.dart';
 import '../../../shared/widgets/back_arrow_icon.dart';
 import '../../../shared/widgets/button.dart';
 import '../../../shared/widgets/falling_confetti_layer.dart';
+import '../../../shared/widgets/paper_texture_overlay.dart';
 import '../../../shared/widgets/sign_in_banner_button.dart';
 import '../models/animal_model.dart';
 import '../providers/bingo_collection_provider.dart';
@@ -39,6 +40,11 @@ final RadialGradient bingoOverlayGradient = RadialGradient(
 /// 3. "Play Again" button, full width.
 /// 4. "Next Level" button, full width (when there is one).
 ///
+/// In landscape the screen is fitted, not scrolled, so the buttons are
+/// always visible: a smaller BINGO above the friend message, that text
+/// block side by side with the card (which scales to fit), then Play Again
+/// and Next Level side by side.
+///
 /// A fixed back arrow in the top-left corner — same treatment as the
 /// shared success overlay's header arrow — triggers [onChangeLevel] to
 /// leave the round.
@@ -61,6 +67,11 @@ class BingoCelebration extends StatefulWidget {
   /// when launched from the trail. Null hides the button (e.g. on the last
   /// level).
   final VoidCallback? onNextLevel;
+
+  /// When non-null, shows a "Check" button (multiplayer player card) that
+  /// closes the overlay so the marked letters can be checked against the
+  /// caller's called-letters list.
+  final VoidCallback? onCheck;
 
   /// Non-null only for logged-in users who earned a reward animal this round.
   final Animal? animal;
@@ -88,6 +99,7 @@ class BingoCelebration extends StatefulWidget {
     required this.onChangeLevel,
     required this.onSeeCollection,
     this.onNextLevel,
+    this.onCheck,
     this.animal,
     this.playerId,
     required this.levelNumber,
@@ -403,187 +415,338 @@ class _BingoCelebrationState extends State<BingoCelebration>
       behavior: HitTestBehavior.translucent,
       child: Container(
         decoration: BoxDecoration(gradient: bingoOverlayGradient),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              const FallingConfettiLayer(),
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            const Positioned.fill(child: PaperTextureOverlay()),
+            SafeArea(
+              child: Stack(
+                children: [
+                  const FallingConfettiLayer(),
 
-              // Scrollable content
-              SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: size.height - mq.padding.top - mq.padding.bottom,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 680),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.paddingLarge,
-                          vertical: AppSizes.paddingLarge,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Pulsing BINGO — letters pop in one by one
-                            Semantics(
-                              header: true,
-                              excludeSemantics: true,
-                              label: localizer('letter_bingo.bingo'),
-                              child: ScaleTransition(
-                                scale: _pulseAnim,
-                                child: _BingoText(intro: _bingoIntroCtrl),
-                              ),
-                            ),
-                            const SizedBox(height: AppSizes.spacingLarge),
+                  // Landscape fits everything on one screen (no scrolling)
+                  // so the buttons are always visible; portrait scrolls.
+                  if (mq.orientation == Orientation.landscape)
+                    _buildLandscapeContent(context, localizer, size, mq)
+                  else
+                    _buildPortraitContent(context, localizer, size, mq),
 
-                            // ── Animal reward section ───────────────────
-                            if (widget.animal != null) ...[
-                              AnimatedOpacity(
-                                opacity: _isNew != null ? 1.0 : 0.0,
-                                duration: _newnessFadeDuration,
-                                child: Semantics(
-                                  liveRegion: true,
-                                  excludeSemantics: true,
-                                  label: _congratulationsText(localizer),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Text(
-                                        _congratulationsText(localizer),
-                                        textAlign: TextAlign.center,
-                                        style: AppTheme.celebrationAt(AppSizes.fontSizeHeading).copyWith(
-                                          // Tighter than the app-wide
-                                          // celebration spacing.
-                                          letterSpacing:
-                                              AppSizes.fontSizeHeading * -0.18,
-                                          foreground: Paint()
-                                            ..style = PaintingStyle.stroke
-                                            ..strokeWidth = 2
-                                            ..color = AppColors.accentOrange,
-                                          shadows: const [
-                                            Shadow(
-                                              color: Color(0xFF462200),
-                                              offset: Offset(2, 3),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        _congratulationsText(localizer),
-                                        textAlign: TextAlign.center,
-                                        style: AppTheme.celebrationAt(AppSizes.fontSizeHeading).copyWith(
-                                          // Tighter than the app-wide
-                                          // celebration spacing.
-                                          letterSpacing:
-                                              AppSizes.fontSizeHeading * -0.18,
-                                          color: AppColors.celebrationGold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: AppSizes.spacingMedium),
-                              Center(
-                                child: SlideTransition(
-                                  position: _slideAnim,
-                                  child: FadeTransition(
-                                    opacity: _fadeAnim,
-                                    child: Column(
-                                      children: [
-                                        Stack(
-                                          clipBehavior: Clip.none,
-                                          children: [
-                                            ScaleTransition(
-                                              scale: _cardPulseAnim,
-                                              child: AnimalCard(
-                                                animal: widget.animal!,
-                                                onTap: _replayAnimalName,
-                                              ),
-                                            ),
-                                            Positioned(
-                                              top: -14,
-                                              right: -40,
-                                              child: _RevealOnFade(
-                                                fade: _buttonFade,
-                                                child: _SeeCollectionRoundel(
-                                                  label: localizer(
-                                                    'letter_bingo.see_collection',
-                                                  ),
-                                                  onTap: widget.onSeeCollection,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: AppSizes.spacingLarge),
-                            ],
-
-                            // ── Sign-in banner (anonymous users) ────────
-                            if (context.watch<AuthProvider>().isAnonymous) ...[
-                              SignInBannerButton(locale: widget.locale),
-                              const SizedBox(height: AppSizes.spacingMedium),
-                            ],
-
-                            // ── Play Again, full width ──────────────────
-                            _RevealOnFade(
-                              fade: _buttonFade,
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppSizes.spacingMedium,
-                                ),
-                                child: PrimaryButton(
-                                  label: localizer('general.play_again'),
-                                  icon: Icons.replay,
-                                  expanded: true,
-                                  onPressed: widget.onPlayAgain,
-                                ),
-                              ),
-                            ),
-
-                            // ── Next Level, full width ─────────────────
-                            if (widget.onNextLevel != null)
-                              _RevealOnFade(
-                                fade: _buttonFade,
-                                child: SecondaryButton(
-                                  label: localizer('general.next_level'),
-                                  expanded: true,
-                                  onPressed: widget.onNextLevel,
-                                ),
-                              ),
-                          ],
-                        ),
+                  // Fixed back arrow — same treatment as the shared success
+                  // overlay's header arrow. Sits above the scrolling content
+                  // so it stays reachable while the column scrolls.
+                  Positioned(
+                    top: AppSizes.paddingMedium,
+                    left: AppSizes.paddingMedium,
+                    child: GestureDetector(
+                      onTap: widget.onChangeLevel,
+                      child: const SizedBox(
+                        width: 72,
+                        height: 72,
+                        child: Center(child: BackArrowIcon(size: 48)),
                       ),
                     ),
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Portrait: everything stacked in one scrolling column — BINGO, friend
+  /// message, card, then full-width Play Again and Next Level buttons.
+  Widget _buildPortraitContent(
+    BuildContext context,
+    AppLocalizations localizer,
+    Size size,
+    MediaQueryData mq,
+  ) {
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: size.height - mq.padding.top - mq.padding.bottom,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.paddingLarge,
+                vertical: AppSizes.paddingLarge,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildBingoWord(localizer),
+                  const SizedBox(height: AppSizes.spacingLarge),
+
+                  // ── Animal reward section ───────────────────
+                  if (widget.animal != null) ...[
+                    _buildFriendMessage(localizer),
+                    const SizedBox(height: AppSizes.spacingMedium),
+                    Center(child: _buildAnimalCard(localizer)),
+                    const SizedBox(height: AppSizes.spacingLarge),
+                  ],
+
+                  // ── Sign-in banner (anonymous users) ────────
+                  if (context.watch<AuthProvider>().isAnonymous) ...[
+                    SignInBannerButton(locale: widget.locale),
+                    const SizedBox(height: AppSizes.spacingMedium),
+                  ],
+
+                  // ── Play Again, full width ──────────────────
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: AppSizes.spacingMedium,
+                    ),
+                    child: _buildPlayAgainButton(localizer),
+                  ),
+
+                  // ── Next Level, full width ─────────────────
+                  if (widget.onNextLevel != null)
+                    _buildNextLevelButton(localizer),
+
+                  // ── Check, full width (multiplayer) ─────────
+                  if (widget.onCheck != null) _buildCheckButton(localizer),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Landscape: a text block (a smaller BINGO above the friend message)
+  /// side by side with the animal card, and Play Again / Next Level side by
+  /// side along the bottom. Sized to the screen so nothing scrolls off it —
+  /// the card scales down to fit the height left over.
+  Widget _buildLandscapeContent(
+    BuildContext context,
+    AppLocalizations localizer,
+    Size size,
+    MediaQueryData mq,
+  ) {
+    final available = size.height - mq.padding.vertical;
+    final bingoHeight = (available * 0.22).clamp(48.0, 120.0);
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1000),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.paddingLarge,
+            vertical: AppSizes.paddingMedium,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Text block (BINGO over the friend message) + card ──
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            height: bingoHeight,
+                            child: _buildBingoWord(localizer),
+                          ),
+                          if (widget.animal != null) ...[
+                            const SizedBox(height: AppSizes.spacingSmall),
+                            Flexible(
+                              child: Center(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: _buildFriendMessage(localizer),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (widget.animal != null) ...[
+                      const SizedBox(width: AppSizes.spacingMedium),
+                      Expanded(
+                        child: Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: _buildAnimalCard(
+                              localizer,
+                              padForRoundel: true,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
 
-              // Fixed back arrow — same treatment as the shared success
-              // overlay's header arrow. Sits above the scrolling content
-              // so it stays reachable while the column scrolls.
+              // ── Sign-in banner (anonymous users) ────────
+              if (context.watch<AuthProvider>().isAnonymous) ...[
+                const SizedBox(height: AppSizes.spacingSmall),
+                Center(child: SignInBannerButton(locale: widget.locale)),
+              ],
+              const SizedBox(height: AppSizes.spacingSmall),
+
+              // ── Play Again + Next Level, in a row ─────────
+              Row(
+                children: [
+                  Expanded(child: _buildPlayAgainButton(localizer)),
+                  if (widget.onNextLevel != null) ...[
+                    const SizedBox(width: AppSizes.spacingMedium),
+                    Expanded(child: _buildNextLevelButton(localizer)),
+                  ],
+                  if (widget.onCheck != null) ...[
+                    const SizedBox(width: AppSizes.spacingMedium),
+                    Expanded(child: _buildCheckButton(localizer)),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Pulsing BINGO — letters pop in one by one. Scales down to fit whatever
+  /// height it's given.
+  Widget _buildBingoWord(AppLocalizations localizer) {
+    return Semantics(
+      header: true,
+      excludeSemantics: true,
+      label: localizer('letter_bingo.bingo'),
+      child: ScaleTransition(
+        scale: _pulseAnim,
+        child: _BingoText(intro: _bingoIntroCtrl),
+      ),
+    );
+  }
+
+  /// "You have a (new) friend" line, fading in once newness is known.
+  Widget _buildFriendMessage(AppLocalizations localizer) {
+    final text = _congratulationsText(localizer);
+    final baseStyle = AppTheme.celebrationAt(AppSizes.fontSizeHeading).copyWith(
+      // Tighter than the app-wide celebration spacing.
+      letterSpacing: AppSizes.fontSizeHeading * -0.18,
+    );
+    return AnimatedOpacity(
+      opacity: _isNew != null ? 1.0 : 0.0,
+      duration: _newnessFadeDuration,
+      child: Semantics(
+        liveRegion: true,
+        excludeSemantics: true,
+        label: text,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: baseStyle.copyWith(
+                foreground: Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = 2
+                  ..color = AppColors.accentOrange,
+                shadows: const [
+                  Shadow(color: Color(0xFF462200), offset: Offset(2, 3)),
+                ],
+              ),
+            ),
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: baseStyle.copyWith(color: AppColors.celebrationGold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The reward card sliding in, with the see-collection roundel on its
+  /// top-right corner. With [padForRoundel] (landscape) it's padded so the
+  /// overhanging roundel sits inside the widget's bounds and scales down
+  /// with the card; padded on both sides so the card stays centred.
+  Widget _buildAnimalCard(
+    AppLocalizations localizer, {
+    bool padForRoundel = false,
+  }) {
+    return SlideTransition(
+      position: _slideAnim,
+      child: FadeTransition(
+        opacity: _fadeAnim,
+        child: Padding(
+          padding: padForRoundel
+              ? const EdgeInsets.fromLTRB(40, 14, 40, 0)
+              : EdgeInsets.zero,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ScaleTransition(
+                scale: _cardPulseAnim,
+                child: AnimalCard(
+                  animal: widget.animal!,
+                  onTap: _replayAnimalName,
+                  feltName: true,
+                ),
+              ),
               Positioned(
-                top: AppSizes.paddingMedium,
-                left: AppSizes.paddingMedium,
-                child: GestureDetector(
-                  onTap: widget.onChangeLevel,
-                  child: const SizedBox(
-                    width: 72,
-                    height: 72,
-                    child: Center(child: BackArrowIcon(size: 48)),
+                top: -14,
+                right: -40,
+                child: _RevealOnFade(
+                  fade: _buttonFade,
+                  child: _SeeCollectionRoundel(
+                    label: localizer('letter_bingo.see_collection'),
+                    onTap: widget.onSeeCollection,
                   ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlayAgainButton(AppLocalizations localizer) {
+    return _RevealOnFade(
+      fade: _buttonFade,
+      child: Primary2Button(
+        label: localizer('general.play_again'),
+        icon: Icons.replay,
+        expanded: true,
+        onPressed: widget.onPlayAgain,
+      ),
+    );
+  }
+
+  Widget _buildNextLevelButton(AppLocalizations localizer) {
+    return _RevealOnFade(
+      fade: _buttonFade,
+      child: SecondaryButton(
+        label: localizer('general.next_level'),
+        expanded: true,
+        onPressed: widget.onNextLevel,
+      ),
+    );
+  }
+
+  Widget _buildCheckButton(AppLocalizations localizer) {
+    return _RevealOnFade(
+      fade: _buttonFade,
+      child: SecondaryButton(
+        label: localizer('letter_bingo.check'),
+        icon: Icons.fact_check,
+        expanded: true,
+        onPressed: widget.onCheck,
       ),
     );
   }
@@ -698,7 +861,7 @@ class _BingoText extends StatelessWidget {
   static const _letters = ['B', 'I', 'N', 'G', 'O'];
   static const _colors = [
     AppColors.accentRed,
-    AppColors.catrinBlue,
+    AppColors.accentNavyBlue,
     AppColors.accentLimeGreen,
     AppColors.accentOrange,
     AppColors.accentPurple,
@@ -717,6 +880,10 @@ class _BingoText extends StatelessWidget {
   /// neighbouring letters closer exactly as it would within one word.
   static const _letterSpacing = _letterSize * -0.18;
 
+  /// Felt texture scale, matching the grain on the [AnimalCard] name strip
+  /// (the 600px-wide texture covering the 220px card).
+  static const _feltScale = AnimalCard.cardWidth / 600;
+
   @override
   Widget build(BuildContext context) {
     // Strokes and fills are separate rows, stacked strokes-first, so one
@@ -728,20 +895,38 @@ class _BingoText extends StatelessWidget {
         padding: const EdgeInsets.all(_outerStroke),
         child: Stack(
           children: [
-            _buildRow((i) => AppTheme.celebration.copyWith(
-                  fontSize: _letterSize,
-                  letterSpacing: _letterSpacing,
-                  foreground: Paint()
-                    ..style = PaintingStyle.stroke
-                    ..strokeWidth = _outerStroke * 2
-                    ..strokeJoin = StrokeJoin.round
-                    ..color = Colors.white,
-                )),
-            _buildRow((i) => AppTheme.celebration.copyWith(
-                  fontSize: _letterSize,
-                  letterSpacing: _letterSpacing,
-                  color: _colors[i],
-                )),
+            _buildRow(
+              (i) => AppTheme.celebration.copyWith(
+                fontSize: _letterSize,
+                letterSpacing: _letterSpacing,
+                foreground: Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = _outerStroke * 2
+                  ..strokeJoin = StrokeJoin.round
+                  ..color = Colors.white,
+              ),
+            ),
+            _buildRow(
+              (i) => AppTheme.celebration.copyWith(
+                fontSize: _letterSize,
+                letterSpacing: _letterSpacing,
+                color: _colors[i],
+              ),
+            ),
+            // Felt texture blended over the fills, clipped to the glyphs.
+            FuzzTextureBuilder(
+              builder: (context, image) {
+                if (image == null) return const SizedBox.shrink();
+                final paint = fuzzTextPaint(image, scale: _feltScale);
+                return _buildRow(
+                  (i) => AppTheme.celebration.copyWith(
+                    fontSize: _letterSize,
+                    letterSpacing: _letterSpacing,
+                    foreground: paint,
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),

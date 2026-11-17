@@ -14,9 +14,13 @@ import '../../../shared/widgets/level_select_screen.dart';
 import '../../../shared/widgets/level_transition_overlay.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../shared/widgets/bsl_alphabet_svg.dart';
+import '../../../shared/widgets/sign_letter_image.dart';
+import '../../../shared/widgets/champion_rosette.dart';
+import '../../bsl_maths/widgets/champion_mode_explainer.dart';
+import '../../bsl_maths/widgets/champion_mode_unlocked_banner.dart';
 import '../providers/bubble_pop_provider.dart';
 import '../widgets/bubble_widget.dart';
+import '../widgets/champion_feedback.dart';
 
 /// Main screen for the Bubble Pop game.
 ///
@@ -102,7 +106,7 @@ class _BubblePopScreenState extends State<BubblePopScreen>
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(
-                    'assets/backgrounds/math-background-1080x1920.jpg'),
+                    'assets/backgrounds/felt-background.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
@@ -134,7 +138,7 @@ class _BubblePopScreenState extends State<BubblePopScreen>
                     locale: widget.locale,
                     characterImage: 'assets/characters/space-jamjam.png',
                     backgroundImage:
-                        'assets/backgrounds/math-background-1080x1920.jpg',
+                        'assets/backgrounds/felt-background.jpg',
                     topText: localizer('bubble_pop.intro_heading'),
                     roundedBubble: true,
                     onComplete: () {
@@ -179,6 +183,30 @@ class _BubblePopScreenState extends State<BubblePopScreen>
                     ),
                   ),
 
+                // Shown over the game-over overlay the first time level 6
+                // is completed.
+                if (!provider.showLevelSelect &&
+                    provider.gameOver &&
+                    provider.justUnlockedChampionMode)
+                  Positioned.fill(
+                    child: ChampionModeUnlockedBanner(
+                      locale: widget.locale,
+                      textKey: 'bubble_pop.champion_mode.unlocked_banner',
+                      onContinue: () {
+                        provider.dismissChampionModeUnlockedBanner();
+                        provider.showLevelSelection();
+                        showChampionModeExplainer(
+                          context,
+                          locale: widget.locale,
+                          bodyKey: provider.signSystem == SignSystem.iac
+                              ? 'bubble_pop.champion_mode.explainer_iac'
+                              : 'bubble_pop.champion_mode.explainer_bsl',
+                          demo: ChampionScoringDemo(localizer: localizer),
+                        );
+                      },
+                    ),
+                  ),
+
                 Positioned.fill(
                   child: LevelTransitionOverlay(opacity: levelTransitionOpacity),
                 ),
@@ -217,6 +245,13 @@ class _BubblePopScreenState extends State<BubblePopScreen>
   ) {
     return LevelSelectScreen(
       locale: localizer.locale,
+      titleBadge: provider.isChampionModeUnlocked
+          ? ChampionRosette(
+              value: provider.championMode,
+              onChanged: provider.setChampionMode,
+              localizer: localizer,
+            )
+          : null,
       levels: provider.levels.map((level) {
         return LevelSelectItem(
           number: level.number,
@@ -245,7 +280,7 @@ class _BubblePopScreenState extends State<BubblePopScreen>
   /// Builds the main game content matching the mockup layout.
   ///
   /// Layout (Stack over background image):
-  /// - Background: math-background-1080x1920.jpg
+  /// - Background: felt-background.jpg
   /// - Header bar: score circle (left), time (centre), level (right)
   /// - Play area: white bg, purple border, contains bubbles
   /// - Letter sign: overlapping bottom of play area
@@ -260,7 +295,7 @@ class _BubblePopScreenState extends State<BubblePopScreen>
         // Background image
         Positioned.fill(
           child: Image.asset(
-            'assets/backgrounds/math-background-1080x1920.jpg',
+            'assets/backgrounds/felt-background.jpg',
             fit: BoxFit.cover,
           ),
         ),
@@ -278,7 +313,7 @@ class _BubblePopScreenState extends State<BubblePopScreen>
                 if (trail.activeNodeId != null) {
                   advanceTrail(context, trail);
                 } else {
-                  Navigator.pop(context);
+                  provider.showLevelSelection();
                 }
               },
               scoreValue: '${provider.score}',
@@ -385,6 +420,35 @@ class _BubblePopScreenState extends State<BubblePopScreen>
                           ),
                         );
                       }),
+
+                      // Champion Mode "x2 multiplier" labels, following the
+                      // path of the bubble they replaced. Not tappable.
+                      ...provider.multiplierLabels.map((label) {
+                        return Positioned(
+                          key: ValueKey(label.id),
+                          left: 0,
+                          right: 0,
+                          top: label.y * (constraints.maxHeight - 100),
+                          child: IgnorePointer(
+                            child: FractionalTranslation(
+                              translation: const Offset(0, -0.5),
+                              // Align (rather than an absolute left) keeps
+                              // the wide text inside the play area when the
+                              // bubble was near an edge.
+                              child: Align(
+                                alignment: Alignment(label.x * 2 - 1, 0),
+                                child: Opacity(
+                                  opacity: label.opacity,
+                                  child: MultiplierLabelText(
+                                    multiplier: label.multiplier,
+                                    localizer: localizer,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
                     ],
                   );
                 },
@@ -438,9 +502,8 @@ class _BubblePopScreenState extends State<BubblePopScreen>
                 child: provider.targetLetter.isNotEmpty
                     ? Padding(
                         padding: EdgeInsets.all(8 * scale),
-                        child: BslAlphabetSvg(
+                        child: SignLetterImage(
                           letter: provider.targetLetter,
-                          signSystem: provider.signSystem,
                           fit: BoxFit.contain,
                         ),
                       )
@@ -448,6 +511,19 @@ class _BubblePopScreenState extends State<BubblePopScreen>
               ),
             ),
           ),
+
+          // Champion Mode: floating "+20" / "-5" points feedback on the
+          // right of the sign.
+          if (provider.championMode && provider.lastPointsDelta != null)
+            Positioned(
+              right: 8 * scale,
+              top: 24 * scale,
+              child: ChampionPointsPopup(
+                delta: provider.lastPointsDelta!,
+                serial: provider.pointsDeltaSerial,
+                scale: scale,
+              ),
+            ),
 
           // "Find the letter" label, vertically centered on the sign's
           // bottom edge via a translation by half its own height.

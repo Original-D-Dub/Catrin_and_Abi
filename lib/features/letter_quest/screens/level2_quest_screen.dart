@@ -100,7 +100,7 @@ class _Level2QuestScreenState extends State<Level2QuestScreen> {
                                         child: Text(
                                           letter.toUpperCase(),
                                           style: const TextStyle(
-                                            fontFamily: 'ComicRelief',
+                                            fontFamily: 'OpenDyslexic',
                                             fontSize: AppSizes.fontSizeLarge,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.white,

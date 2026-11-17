@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -65,6 +67,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   AppLocalizations get _t => AppLocalizations(locale: widget.locale);
 
+  /// Badge ids that were earned-but-unseen when this visit opened — the
+  /// set captured before [ProfileProvider.markBadgesSeen] cleared the
+  /// unseen state, so the badge row can play its "new badge" animation
+  /// exactly once per visit.
+  Set<String> _newlyEarnedBadgeIds = const {};
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +88,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       });
     }
+    // Show the player their new badges with the once-only animation, then
+    // clear the home screen's red dot. Captured after the first frame so
+    // the provider's own load has settled.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final profile = context.read<ProfileProvider>();
+      if (profile.unseenBadgeIds.isEmpty) return;
+      setState(() {
+        _newlyEarnedBadgeIds = Set.of(profile.unseenBadgeIds);
+      });
+      profile.markBadgesSeen();
+    });
   }
 
   @override
@@ -300,6 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _BadgeRow(
                               title: t('profile.badges_title'),
                               stats: profile.stats,
+                              newlyEarned: _newlyEarnedBadgeIds,
                               localizer: t,
                             ),
                           ],
@@ -461,7 +482,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
         _isHwbLoading
             ? const Center(child: CircularProgressIndicator())
-            : PrimaryButton(
+            : Primary2Button(
                 label: _t('profile.hwb_sign_in_button'),
                 icon: Icons.school,
                 expanded: true,
@@ -532,7 +553,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: AppSizes.spacingLarge),
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : PrimaryButton(
+              : Primary2Button(
                   label: _t('profile.send_code_button'),
                   icon: Icons.send,
                   expanded: true,
@@ -593,7 +614,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: AppSizes.spacingLarge),
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : PrimaryButton(
+              : Primary2Button(
                   label: _t('profile.verify_code_button'),
                   icon: Icons.check_circle,
                   expanded: true,
@@ -721,7 +742,7 @@ class _EditProfileButton extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final iconOnly = width < _kIconOnlyBreakpoint;
     final isMobile = width < _kMobileBreakpoint;
-    return PrimaryButton(
+    return Primary2Button(
       label: label,
       icon: Icons.edit,
       backgroundColor: Colors.white24,
@@ -737,11 +758,13 @@ class _EditProfileButton extends StatelessWidget {
 class _BadgeRow extends StatelessWidget {
   final String title;
   final List<Map<String, dynamic>> stats;
+  final Set<String> newlyEarned;
   final AppLocalizations localizer;
 
   const _BadgeRow({
     required this.title,
     required this.stats,
+    required this.newlyEarned,
     required this.localizer,
   });
 
@@ -766,6 +789,7 @@ class _BadgeRow extends StatelessWidget {
               _BadgeCircle(
                 badge: badge,
                 earned: badge.isEarned(stats),
+                isNew: newlyEarned.contains(badge.id),
                 label: localizer(badge.labelKey),
                 lockedLabel: localizer('profile.badge.locked'),
               ),
@@ -776,18 +800,54 @@ class _BadgeRow extends StatelessWidget {
   }
 }
 
-class _BadgeCircle extends StatelessWidget {
+class _BadgeCircle extends StatefulWidget {
   final ProfileBadge badge;
   final bool earned;
+
+  /// Whether this badge was earned since the player last looked at their
+  /// profile — it announces itself by pulsing twice, then wiggling.
+  final bool isNew;
   final String label;
   final String lockedLabel;
 
   const _BadgeCircle({
     required this.badge,
     required this.earned,
+    required this.isNew,
     required this.label,
     required this.lockedLabel,
   });
+
+  @override
+  State<_BadgeCircle> createState() => _BadgeCircleState();
+}
+
+class _BadgeCircleState extends State<_BadgeCircle>
+    with SingleTickerProviderStateMixin {
+  /// Two size pulses (+10%) then a 600ms wiggle.
+  static const _pulseDuration = Duration(milliseconds: 700);
+  static const _wiggleDuration = Duration(milliseconds: 600);
+  static const _pulseScale = 0.10;
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: _pulseDuration + _wiggleDuration,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isNew &&
+        !MediaQuery.of(context).disableAnimations) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -795,34 +855,60 @@ class _BadgeCircle extends StatelessWidget {
       width: 76,
       child: Column(
         children: [
-          Opacity(
-            opacity: earned ? 1.0 : 0.35,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: badge.color,
-                    border: Border.all(color: Colors.white, width: 2),
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final t = _controller.value;
+              // Two smooth pulses to +10% over the first 700ms…
+              final pulsePhase = t < _pulseFraction ? t / _pulseFraction : 0.0;
+              final scale = t < _pulseFraction
+                  ? 1 +
+                      _pulseScale *
+                          sin(2 * pi * _pulseCount * pulsePhase)
+                  : 1.0;
+              // …then a 600ms wiggle: three side-to-side swings, easing
+              // back to upright at the end.
+              final wigglePhase = t < _pulseFraction
+                  ? 0.0
+                  : (t - _pulseFraction) / (1 - _pulseFraction);
+              final angle = t < _pulseFraction
+                  ? 0.0
+                  : 0.12 * sin(2 * pi * 3 * wigglePhase);
+              return Transform.scale(
+                scale: scale,
+                child: Transform.rotate(angle: angle, child: child),
+              );
+            },
+            child: Opacity(
+              opacity: widget.earned ? 1.0 : 0.35,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.badge.color,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    alignment: Alignment.center,
+                    child:
+                        Text(widget.badge.emoji, style: const TextStyle(fontSize: 30)),
                   ),
-                  alignment: Alignment.center,
-                  child: Text(badge.emoji, style: const TextStyle(fontSize: 30)),
-                ),
-                if (!earned)
-                  const Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Icon(Icons.lock, color: Colors.white70, size: 18),
-                  ),
-              ],
+                  if (!widget.earned)
+                    const Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Icon(Icons.lock, color: Colors.white70, size: 18),
+                    ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            label,
+            widget.label,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -830,13 +916,20 @@ class _BadgeCircle extends StatelessWidget {
               fontFamily: 'Quicksand',
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: earned ? Colors.white : Colors.white54,
+              color: widget.earned ? Colors.white : Colors.white54,
             ),
           ),
         ],
       ),
     );
   }
+
+  /// Fraction of the animation spent pulsing; the rest is the wiggle.
+  double get _pulseFraction =>
+      _pulseDuration.inMilliseconds /
+      (_pulseDuration.inMilliseconds + _wiggleDuration.inMilliseconds);
+
+  static const _pulseCount = 2;
 }
 
 // ── Menu: Score / Videos / Settings ──────────────────────────────────────────
@@ -1076,7 +1169,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                 ),
                 const SizedBox(width: AppSizes.spacingMedium),
                 Expanded(
-                  child: PrimaryButton(
+                  child: Primary2Button(
                     label: t('profile.save'),
                     expanded: true,
                     backgroundColor: AppColors.success,
@@ -1136,7 +1229,7 @@ class _DeleteConfirmDialog extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSizes.spacingMedium),
                 Expanded(
-                  child: PrimaryButton(
+                  child: Primary2Button(
                     label: yesLabel,
                     backgroundColor: AppColors.accentRed,
                     onPressed: () => Navigator.pop(context, true),

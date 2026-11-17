@@ -12,7 +12,7 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/services/audio_service.dart';
-import '../../../shared/widgets/bsl_alphabet_svg.dart';
+import '../../../shared/widgets/sign_letter_image.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_intro_countdown.dart';
@@ -403,7 +403,7 @@ class _BslSprintScreenState extends State<BslSprintScreen>
         body: Container(
           decoration: const BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+              image: AssetImage('assets/backgrounds/felt-background.jpg'),
               fit: BoxFit.cover,
             ),
           ),
@@ -490,7 +490,12 @@ class _BslSprintScreenState extends State<BslSprintScreen>
     return Column(
       children: [
         GameHeaderBar(
-          onBack: () => Navigator.of(context).pop(),
+          onBack: () {
+            // Stop the run (tick ignores anything but playing) before
+            // returning to the level select.
+            provider.resetForCountdown();
+            provider.showLevelSelection();
+          },
           scoreValue: '${provider.score}',
           levelNumber: provider.currentLevel.number,
           centerContent: _SprintCenterHud(provider: provider, locale: widget.locale),
@@ -1177,7 +1182,7 @@ class _BslSymbolWidget extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(2),
           child: ClipOval(
-            child: BslAlphabetSvg(
+            child: SignLetterImage(
               letter: letter,
               fit: BoxFit.contain,
             ),
@@ -1509,7 +1514,7 @@ class _WordBar extends StatelessWidget {
                         Expanded(
                           child: Padding(
                             padding: EdgeInsets.all(2 * s),
-                            child: BslAlphabetSvg(
+                            child: SignLetterImage(
                               letter: letter,
                               fit: BoxFit.contain,
                             ),
@@ -1523,7 +1528,7 @@ class _WordBar extends StatelessWidget {
                           color: isCollected || isNext
                               ? Colors.white
                               : Colors.white24,
-                          fontFamily: 'ComicRelief',
+                          fontFamily: 'OpenDyslexic',
                           fontSize: showBsl ? 16 * s : 28 * s,
                           fontWeight: FontWeight.bold,
                         ),

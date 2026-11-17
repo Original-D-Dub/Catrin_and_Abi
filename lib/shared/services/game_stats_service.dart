@@ -8,6 +8,8 @@ class GameIds {
   static const String welshCardMatching = 'welsh_card_matching';
   static const String bubblePop = 'bubble_pop';
   static const String welshBubblePop = 'welsh_bubble_pop';
+  static const String bubblePopChampion = 'bubble_pop_champion';
+  static const String welshBubblePopChampion = 'welsh_bubble_pop_champion';
   static const String colouring = 'colouring';
   static const String vowelHand = 'vowel_hand';
   static const String welshVowels = 'iac_vowels';
@@ -24,6 +26,7 @@ static const String bslSprint = 'bsl_sprint';
   static const String moreLessGame = 'higher_or_lower';
   static const String wordSearch = 'word_whirl';
   static const String numberRace = 'number_race';
+  static const String bubbleShooter = 'bubble_shooter';
   static const String zoo = 'zoo';
   static const String schoolExplorer = 'school_explorer';
 }
@@ -89,11 +92,15 @@ class GameStatsService {
   /// (e.g. gameId='bubble_pop', level=2 → stored as 'bubble_pop_2').
   /// [higherIsBetter] controls how the personal best is compared.
   /// Pass `false` for games where a lower score is better (e.g. fewest moves).
+  /// [hints], for games with hints (card matching), is the number used this
+  /// session; it's stored as `best_hints` whenever this session sets the
+  /// personal best. Leave null for games without hints.
   Future<GameResult> recordGameResult(
     String gameId,
     int score, {
     int? level,
     bool higherIsBetter = true,
+    int? hints,
   }) async {
     final effectiveGameId = level != null ? '${gameId}_$level' : gameId;
     final user = _db.auth.currentUser;
@@ -123,6 +130,7 @@ class GameStatsService {
         'last_played_at': today,
         'current_streak': 1,
         'longest_streak': 1,
+        'best_hints': ?hints,
       });
       return GameResult(score: score, personalBest: score, isNewPersonalBest: false);
     } else {
@@ -147,6 +155,7 @@ class GameStatsService {
         'last_played_at': today,
         'current_streak': newStreak,
         'longest_streak': newStreak > longestStreak ? newStreak : longestStreak,
+        if (isNewPB && hints != null) 'best_hints': hints,
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('player_id', userId).eq('game_id', effectiveGameId);
 

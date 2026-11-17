@@ -1,13 +1,11 @@
 import 'dart:ui';
 
-import 'package:catrin_abi_bsl/core/constants/game_filters.dart';
 import 'package:catrin_abi_bsl/core/localization/translations_cy.dart';
 import 'package:catrin_abi_bsl/core/localization/translations_en.dart';
 import 'package:catrin_abi_bsl/features/school_explorer/game/iso_painter.dart';
 import 'package:catrin_abi_bsl/features/school_explorer/game/object_details.dart';
 import 'package:catrin_abi_bsl/features/school_explorer/models/school_layouts.dart';
 import 'package:catrin_abi_bsl/features/school_explorer/models/school_scene.dart';
-import 'package:catrin_abi_bsl/features/school_explorer/widgets/fingerspelled_word.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -17,24 +15,29 @@ void main() {
     test('a part resting on top of another is drawn after it', () {
       const base = IsoPart(0, 0, 0, 4, 2, 0.8, colour);
       const onTop = IsoPart(0, 0, 0.8, 1, 0.25, 2, colour);
-      final sorted = IsoPainter.sortForDrawing(
-          [onTop, base], IsoPainter.boxOfPart);
+      final sorted = IsoPainter.sortForDrawing([
+        onTop,
+        base,
+      ], IsoPainter.boxOfPart);
       expect(sorted, [base, onTop]);
     });
 
     test('a part further back (lower x/y) is drawn first', () {
       const back = IsoPart(0, 0, 0, 1, 1, 2, colour);
       const front = IsoPart(2, 0, 0, 1, 1, 0.5, colour);
-      expect(
-          IsoPainter.sortForDrawing([front, back], IsoPainter.boxOfPart),
-          [back, front]);
+      expect(IsoPainter.sortForDrawing([front, back], IsoPainter.boxOfPart), [
+        back,
+        front,
+      ]);
     });
 
     test('a flat rug under an object is drawn first', () {
       const rug = IsoPart(0, 0, 0, 3, 3, 0, colour);
       const chair = IsoPart(1, 1, 0, 0.5, 0.5, 0.8, colour);
-      expect(IsoPainter.sortForDrawing([chair, rug], IsoPainter.boxOfPart),
-          [rug, chair]);
+      expect(IsoPainter.sortForDrawing([chair, rug], IsoPainter.boxOfPart), [
+        rug,
+        chair,
+      ]);
     });
   });
 
@@ -46,16 +49,13 @@ void main() {
         final ids = scene.objects.map((o) => o.id).toList();
         expect(ids.toSet().length, ids.length);
         for (final o in scene.objects) {
-          for (final key in [o.nameKey, '${o.nameKey}.info',
-              '${o.nameKey}.find', o.spellKey]) {
+          for (final key in [o.nameKey, '${o.nameKey}.find']) {
             expect(translationsEn.containsKey(key), isTrue, reason: key);
             expect(translationsCy.containsKey(key), isTrue, reason: key);
           }
         }
-        for (final key in [area.titleKey, 'school_explorer.go_to.${area.name}']) {
-          expect(translationsEn.containsKey(key), isTrue, reason: key);
-          expect(translationsCy.containsKey(key), isTrue, reason: key);
-        }
+        expect(translationsEn.containsKey(area.titleKey), isTrue);
+        expect(translationsCy.containsKey(area.titleKey), isTrue);
       });
 
       test('${area.name}: has enough distinct things to find', () {
@@ -113,18 +113,6 @@ void main() {
     test('roundedPolygon copes with zero-length edges', () {
       const pts = [Offset.zero, Offset.zero, Offset(10, 0), Offset(10, 10)];
       expect(() => IsoPainter.roundedPolygon(pts, 7), returnsNormally);
-    });
-  });
-
-  group('FingerspelledWord.lettersFor', () {
-    test('BSL spells letters and marks word breaks', () {
-      expect(FingerspelledWord.lettersFor("Teacher's desk", SignSystem.bsl),
-          ['t', 'e', 'a', 'c', 'h', 'e', 'r', 's', ' ', 'd', 'e', 's', 'k']);
-    });
-
-    test('IAC keeps Welsh digraphs together and strips circumflexes', () {
-      expect(FingerspelledWord.lettersFor('Ffrâm ddringo', SignSystem.iac),
-          ['ff', 'r', 'a', 'm', ' ', 'dd', 'r', 'i', 'ng', 'o']);
     });
   });
 }

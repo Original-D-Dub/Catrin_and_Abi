@@ -25,7 +25,7 @@ enum CardType {
 ///   value: 'a',
 ///   pairId: 'pair_a',
 ///   pairColor: Colors.red,
-///   imagePath: 'assets/bsl_alphabet/A.png',
+///   imagePath: 'assets/bsl_alphabet_png/bsl-sign-alp-a.png',
 /// );
 /// ```
 class CardModel {

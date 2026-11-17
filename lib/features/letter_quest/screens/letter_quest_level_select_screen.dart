@@ -78,7 +78,7 @@ class _LetterQuestLevelSelectScreenState
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage(
-                'assets/backgrounds/math-background-1080x1920.jpg'),
+                'assets/backgrounds/felt-background.jpg'),
             fit: BoxFit.cover,
           ),
         ),

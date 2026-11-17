@@ -4,12 +4,17 @@
 /// [LetterBingoLevel] (level configuration including grid layout,
 /// available letters, and win condition).
 ///
-/// Five levels are defined for each [SignSystem]:
+/// Eight levels are defined for each [SignSystem]:
 /// - **Level 1 — Learning Level**: 5 tiles in 1 row (a–e), clear all.
 /// - **Level 2 — a to i**: 6 random tiles in 2×3 grid, complete a row.
-/// - **Level 3 — a to o**: 9 random tiles in 3×3 grid, complete a row.
-/// - **Level 4 — a to u**: 16 random tiles in 4×4 grid, complete a row.
-/// - **Level 5 — full alphabet**: 16 random tiles in 4×4 grid, complete a row.
+/// - **Level 3 — a to o**: 3 rows of 4 with one random blank per row
+///   (9 letter tiles), complete a row.
+/// - **Level 4 — a to u**: 3 rows of 6 with two random blanks per row
+///   (12 letter tiles), complete a row.
+/// - **Level 5 — full alphabet**: 3 rows of 6 with two random blanks per
+///   row (12 letter tiles), complete a row.
+/// - **Levels 6–8 — a to m, n to z, full alphabet**: Level 5's layout, but
+///   letters not on the board are called too (tap Next to skip them).
 ///
 /// [SignSystem.iac] levels use the Welsh alphabet, introducing the digraphs
 /// (ch, dd, ff, ng, ll, ph, rh, th) progressively in the same way as
@@ -18,7 +23,23 @@
 /// When a tile is revealed the hand sign is replaced with the letter.
 library;
 
+import 'package:flutter/painting.dart';
+
+import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/game_filters.dart';
+
+/// The bright brand colours the bingo board uses — tile borders (via
+/// `tileColorForIndex`) and the solid blank squares.
+const List<Color> bingoTilePalette = [
+  AppColors.accentRed,
+  AppColors.accentNavyBlue,
+  AppColors.accentLimeGreen,
+  AppColors.accentOrange,
+  AppColors.accentPurple,
+  AppColors.abiPink,
+  AppColors.connectorGold,
+  AppColors.schoolGreen,
+];
 
 /// A single tile on the bingo board.
 ///
@@ -64,6 +85,15 @@ class LetterBingoLevel {
   /// Number of columns in the tile grid
   final int cols;
 
+  /// Squares per row left blank (a solid colour, no letter), placed at
+  /// random each game. Blanks can't be tapped and don't count towards
+  /// completing a row.
+  final int blanksPerRow;
+
+  /// Whether letters from [availableLetters] that aren't on the board can
+  /// be called too. The player taps Next to move past them.
+  final bool callsOffGridLetters;
+
   /// Letters (or, for IAC, digraphs) available for this level
   final List<String> availableLetters;
 
@@ -76,12 +106,14 @@ class LetterBingoLevel {
     required this.name,
     required this.rows,
     required this.cols,
+    this.blanksPerRow = 0,
+    this.callsOffGridLetters = false,
     required this.availableLetters,
     required this.winByCompletingAllTiles,
   });
 
-  /// Total number of tiles on the board
-  int get tileCount => rows * cols;
+  /// Number of letter tiles on the board (every square except the blanks)
+  int get tileCount => rows * (cols - blanksPerRow);
 
   // ─────────────────────────────────────────
   // BSL levels (English alphabet)
@@ -115,13 +147,14 @@ class LetterBingoLevel {
 
   /// Level 3 — a to o
   ///
-  /// 9 tiles randomly selected from a–o, arranged in a 3×3 grid.
-  /// Win by completing any row.
+  /// 3 rows of 4 squares, one square per row left blank at random:
+  /// 9 letter tiles randomly selected from a–o. Win by completing any row.
   static const LetterBingoLevel bslLevel3 = LetterBingoLevel(
     number: 3,
     name: 'letter_bingo.bsl.level3.name',
     rows: 3,
-    cols: 3,
+    cols: 4,
+    blanksPerRow: 1,
     availableLetters: [
       'a', 'b', 'c', 'd', 'e', 'f', 'g',
       'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
@@ -131,13 +164,15 @@ class LetterBingoLevel {
 
   /// Level 4 — a to u
   ///
-  /// 16 tiles randomly selected from a–u, arranged in a 4×4 grid.
+  /// 3 rows of 6 squares, two squares per row left blank at random:
+  /// 12 letter tiles randomly selected from a–u.
   /// Win by completing any row.
   static const LetterBingoLevel bslLevel4 = LetterBingoLevel(
     number: 4,
     name: 'letter_bingo.bsl.level4.name',
-    rows: 4,
-    cols: 4,
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
     availableLetters: [
       'a', 'b', 'c', 'd', 'e', 'f', 'g',
       'h', 'i', 'j', 'k', 'l', 'm', 'n',
@@ -148,13 +183,71 @@ class LetterBingoLevel {
 
   /// Level 5 — full alphabet
   ///
-  /// 16 tiles randomly selected from a–z, arranged in a 4×4 grid.
+  /// 3 rows of 6 squares, two squares per row left blank at random:
+  /// 12 letter tiles randomly selected from a–z.
   /// Win by completing any row.
   static const LetterBingoLevel bslLevel5 = LetterBingoLevel(
     number: 5,
     name: 'letter_bingo.bsl.level5.name',
-    rows: 4,
-    cols: 4,
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
+    availableLetters: [
+      'a', 'b', 'c', 'd', 'e', 'f', 'g',
+      'h', 'i', 'j', 'k', 'l', 'm', 'n',
+      'o', 'p', 'q', 'r', 's', 't', 'u',
+      'v', 'w', 'x', 'y', 'z',
+    ],
+    winByCompletingAllTiles: false,
+  );
+
+  /// Level 6 — a to m
+  ///
+  /// Level 5's layout (3 rows of 6, two random blanks per row, 12 letters
+  /// from a–m). Letters not on the board are called too.
+  static const LetterBingoLevel bslLevel6 = LetterBingoLevel(
+    number: 6,
+    name: 'letter_bingo.bsl.level6.name',
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
+    callsOffGridLetters: true,
+    availableLetters: [
+      'a', 'b', 'c', 'd', 'e', 'f', 'g',
+      'h', 'i', 'j', 'k', 'l', 'm',
+    ],
+    winByCompletingAllTiles: false,
+  );
+
+  /// Level 7 — n to z
+  ///
+  /// Level 5's layout (12 letters from n–z). Letters not on the board are
+  /// called too.
+  static const LetterBingoLevel bslLevel7 = LetterBingoLevel(
+    number: 7,
+    name: 'letter_bingo.bsl.level7.name',
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
+    callsOffGridLetters: true,
+    availableLetters: [
+      'n', 'o', 'p', 'q', 'r', 's', 't',
+      'u', 'v', 'w', 'x', 'y', 'z',
+    ],
+    winByCompletingAllTiles: false,
+  );
+
+  /// Level 8 — full alphabet
+  ///
+  /// Level 5's layout (12 letters from a–z). Letters not on the board are
+  /// called too.
+  static const LetterBingoLevel bslLevel8 = LetterBingoLevel(
+    number: 8,
+    name: 'letter_bingo.bsl.level8.name',
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
+    callsOffGridLetters: true,
     availableLetters: [
       'a', 'b', 'c', 'd', 'e', 'f', 'g',
       'h', 'i', 'j', 'k', 'l', 'm', 'n',
@@ -167,6 +260,7 @@ class LetterBingoLevel {
   /// All BSL levels, in order.
   static const List<LetterBingoLevel> bslLevels = [
     bslLevel1, bslLevel2, bslLevel3, bslLevel4, bslLevel5,
+    bslLevel6, bslLevel7, bslLevel8,
   ];
 
   // ─────────────────────────────────────────
@@ -201,12 +295,14 @@ class LetterBingoLevel {
 
   /// Level 3 — a to o, plus ng, ll
   ///
-  /// 9 tiles randomly selected from the pool, arranged in a 3×3 grid.
+  /// 3 rows of 4 squares, one square per row left blank at random:
+  /// 9 letter tiles randomly selected from the pool.
   static const LetterBingoLevel iacLevel3 = LetterBingoLevel(
     number: 3,
     name: 'letter_bingo.iac.level3.name',
     rows: 3,
-    cols: 3,
+    cols: 4,
+    blanksPerRow: 1,
     availableLetters: [
       'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g', 'ng', 'h',
       'i', 'j', 'l', 'll', 'm', 'n', 'o',
@@ -216,12 +312,14 @@ class LetterBingoLevel {
 
   /// Level 4 — a to u, plus ph, rh, th
   ///
-  /// 16 tiles randomly selected from the pool, arranged in a 4×4 grid.
+  /// 3 rows of 6 squares, two squares per row left blank at random:
+  /// 12 letter tiles randomly selected from the pool.
   static const LetterBingoLevel iacLevel4 = LetterBingoLevel(
     number: 4,
     name: 'letter_bingo.iac.level4.name',
-    rows: 4,
-    cols: 4,
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
     availableLetters: [
       'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g', 'ng', 'h',
       'i', 'j', 'l', 'll', 'm', 'n', 'o', 'p', 'ph', 'r', 'rh', 's',
@@ -232,12 +330,67 @@ class LetterBingoLevel {
 
   /// Level 5 — full Welsh alphabet (adds w, y)
   ///
-  /// 16 tiles randomly selected from the pool, arranged in a 4×4 grid.
+  /// 3 rows of 6 squares, two squares per row left blank at random:
+  /// 12 letter tiles randomly selected from the pool.
   static const LetterBingoLevel iacLevel5 = LetterBingoLevel(
     number: 5,
     name: 'letter_bingo.iac.level5.name',
-    rows: 4,
-    cols: 4,
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
+    availableLetters: [
+      'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g', 'ng', 'h',
+      'i', 'j', 'l', 'll', 'm', 'n', 'o', 'p', 'ph', 'r', 'rh', 's',
+      't', 'th', 'u', 'w', 'y',
+    ],
+    winByCompletingAllTiles: false,
+  );
+
+  /// Level 6 — a to m (Welsh alphabet, with ch, dd, ff, ng, ll)
+  ///
+  /// Level 5's layout (3 rows of 6, two random blanks per row, 12 letters
+  /// from the pool). Letters not on the board are called too.
+  static const LetterBingoLevel iacLevel6 = LetterBingoLevel(
+    number: 6,
+    name: 'letter_bingo.iac.level6.name',
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
+    callsOffGridLetters: true,
+    availableLetters: [
+      'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g', 'ng', 'h',
+      'i', 'j', 'l', 'll', 'm',
+    ],
+    winByCompletingAllTiles: false,
+  );
+
+  /// Level 7 — n to y (the end of the Welsh alphabet, with ph, rh, th)
+  ///
+  /// Level 5's layout. The pool is exactly 12 letters, so every letter is
+  /// on the board and no off-board letters can come up.
+  static const LetterBingoLevel iacLevel7 = LetterBingoLevel(
+    number: 7,
+    name: 'letter_bingo.iac.level7.name',
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
+    callsOffGridLetters: true,
+    availableLetters: [
+      'n', 'o', 'p', 'ph', 'r', 'rh', 's', 't', 'th', 'u', 'w', 'y',
+    ],
+    winByCompletingAllTiles: false,
+  );
+
+  /// Level 8 — full Welsh alphabet
+  ///
+  /// Level 5's layout. Letters not on the board are called too.
+  static const LetterBingoLevel iacLevel8 = LetterBingoLevel(
+    number: 8,
+    name: 'letter_bingo.iac.level8.name',
+    rows: 3,
+    cols: 6,
+    blanksPerRow: 2,
+    callsOffGridLetters: true,
     availableLetters: [
       'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g', 'ng', 'h',
       'i', 'j', 'l', 'll', 'm', 'n', 'o', 'p', 'ph', 'r', 'rh', 's',
@@ -249,6 +402,7 @@ class LetterBingoLevel {
   /// All IAC levels, in order.
   static const List<LetterBingoLevel> iacLevels = [
     iacLevel1, iacLevel2, iacLevel3, iacLevel4, iacLevel5,
+    iacLevel6, iacLevel7, iacLevel8,
   ];
 
   /// Returns the level list for the given sign system.

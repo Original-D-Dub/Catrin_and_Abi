@@ -105,7 +105,7 @@ class _ZooPlayerScreenState extends State<ZooPlayerScreen> {
                   ),
                 ),
                 const SizedBox(width: 20),
-                PrimaryButton(
+                Primary2Button(
                   label: localizer('zoo.choose'),
                   onPressed: () {
                     context.read<SettingsProvider>().setLastZooCharacter(

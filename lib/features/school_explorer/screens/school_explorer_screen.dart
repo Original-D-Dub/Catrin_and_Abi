@@ -2,7 +2,6 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_header_bar.dart';
@@ -10,14 +9,12 @@ import '../../../shared/widgets/game_success_overlay.dart';
 import '../game/school_explorer_game.dart';
 import '../models/school_scene.dart';
 import '../providers/school_explorer_provider.dart';
-import '../widgets/fingerspelled_word.dart';
 
 /// School Explorer: an isometric 2.5D UK primary school (classroom, hall,
 /// playground, canteen) for getting to know the rooms and what's in them.
 ///
-/// Explore mode — tap anything to hear and see its name, fingerspelled in
-/// the chosen sign system; doors lead to the next area. Find mode — "Can
-/// you find the...?" rounds, scored per area.
+/// Explore mode — tap anything to hear its name. Find mode — "Can you find
+/// the...?" rounds, scored per area.
 ///
 /// The [SchoolExplorerProvider] is provided by the route in routes.dart.
 class SchoolExplorerScreen extends StatefulWidget {
@@ -113,34 +110,12 @@ class _SchoolExplorerScreenState extends State<SchoolExplorerScreen> {
             ),
           ),
           // Zoom controls, alongside pinch — big targets for small hands,
-          // and the only way to zoom with a mouse or trackpad. Top-right,
-          // clear of the info card that pops up above the bottom bar.
+          // and the only way to zoom with a mouse or trackpad.
           Positioned(
             right: 12,
             top: padding.top + 88 + _bannerHeight + 8,
             child: _ZoomControls(game: _game, localizer: localizer),
           ),
-          if (!isFind && provider.selected != null)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    12,
-                    0,
-                    12,
-                    _bottomBarHeight + 8,
-                  ),
-                  child: _InfoCard(
-                    key: ValueKey(provider.selected!.id),
-                    object: provider.selected!,
-                    provider: provider,
-                    localizer: localizer,
-                  ),
-                ),
-              ),
-            ),
           if (provider.isFindComplete)
             Positioned.fill(
               child: GameSuccessOverlay(
@@ -469,106 +444,6 @@ class _RoundButton extends StatelessWidget {
             width: 56,
             height: 56,
             child: Icon(icon, size: 32, color: const Color(0xFF5A2A82)),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Info card ───────────────────────────────────────────────────────────────
-
-class _InfoCard extends StatelessWidget {
-  final SchoolObject object;
-  final SchoolExplorerProvider provider;
-  final AppLocalizations localizer;
-
-  const _InfoCard({
-    super.key,
-    required this.object,
-    required this.provider,
-    required this.localizer,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // The fingerspelled word follows the sign system, not the UI language:
-    // BSL spells the English word, IAC the Welsh one.
-    final spellLocale = provider.signSystem == SignSystem.iac ? 'cy' : 'en';
-    final spellWord = AppLocalizations(locale: spellLocale)(object.spellKey);
-    final leadsTo = object.leadsTo;
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560),
-      child: Material(
-        color: Colors.white,
-        elevation: 6,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 10, 8, 14),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      localizer(object.nameKey),
-                      style: const TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF5A2A82),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: localizer('school_explorer.listen'),
-                    icon: const Icon(Icons.volume_up, size: 30),
-                    color: const Color(0xFF1565C0),
-                    onPressed: () => provider.tapObject(object),
-                  ),
-                  IconButton(
-                    tooltip: localizer('school_explorer.close'),
-                    icon: const Icon(Icons.close, size: 28),
-                    onPressed: provider.clearSelection,
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: Text(
-                  localizer('${object.nameKey}.info'),
-                  style: const TextStyle(fontSize: 18, height: 1.3),
-                ),
-              ),
-              const SizedBox(height: 10),
-              FingerspelledWord(
-                word: spellWord,
-                signSystem: provider.signSystem,
-              ),
-              if (leadsTo != null) ...[
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFDA16E1),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  icon: const Icon(Icons.meeting_room),
-                  label: Text(
-                    localizer('school_explorer.go_to.${leadsTo.name}'),
-                  ),
-                  onPressed: () => provider.goTo(leadsTo),
-                ),
-              ],
-            ],
           ),
         ),
       ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../shared/services/game_stats_service.dart';
 
 // ── Avatars ──────────────────────────────────────────────────────────────────
 
@@ -77,55 +76,12 @@ AvatarOption avatarById(String? id) {
 
 // ── Badges ───────────────────────────────────────────────────────────────────
 
-/// Every game ID declared in [GameIds] (kept in sync by hand — [GameIds] is
-/// a plain class of `static const` strings, not an enum, so there's no
-/// `.values` to enumerate automatically).
-const Set<String> _allGameIds = {
-  GameIds.cardMatching,
-  GameIds.welshCardMatching,
-  GameIds.bubblePop,
-  GameIds.welshBubblePop,
-  GameIds.colouring,
-  GameIds.vowelHand,
-  GameIds.welshVowels,
-  GameIds.bslMaths,
-  GameIds.letterQuest,
-  GameIds.welshLetterQuest,
-  GameIds.letterBingo,
-  GameIds.welshLetterBingo,
-  GameIds.characterId,
-  GameIds.countingGame,
-  GameIds.numberLineGame,
-  GameIds.countingBackGame,
-  GameIds.bslSprint,
-  GameIds.moreLessGame,
-  GameIds.wordSearch,
-  GameIds.numberRace,
-  GameIds.zoo,
-};
-
-/// Game IDs that use IAC (Welsh) signs; everything else in [GameIds] is BSL.
-const Set<String> _iacGameIds = {
-  GameIds.welshVowels,
-  GameIds.welshBubblePop,
-  GameIds.welshCardMatching,
-  GameIds.welshLetterQuest,
-  GameIds.welshLetterBingo,
-};
-
-final Set<String> _bslGameIds =
-    _allGameIds.difference(_iacGameIds);
-
-bool _playedAnyOf(List<Map<String, dynamic>> stats, Set<String> gameIds) {
-  return stats.any((row) {
-    final id = row['game_id'] as String? ?? '';
-    final highScore = row['high_score'] as int? ?? 0;
-    if (highScore <= 0) return false;
-    // player_stats rows are keyed 'gameId' or 'gameId_level' for per-level
-    // tracking (see GameStatsService.recordGameResult).
-    return gameIds.any((g) => id == g || id.startsWith('${g}_'));
-  });
-}
+/// The `player_stats` game ids that record the vowel hand badges: a row
+/// appears under one of these (high score 1) when the player opens the
+/// matching treasure chest on the ages 1–3 level map — the level 4 chest
+/// awards the Vowels badge, the level 8 chest the Spelling badge.
+const String vowelsBadgeGameId = 'vowel_hand_badge';
+const String spellingBadgeGameId = 'vowel_hand_spelling_badge';
 
 /// A single earnable badge shown on the profile screen.
 class ProfileBadge {
@@ -148,41 +104,44 @@ class ProfileBadge {
 
 /// Badges shown in the profile screen's badge row.
 ///
-/// Thresholds are a starting point, not tuned against real play data —
-/// adjust freely as the reward system matures.
+/// Badges are earned by playing, not tuned from aggregate stats — each one
+/// documents below exactly what awards it.
 final List<ProfileBadge> profileBadges = [
   ProfileBadge(
-    id: 'bsl_cup',
-    emoji: '🏆',
-    labelKey: 'profile.badge.bsl_cup',
-    color: AppColors.accentNavyBlue,
-    isEarned: (stats) => _playedAnyOf(stats, _bslGameIds),
+    id: 'vowels',
+    emoji: '🖐️',
+    labelKey: 'profile.badge.vowels',
+    color: AppColors.catrinBlue,
+    isEarned: (stats) => _hasStatsRow(stats, vowelsBadgeGameId),
   ),
   ProfileBadge(
-    id: 'iac_cup',
-    emoji: '🏆',
-    labelKey: 'profile.badge.iac_cup',
-    color: AppColors.schoolGreen,
-    isEarned: (stats) => _playedAnyOf(stats, _iacGameIds),
-  ),
-  ProfileBadge(
-    id: 'running_fast',
-    emoji: '🏃',
-    labelKey: 'profile.badge.running_fast',
-    color: AppColors.accentOrange,
-    isEarned: (stats) => stats.any((row) =>
-        ((row['current_streak'] as int? ?? 0) >= 3) ||
-        ((row['longest_streak'] as int? ?? 0) >= 3)),
-  ),
-  ProfileBadge(
-    id: 'monkey_face',
-    emoji: '🐵',
-    labelKey: 'profile.badge.monkey_face',
-    color: AppColors.abiPink,
-    isEarned: (stats) => stats.fold<int>(
-          0,
-          (sum, row) => sum + (row['total_plays'] as int? ?? 0),
-        ) >=
-        20,
+    id: 'spelling',
+    emoji: '📝',
+    labelKey: 'profile.badge.spelling',
+    color: AppColors.accentPurple,
+    isEarned: (stats) => _hasStatsRow(stats, spellingBadgeGameId),
   ),
 ];
+
+/// Whether a `player_stats` row recording [gameId] exists with a positive
+/// high score — how chest-awarded badges mark themselves earned.
+bool _hasStatsRow(List<Map<String, dynamic>> stats, String gameId) {
+  return stats.any((row) =>
+      row['game_id'] == gameId && ((row['high_score'] as int? ?? 0) > 0));
+}
+
+/// Looks up a badge by [id], falling back to the first badge when [id] is
+/// unrecognised.
+ProfileBadge badgeById(String id) => profileBadges.firstWhere(
+      (b) => b.id == id,
+      orElse: () => profileBadges.first,
+    );
+
+/// Whether the Vowels badge has been earned, given the player's stats.
+bool vowelsBadgeEarned(List<Map<String, dynamic>> stats) =>
+    _hasStatsRow(stats, vowelsBadgeGameId);
+
+/// Whether the Spelling badge has been earned, given the player's stats.
+bool spellingBadgeEarned(List<Map<String, dynamic>> stats) =>
+    _hasStatsRow(stats, spellingBadgeGameId);
+

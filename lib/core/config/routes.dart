@@ -27,6 +27,7 @@ import '../../features/letter_quest/providers/letter_quest_provider.dart';
 import '../../features/character_id/screens/character_id_screen.dart';
 import '../../features/letter_bingo/screens/letter_bingo_screen.dart';
 import '../../features/letter_bingo/screens/animal_collection_screen.dart';
+import '../../features/sports_collection/screens/sports_collection_screen.dart';
 import '../../features/letter_bingo/providers/letter_bingo_provider.dart';
 import '../../features/letter_bingo/providers/bingo_collection_provider.dart';
 import '../../shared/services/auth_provider.dart';
@@ -53,6 +54,8 @@ import '../../features/profile/screens/profile_settings_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/word_whirl/providers/word_whirl_provider.dart';
 import '../../features/word_whirl/screens/word_whirl_screen.dart';
+import '../../features/bubble_shooter/providers/bubble_shooter_provider.dart';
+import '../../features/bubble_shooter/screens/bubble_shooter_screen.dart';
 import '../../features/number_race/providers/number_race_provider.dart';
 import '../../features/number_race/screens/number_race_screen.dart';
 import '../../features/school_explorer/providers/school_explorer_provider.dart';
@@ -191,11 +194,15 @@ class AppRoutes {
   /// Number Race game
   static const String numberRace = '/games/number-race';
 
+  /// Bubble Shooter (BSL colour signs)
+  static const String bubbleShooter = '/games/bubble-shooter';
+
   /// School Explorer (isometric classroom, hall, playground, canteen)
   static const String schoolExplorer = '/games/school-explorer';
 
   /// Animal collection screen (Letter Bingo earned animals)
   static const String animalCollection = '/games/letter-bingo/collection';
+  static const String sportsCollection = '/games/bubble-shooter/sports-cards';
 
   /// Privacy policy
   static const String privacyPolicy = '/privacy-policy';
@@ -304,6 +311,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (context) => ChangeNotifierProvider(
           create: (context) => BubblePopProvider(
             signSystem: context.read<SettingsProvider>().signSystem,
+            ageGroup: context.read<SettingsProvider>().ageGroup,
             initialLevelNumber: bubblePopLevel,
           ),
           child: BubblePopScreen(
@@ -336,6 +344,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (context) => ChangeNotifierProvider(
           create: (context) => VowelHandProvider(
             signSystem: context.read<SettingsProvider>().signSystem,
+            ageGroup: context.read<SettingsProvider>().ageGroup,
           ),
           child: VowelHandScreen(
             locale: vowelHandLocale,
@@ -695,14 +704,22 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
       );
 
+    case AppRoutes.bubbleShooter:
+      final bubbleShooterLocale = settings.arguments as String? ?? 'en';
+      return MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => BubbleShooterProvider(locale: bubbleShooterLocale),
+          child: BubbleShooterScreen(locale: bubbleShooterLocale),
+        ),
+        settings: settings,
+      );
+
     case AppRoutes.schoolExplorer:
       final schoolExplorerLocale = settings.arguments as String? ?? 'en';
       return MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider(
-          create: (context) => SchoolExplorerProvider(
-            locale: schoolExplorerLocale,
-            signSystem: context.read<SettingsProvider>().signSystem,
-          ),
+          create: (context) =>
+              SchoolExplorerProvider(locale: schoolExplorerLocale),
           child: const SchoolExplorerScreen(),
         ),
         settings: settings,
@@ -711,6 +728,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case AppRoutes.animalCollection:
       return MaterialPageRoute(
         builder: (_) => const AnimalCollectionScreen(),
+        settings: settings,
+      );
+
+    case AppRoutes.sportsCollection:
+      return MaterialPageRoute(
+        builder: (_) => SportsCollectionScreen(
+          locale: settings.arguments as String? ?? 'en',
+        ),
         settings: settings,
       );
 

@@ -7,7 +7,9 @@ import 'package:catrin_abi_bsl/features/bsl_number_builder/widgets/belt_item.dar
 import 'package:catrin_abi_bsl/features/bsl_number_builder/widgets/coin_burst.dart';
 import 'package:catrin_abi_bsl/features/bsl_number_builder/widgets/coin_counter.dart';
 import 'package:catrin_abi_bsl/features/bsl_number_builder/widgets/conveyor_belt.dart';
+import 'package:catrin_abi_bsl/shared/widgets/back_arrow_icon.dart';
 import 'package:catrin_abi_bsl/shared/widgets/bsl_till.dart';
+import 'package:catrin_abi_bsl/shared/widgets/game_header_bar.dart';
 import 'package:catrin_abi_bsl/shared/widgets/level_select_screen.dart';
 import 'package:catrin_abi_bsl/shared/widgets/rotate_device_overlay.dart';
 
@@ -46,6 +48,8 @@ void main() {
 
   BslTill till(WidgetTester tester) =>
       tester.widget<BslTill>(find.byType(BslTill));
+  GameHeaderBar header(WidgetTester tester) =>
+      tester.widget<GameHeaderBar>(find.byType(GameHeaderBar));
   PriceTag tag(WidgetTester tester) =>
       tester.widget<PriceTag>(find.byType(PriceTag));
   int coins(WidgetTester tester) =>
@@ -66,7 +70,7 @@ void main() {
     expect(find.byType(BslTill), findsNothing);
   });
 
-  testWidgets('landscape shows the till, belt and coin counter', (
+  testWidgets('landscape shows the till, belt and header bar', (
     tester,
   ) async {
     await pumpAtSize(tester, landscape);
@@ -79,14 +83,14 @@ void main() {
     expect(belt.left, 0);
     expect(belt.right, greaterThan(tillRect.left));
 
+    // Header bar spans the screen, showing the level on the right.
+    final bar = tester.getRect(find.byType(GameHeaderBar));
+    expect(bar.left, 0);
+    expect(bar.right, landscape.width);
+    expect(header(tester).levelNumber, 7);
+    // Coin pill sits inside the bar.
     final counter = tester.getRect(find.byType(CoinCounter));
-    expect(counter.left, greaterThan(landscape.width / 2));
-    // Till body's right edge lines up with the coin counter's.
-    const layout = BslTillLayout.standard;
-    expect(
-      tillRect.left + tillRect.width * layout.bodyRight / layout.canvas.width,
-      closeTo(counter.right, 1),
-    );
+    expect(bar.contains(counter.center), isTrue);
   });
 
   testWidgets('on a phone the screen bottom cuts the till keyhole in half', (
@@ -95,7 +99,10 @@ void main() {
     await pumpAtSize(tester, landscape);
     final tillRect = tester.getRect(find.byType(BslTill));
     expect(
-      tillRect.top + tillRect.height * 1644 / 1908,
+      tillRect.top +
+          tillRect.height *
+              BslTillLayout.standard.keyholeY /
+              BslTillLayout.standard.canvas.height,
       closeTo(landscape.height, 1),
     );
   });
@@ -239,7 +246,7 @@ void main() {
   testWidgets('back from a level returns to the level select', (tester) async {
     await pumpAtSize(tester, landscape, level: 1);
     await advance(tester, arrive);
-    await tester.tap(find.byType(IconButton).first);
+    await tester.tap(find.byType(BackArrowIcon));
     await tester.pump();
     expect(find.byType(LevelSelectScreen), findsOneWidget);
   });

@@ -12,7 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^2.0.0
 
   # State management
   provider: ^6.1.1
@@ -76,16 +76,23 @@ flutter:
     - assets/characters/pero/
     - assets/characters/Gary/
 
-    # BSL Alphabet (for card game)
-    - assets/bsl_alphabet/
-    - assets/bsl_alphabet_svg/
-    - assets/wyddor_iac_svg/
+    # Sign alphabet, BSL & IAC (single letters + Welsh digraphs)
+    - assets/bsl_alphabet_png/
 
     # Backgrounds
     - assets/backgrounds/
 
     # Home screen game tile images
+    - assets/images/button fuzz.png
+    - assets/images/champion-rosette.png
     - assets/images/home_screen/
+    - assets/images/counting_game/
+    - assets/images/counting_game/balloons/
+    - assets/images/counting_game/candles/
+    - assets/images/counting_game/hats/
+    - assets/images/counting_game/strawberries/
+    - assets/images/counting_game/oranges/
+    - assets/images/counting_game/sandwiches/
 
     # Rive animation assets
     - assets/hand_palm.riv
@@ -114,6 +121,7 @@ flutter:
     - assets/games/letter_quest/bungalow/livingroom/
     - assets/images/make10_number_line/
     - assets/games/bsl_sprint/
+    - assets/games/bubble_shooter/background/
     - assets/games/bsl_number_builder/all/
     - assets/games/bsl_number_builder/english/
     - assets/games/bsl_number_builder/cymraeg/
@@ -124,6 +132,8 @@ flutter:
     - assets/games/bsl_sprint/Osian/
     - assets/games/bsl_sprint/Ruby/
     - assets/games/bsl_sprint/Ryan/
+    - assets/games/character_id/bodies/
+    - assets/games/character_id/clothes/
     - assets/games/zoo/
     - assets/games/zoo/videos/
     - assets/games/zoo/photos/
@@ -132,7 +142,7 @@ flutter:
     - assets/games/till/signs/
 
     # BSL number signs (for maths game)
-    - assets/bsl_numbers/
+    - assets/bsl_numbers_png/
 
     #Counting Game
     - assets/audio/counting_game/
@@ -170,9 +180,6 @@ flutter:
     # Number Race map
     - assets/images/number_race/
 
-    # Bingo assets
-    - assets/images/animals/
-    
     # Word thumbnails for vowel words game (3-letter CVC words)
     - assets/images/word_thumbnails/a/
     - assets/images/word_thumbnails/e/

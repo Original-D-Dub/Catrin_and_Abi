@@ -1,18 +1,17 @@
 import 'dart:math' show cos, pi, sin, sqrt;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
-import '../../../core/constants/asset_paths.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/level_select_screen.dart';
+import '../../bsl_maths/widgets/bsl_number_display.dart';
 import '../providers/counting_back_provider.dart';
 
 class CountingBackScreen extends StatefulWidget {
@@ -142,7 +141,7 @@ class _CountingBackScreenState extends State<CountingBackScreen>
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(
-                    'assets/backgrounds/math-background-1080x1920.jpg'),
+                    'assets/backgrounds/felt-background.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
@@ -355,7 +354,7 @@ class _CountingBackScreenState extends State<CountingBackScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SvgPicture.asset(AssetPaths.bslNumber(n), height: 48),
+          BslNumberDisplay(number: n, size: 48),
           Text(
             '$n',
             style: const TextStyle(
@@ -698,11 +697,7 @@ class _NumberAnswerButton extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSizes.spacingMedium),
-                SvgPicture.asset(
-                  AssetPaths.bslNumber(n),
-                  height: 56,
-                  fit: BoxFit.contain,
-                ),
+                BslNumberDisplay(number: n, size: 56),
               ],
             ),
           ),

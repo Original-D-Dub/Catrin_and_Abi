@@ -15,6 +15,12 @@ import '../widgets/game_tile.dart';
 ///
 /// When [imagePath] is null, or the asset fails to load, [GameTile] falls
 /// back to [icon], or to [Icons.games] if [icon] is also null.
+///
+/// Every titleKey follows the `'<gameId>.title'` convention, so [gameId]
+/// (the stable identifier used for hidden-game matching — see
+/// [visibleGames]) is derived from it and should never need to be set
+/// explicitly. The field exists as an escape hatch in case a future tile
+/// ever has to deviate from the convention.
 typedef HomeGameEntry = ({
   String route,
   String titleKey,
@@ -23,10 +29,11 @@ typedef HomeGameEntry = ({
   GameCategory category,
   Set<AgeGroup> ageGroups,
   String? arguments,
+  String? gameId,
 });
 
-/// Builds a [HomeGameEntry], defaulting [imagePath], [icon] and [arguments]
-/// to null.
+/// Builds a [HomeGameEntry], defaulting [imagePath], [icon], [arguments]
+/// and [gameId] to null.
 HomeGameEntry homeGameEntry({
   required String route,
   required String titleKey,
@@ -35,6 +42,7 @@ HomeGameEntry homeGameEntry({
   String? imagePath,
   IconData? icon,
   String? arguments,
+  String? gameId,
 }) =>
     (
       route: route,
@@ -44,7 +52,13 @@ HomeGameEntry homeGameEntry({
       category: category,
       ageGroups: ageGroups,
       arguments: arguments,
+      gameId: gameId,
     );
+
+/// The stable id used to match a tile against the hidden-games list:
+/// [HomeGameEntry.gameId] if set, otherwise the `<gameId>` prefix of
+/// [HomeGameEntry.titleKey].
+String gameIdOf(HomeGameEntry g) => g.gameId ?? g.titleKey.split('.').first;
 
 /// Spacing/shape constants for the home-screen game grid — kept alongside
 /// [gameGridCrossAxisCount] so anything that needs to match a game tile's
@@ -78,8 +92,33 @@ double gameGridTileHeight(BuildContext context, double availableWidth) {
   return tileWidth / gameGridChildAspectRatio;
 }
 
+/// Filters [allGames] down to the entries that should currently be shown.
+///
+/// Entries must pass the category and age-group filters. On top of those,
+/// when [hideListedGames] is true every entry whose [gameIdOf] id appears
+/// in [hiddenGameIds] is removed *before* any other filter is applied —
+/// the master hide-list (the "hide selected games" settings toggle backed
+/// by `assets/data/hidden_games.json`) overrides the other settings.
+List<HomeGameEntry> visibleGames(
+  List<HomeGameEntry> allGames, {
+  required GameCategory category,
+  required AgeGroup ageGroup,
+  required bool hideListedGames,
+  required Set<String> hiddenGameIds,
+}) {
+  return allGames.where((g) {
+    if (hideListedGames && hiddenGameIds.contains(gameIdOf(g))) {
+      return false;
+    }
+    final catOk = category == GameCategory.all || g.category == category;
+    final ageOk = ageGroup == AgeGroup.all || g.ageGroups.contains(ageGroup);
+    return catOk && ageOk;
+  }).toList();
+}
+
 /// Filters [allGames] by the player's current category/age-group settings
-/// and renders the remainder as [GameTile]s wired up to navigate via
+/// (plus the hide-selected-games master toggle — see [visibleGames]) and
+/// renders the remainder as [GameTile]s wired up to navigate via
 /// [Navigator.pushNamed].
 List<Widget> buildGameTiles(
   BuildContext context,
@@ -87,13 +126,13 @@ List<Widget> buildGameTiles(
   SettingsProvider settings,
   AppLocalizations localizer,
 ) {
-  return allGames.where((g) {
-    final catOk = settings.gameCategory == GameCategory.all ||
-        g.category == settings.gameCategory;
-    final ageOk = settings.ageGroup == AgeGroup.all ||
-        g.ageGroups.contains(settings.ageGroup);
-    return catOk && ageOk;
-  }).map<Widget>((g) => GameTile(
+  return visibleGames(
+    allGames,
+    category: settings.gameCategory,
+    ageGroup: settings.ageGroup,
+    hideListedGames: settings.hideListedGames,
+    hiddenGameIds: settings.hiddenGameIds,
+  ).map<Widget>((g) => GameTile(
         title: localizer(g.titleKey),
         imagePath: g.imagePath,
         icon: g.icon,

@@ -4,7 +4,6 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame_audio/flame_audio.dart';
-import 'package:flame_svg/flame_svg.dart';
 import 'package:flutter/animation.dart';
 import 'package:flutter/services.dart';
 
@@ -16,18 +15,12 @@ import 'player_component.dart';
 
 /// A BSL letter sign collectible placed on the map.
 ///
-/// Displays a BSL alphabet SVG for a letter, with a gentle floating
-/// animation and coloured circle behind it.
+/// Displays the alphabet sign image for a letter inside a coloured circle,
+/// with a gentle floating animation.
 class LetterCollectible extends PositionComponent
     with CollisionCallbacks, HasGameReference<BaseLetterQuestGame>, HasPaint {
   /// The lowercase letter this collectible represents
   final String letter;
-
-  /// Display width of the BSL sign in world units
-  static const double displayWidth = 72.0;
-
-  /// Display height of the BSL sign (maintains 150:100 aspect ratio)
-  static const double displayHeight = 48.0;
 
   /// Radius of the circle background behind the sprite
   static const double circleRadius = 40.0;
@@ -35,7 +28,10 @@ class LetterCollectible extends PositionComponent
   /// Border thickness of the coloured circle
   static const double circleBorderWidth = 4.0;
 
-  Svg? _svg;
+  Image? _signImage;
+
+  /// Paint used to draw [_signImage] smoothly when scaled down
+  final Paint _imagePaint = Paint()..filterQuality = FilterQuality.medium;
 
   /// Whether this letter has been correctly collected (permanently removed)
   bool _collected = false;
@@ -78,7 +74,7 @@ class LetterCollectible extends PositionComponent
 
   @override
   Future<void> onLoad() async {
-    _svg = game.signSvgs[letter.toLowerCase()];
+    _signImage = game.signImages[letter.toLowerCase()];
 
     add(CircleHitbox());
 
@@ -117,15 +113,30 @@ class LetterCollectible extends PositionComponent
       canvas.saveLayer(null, Paint()..color = Color.fromARGB((opacity * 255).round(), 0, 0, 0));
     }
 
+    final center = Offset(size.x / 2, size.y / 2);
     if (!_hidden) {
-      final center = Offset(size.x / 2, size.y / 2);
       canvas.drawCircle(center, circleRadius, _circleFillPaint);
+    }
+
+    // The square sign image fills the circle, clipped to its inner edge.
+    final image = _signImage;
+    if (image != null) {
+      final innerRadius = circleRadius - circleBorderWidth / 2;
+      final dst = Rect.fromCircle(center: center, radius: innerRadius);
+      canvas.save();
+      canvas.clipPath(Path()..addOval(dst));
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        dst,
+        _imagePaint,
+      );
+      canvas.restore();
+    }
+
+    if (!_hidden) {
       canvas.drawCircle(center, circleRadius, _circleBorderPaint);
     }
-    canvas.save();
-    canvas.translate((size.x - displayWidth) / 2, (size.y - displayHeight) / 2);
-    _svg?.render(canvas, Vector2(displayWidth, displayHeight));
-    canvas.restore();
 
     if (useLayer) {
       canvas.restore();

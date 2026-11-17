@@ -26,6 +26,7 @@ enum IsoDecal {
   pictures,
   keys,
   pianoKeys,
+  door,
   hopscotch,
   lines,
   leaves,
@@ -51,6 +52,17 @@ class IsoPart {
   /// hand-drawn leaves fill (see `ObjectDetails` art painters).
   final bool visible;
 
+  /// True for a window or door set into a wall rather than stuck on it. The part
+  /// is then the hole's volume *behind* the wall face — ending at `x == 0`
+  /// for the x == 0 wall (when `w < d`) or `y == 0` for the y == 0 wall —
+  /// and is painted as an opening you look into, not as a box. Its
+  /// [color] is the wall's, used for the inside of the opening.
+  final bool recessed;
+
+  /// For a [recessed] part, what fills the back of the hole: the door's
+  /// colour for a doorway; null for a window's glass.
+  final Color? insetColor;
+
   const IsoPart(
     this.x,
     this.y,
@@ -62,6 +74,8 @@ class IsoPart {
     this.decal = IsoDecal.none,
     this.id,
     this.visible = true,
+    this.recessed = false,
+    this.insetColor,
   });
 
   /// Draw-order key: parts (and objects) further back have a smaller sum.
@@ -75,18 +89,13 @@ class SchoolObject {
   final String id;
 
   /// Translation key root: `<nameKey>` is the display name and
-  /// `<nameKey>.info` a short sentence about it.
+  /// `<nameKey>.find` the "Can you find...?" question.
   final String nameKey;
-
-  /// Translation key of the word fingerspelled on the info card. Defaults
-  /// to [nameKey]; doors use the plain word "door" rather than the whole
-  /// "Door to the hall" phrase.
-  final String spellKey;
 
   final List<IsoPart> parts;
 
-  /// When set, this object is a doorway and the info card offers a button
-  /// to walk through to that area.
+  /// When set, this object is a doorway to that area (arriving from it,
+  /// the camera starts at this door).
   final SchoolArea? leadsTo;
 
   /// Whether this object can be picked as a "Can you find...?" target.
@@ -95,11 +104,10 @@ class SchoolObject {
   const SchoolObject({
     required this.id,
     required this.nameKey,
-    String? spellKey,
     required this.parts,
     this.leadsTo,
     this.findable = true,
-  }) : spellKey = spellKey ?? nameKey;
+  });
 
   double get depth {
     double minX = double.infinity, minY = double.infinity;

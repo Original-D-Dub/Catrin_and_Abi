@@ -102,9 +102,14 @@ class BslMathsLevel {
       name: 'bsl_maths.level2.name',
       maxAnswer: 10,
       isMissingOperand: true,
-      fixedTarget: 10
+      fixedTarget: 10,
     ),
-    BslMathsLevel(number: 3, name: 'bsl_maths.level3.name', maxAnswer: 19, useTeenKeys: true),
+    BslMathsLevel(
+      number: 3,
+      name: 'bsl_maths.level3.name',
+      maxAnswer: 19,
+      useTeenKeys: true,
+    ),
 
     BslMathsLevel(
       number: 4,
@@ -182,9 +187,15 @@ class BslMathsProvider extends ChangeNotifier {
   MathsQuestion? _currentQuestion;
   MathsQuestion? get currentQuestion => _currentQuestion;
 
-  /// Number of correct answers given in this session
+  /// Points scored in this session. Normally +1 per correct answer; in
+  /// Champion Mode see [championCorrectPoints]/[championWrongPoints].
   int _score = 0;
   int get score => _score;
+
+  /// Number of correct answers given in this session. Drives the
+  /// "10 correct" win condition independently of [score], which is
+  /// weighted differently in Champion Mode.
+  int _correctCount = 0;
 
   /// Units digit of the entered answer (null if empty)
   int? _unitsDigit;
@@ -219,8 +230,15 @@ class BslMathsProvider extends ChangeNotifier {
   /// The level number whose personal best gates Champion Mode.
   static const int championModeUnlockLevel = 5;
 
+  /// Points awarded for a correct answer in Champion Mode.
+  static const int championCorrectPoints = 10;
+
+  /// Points deducted for a wrong answer in Champion Mode.
+  static const int championWrongPoints = 5;
+
   /// Whether Champion Mode is enabled — hides the numeral labels on the
-  /// keyboard so the player must recognise the BSL number sign alone.
+  /// keyboard so the player must recognise the BSL number sign alone, and
+  /// scores [championCorrectPoints]/-[championWrongPoints] per answer.
   bool _championMode = false;
   bool get championMode => _championMode;
 
@@ -278,9 +296,16 @@ class BslMathsProvider extends ChangeNotifier {
   /// Shows the level selection screen.
   void showLevelSelection() {
     // Record score when leaving a non-competition game mid-session (not already recorded via won/timeUp)
-    if (!_showLevelSelect && !_currentLevel.isCompetition && _score > 0 &&
-        _gameState != BslMathsGameState.won && _gameState != BslMathsGameState.timeUp) {
-      _statsService.recordGameResult(GameIds.bslMaths, _score, level: _currentLevel.number);
+    if (!_showLevelSelect &&
+        !_currentLevel.isCompetition &&
+        _score > 0 &&
+        _gameState != BslMathsGameState.won &&
+        _gameState != BslMathsGameState.timeUp) {
+      _statsService.recordGameResult(
+        GameIds.bslMaths,
+        _score,
+        level: _currentLevel.number,
+      );
     }
     _showLevelSelect = true;
     _feedbackTimer?.cancel();
@@ -312,18 +337,28 @@ class BslMathsProvider extends ChangeNotifier {
   /// returned to level select.
   Future<void> _refreshChampionModeUnlock() async {
     if (_isChampionModeUnlocked) return;
-    final best = await _statsService
-        .getPersonalBest('${GameIds.bslMaths}_$championModeUnlockLevel');
+    final best = await _statsService.getPersonalBest(
+      '${GameIds.bslMaths}_$championModeUnlockLevel',
+    );
     if ((best ?? 0) >= championModeUnlockScore) {
       _isChampionModeUnlocked = true;
+      _championMode = !_championModeOffThisSession;
       notifyListeners();
     }
   }
 
-  /// Enables or disables Champion Mode. No-ops if not yet unlocked.
+  /// Set when the player long-presses the Champion rosette to switch
+  /// Champion Mode off. Static so it lasts for the rest of the app session
+  /// (every new provider starts with Champion Mode off), then resets — once
+  /// unlocked, Champion Mode is on by default.
+  static bool _championModeOffThisSession = false;
+
+  /// Enables or disables Champion Mode for the rest of this app session
+  /// (see [_championModeOffThisSession]). No-ops if not yet unlocked.
   void setChampionMode(bool value) {
-    if (value && !_isChampionModeUnlocked) return;
+    if (!_isChampionModeUnlocked) return;
     _championMode = value;
+    _championModeOffThisSession = !value;
     notifyListeners();
   }
 
@@ -335,6 +370,7 @@ class BslMathsProvider extends ChangeNotifier {
   void startGame() {
     _showLevelSelect = false;
     _score = 0;
+    _correctCount = 0;
     _lastResult = null;
     _clearDigits();
     _isInputLocked = false;
@@ -347,30 +383,34 @@ class BslMathsProvider extends ChangeNotifier {
     // Start countdown timer for competition mode
     if (_currentLevel.isCompetition) {
       _secondsRemaining = competitionDurationSeconds;
-      _competitionTimer = Timer.periodic(
-        const Duration(seconds: 1),
-        (_) {
-          _secondsRemaining--;
-          if (_secondsRemaining <= 0) {
-            _competitionTimer?.cancel();
-            _feedbackTimer?.cancel();
-            _isInputLocked = true;
-            _lastResult = null;
-            _gameState = BslMathsGameState.timeUp;
-            _statsService.recordGameResult(GameIds.bslMaths, _score, level: _currentLevel.number).then((result) {
-              _lastResult = result;
-              if (_currentLevel.number == championModeUnlockLevel &&
-                  !_isChampionModeUnlocked &&
-                  _score >= championModeUnlockScore) {
-                _isChampionModeUnlocked = true;
-                _justUnlockedChampionMode = true;
-              }
-              notifyListeners();
-            });
-          }
-          notifyListeners();
-        },
-      );
+      _competitionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        _secondsRemaining--;
+        if (_secondsRemaining <= 0) {
+          _competitionTimer?.cancel();
+          _feedbackTimer?.cancel();
+          _isInputLocked = true;
+          _lastResult = null;
+          _gameState = BslMathsGameState.timeUp;
+          _statsService
+              .recordGameResult(
+                GameIds.bslMaths,
+                _score,
+                level: _currentLevel.number,
+              )
+              .then((result) {
+                _lastResult = result;
+                if (_currentLevel.number == championModeUnlockLevel &&
+                    !_isChampionModeUnlocked &&
+                    _score >= championModeUnlockScore) {
+                  _isChampionModeUnlocked = true;
+                  _championMode = !_championModeOffThisSession;
+                  _justUnlockedChampionMode = true;
+                }
+                notifyListeners();
+              });
+        }
+        notifyListeners();
+      });
     }
 
     notifyListeners();
@@ -417,38 +457,48 @@ class BslMathsProvider extends ChangeNotifier {
 
   /// Handles a correct answer: increment score, show green feedback, then advance.
   void _handleCorrectAnswer() {
-    _score++;
+    _correctCount++;
+    _score += _championMode ? championCorrectPoints : 1;
     _gameState = BslMathsGameState.correct;
     onAnswerResult?.call(true);
     notifyListeners();
 
+    // Halved in Champion Mode on the competition level to keep the pace up.
+    final feedbackMs = _championMode && _currentLevel.isCompetition
+        ? correctFeedbackDurationMs ~/ 2
+        : correctFeedbackDurationMs;
     _feedbackTimer?.cancel();
-    _feedbackTimer = Timer(
-      const Duration(milliseconds: correctFeedbackDurationMs),
-      () {
-        if (!_currentLevel.isCompetition && _score >= 10) {
-          _isInputLocked = true;
-          _lastResult = null;
-          _gameState = BslMathsGameState.won;
-          _statsService
-              .recordGameResult(GameIds.bslMaths, _score, level: _currentLevel.number)
-              .then((result) {
-            _lastResult = result;
-            notifyListeners();
-          });
-          notifyListeners();
-        } else {
-          _nextQuestion();
-        }
-      },
-    );
+    _feedbackTimer = Timer(Duration(milliseconds: feedbackMs), () {
+      if (!_currentLevel.isCompetition && _correctCount >= 10) {
+        _isInputLocked = true;
+        _lastResult = null;
+        _gameState = BslMathsGameState.won;
+        _statsService
+            .recordGameResult(
+              GameIds.bslMaths,
+              _score,
+              level: _currentLevel.number,
+            )
+            .then((result) {
+              _lastResult = result;
+              notifyListeners();
+            });
+        notifyListeners();
+      } else {
+        _nextQuestion();
+      }
+    });
   }
 
   /// Handles a wrong answer: show red feedback, then unlock for retry.
   ///
-  /// In competition mode, deducts a point and moves to the next question.
+  /// In Champion Mode, deducts [championWrongPoints]. Otherwise, in
+  /// competition mode, deducts a point. Competition mode then moves to the
+  /// next question; other levels retry the same question.
   void _handleWrongAnswer() {
-    if (_currentLevel.isCompetition) {
+    if (_championMode) {
+      _score -= championWrongPoints;
+    } else if (_currentLevel.isCompetition) {
       _score--;
     }
     _gameState = BslMathsGameState.wrong;
@@ -501,9 +551,9 @@ class BslMathsProvider extends ChangeNotifier {
     );
   }
 
-/// Generates the next question and resets input state.
+  /// Generates the next question and resets input state.
   void _nextQuestion() {
-   _currentQuestion = _generateQuestion(previous: _currentQuestion);
+    _currentQuestion = _generateQuestion(previous: _currentQuestion);
     _clearDigits();
     _isInputLocked = false;
     _gameState = BslMathsGameState.playing;

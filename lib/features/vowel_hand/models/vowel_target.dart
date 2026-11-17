@@ -32,13 +32,77 @@ class VowelTarget {
     required this.outline,
   });
 
+  /// How far the rounded tip bulges past the straight cut across it, as a
+  /// fraction of that cut's length (the Bézier control-arm length). 0.25
+  /// keeps the curve on the fingertip's edge in open_hand_left.png for all
+  /// five fingers.
+  static const double _tipCurve = 0.25;
+
+  /// As [_tipCurve], for the rounded base across the knuckle. Kept lower
+  /// because the base is much wider than the tip: 0.15 keeps the curve on
+  /// each finger without spilling into the gaps between them or onto a
+  /// neighbouring target.
+  static const double _baseCurve = 0.15;
+
   /// Returns the fingertip outline scaled to a hand displayed at [handSize].
+  ///
+  /// The traced outlines jump straight across the very tip of each finger
+  /// (their longest edge) and close with a straight line across the
+  /// knuckle. Both are drawn as curves that carry on from the finger's
+  /// sides instead, giving a rounded tip and base. Hit testing and the hint
+  /// flash both use this path, so they match.
   Path pathForSize(Size handSize) {
     final points = [
       for (final p in outline) Offset(p.dx * handSize.width, p.dy * handSize.height),
     ];
-    return Path()..addPolygon(points, true);
+
+    // The tip is the longest edge between consecutive points, ignoring the
+    // closing edge across the knuckle and the end edges, which lack a
+    // neighbour on one side to take a direction from.
+    var tip = -1;
+    var tipLength = 0.0;
+    for (var i = 1; i < points.length - 2; i++) {
+      final length = (points[i + 1] - points[i]).distance;
+      if (length > tipLength) {
+        tip = i;
+        tipLength = length;
+      }
+    }
+
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (var i = 1; i < points.length; i++) {
+      if (i - 1 == tip) {
+        _curveTo(path, points[i - 2], points[i - 1], points[i], points[i + 1],
+            _tipCurve);
+      } else {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+    }
+    // Rounded base: from the last point back round to the first.
+    _curveTo(path, points[points.length - 2], points.last, points.first,
+        points[1], _baseCurve);
+    return path..close();
   }
+
+  /// Adds a curve from [a] to [b] to [path] whose control points continue
+  /// the outline's direction past each end ([aPrev]→[a] and [bNext]→[b]),
+  /// so it bulges outward smoothly. [curve] is the control-arm length as a
+  /// fraction of the distance from [a] to [b].
+  static void _curveTo(
+    Path path,
+    Offset aPrev,
+    Offset a,
+    Offset b,
+    Offset bNext,
+    double curve,
+  ) {
+    final length = (b - a).distance;
+    final c1 = a + _unit(a - aPrev) * length * curve;
+    final c2 = b + _unit(b - bNext) * length * curve;
+    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, b.dx, b.dy);
+  }
+
+  static Offset _unit(Offset o) => o.distance == 0 ? Offset.zero : o / o.distance;
 
   /// Checks if [touchPoint] (in hand-local coordinates) is within the
   /// fingertip outline for a hand displayed at [handSize].
@@ -259,9 +323,75 @@ enum VowelHandLevel {
     number: 6,
     name: 'No Mistakes',
     description: 'More points for longer words',
+  ),
+
+  /// Ages 1–3, Level 1: a, e and i, each called twice in random order. The
+  /// correct fingertip flashes red as a hint; no timer.
+  toddlerAei(
+    number: 1,
+    name: 'First Vowels',
+    description: 'a, e, i',
+  ),
+
+  /// Ages 1–3, Level 2: all five fingertip vowels, each called twice, with
+  /// the same red hint flash; no timer. Also the warm-up Level 1 for ages
+  /// 3–5 and 5+.
+  toddlerVowels(
+    number: 2,
+    name: 'Five Vowels',
+    description: 'a, e, i, o, u',
+  ),
+
+  /// Ages 1–3, Level 3: as Level 2, plus the w and y badges (called four
+  /// times each) for IAC. BSL has no w/y, so it gets a shorter hint flash
+  /// instead.
+  toddlerChallenge(
+    number: 3,
+    name: 'Vowel Challenge',
+    description: 'Quicker hints',
+  ),
+
+  /// Ages 1–3, Level 4: 15 random calls from every vowel for the sign
+  /// system (including w and y for IAC), with no hint flash; no timer.
+  toddlerAll(
+    number: 4,
+    name: 'All Vowels',
+    description: 'No hints',
+  ),
+
+  /// Ages 1–3, Level 5: the same five words in the same order every game
+  /// (the fixed list in `VowelHandProvider._toddlerFiveWords`), untimed and
+  /// ending after 5 words. A wrong guess can be retried, so every round
+  /// ends on 5 points.
+  toddlerFiveWords(
+    number: 5,
+    name: 'Five Words',
+    description: 'bed, dog, cat, sun, win',
+  ),
+
+  /// Ages 1–3, Level 6: the same ten words every game (the fixed list in
+  /// `VowelHandProvider._toddlerTenWords`), shuffled into a new random
+  /// order each game; untimed and ending after 10 words.
+  toddlerTenWords(
+    number: 6,
+    name: 'Ten Words',
+    description: 'The same words, mixed up',
+  ),
+
+  /// Ages 1–3, Level 7: the Vowel Words puzzle (missing vowel in a short
+  /// word) with words drawn at random from the word pools, untimed and
+  /// ending after 10 words. A wrong guess can be retried, so every round
+  /// ends on 10 points.
+  toddlerWords(
+    number: 7,
+    name: 'Small Words',
+    description: 'Missing vowel',
   );
 
-  /// The level number (1–6)
+  /// The level number — for the toddler levels this matches their position
+  /// in the ages 1–3 level list, so it keys their translations and stats
+  /// the same way they are displayed. (The main levels number 1–6
+  /// separately, under their own stats ids.)
   final int number;
 
   /// Display name for the level
@@ -276,12 +406,49 @@ enum VowelHandLevel {
     required this.description,
   });
 
-  /// Returns the levels available for the given sign system.
+  /// Whether the correct fingertip/badge flashes red as a hint (ages 1–3,
+  /// Levels 1–3).
+  bool get hasHint =>
+      this == toddlerAei || this == toddlerVowels || this == toddlerChallenge;
+
+  /// Whether this is an ages 1–3 level that calls a fixed number of letters
+  /// (Levels 1–4).
+  bool get isToddlerMatch => hasHint || this == toddlerAll;
+
+  /// Whether this is one of the untimed ages 1–3 levels.
+  bool get isToddler => isToddlerMatch || isToddlerWordLevel;
+
+  /// Whether play is "tap the fingertip for the letter shown" rather than
+  /// a word puzzle.
+  bool get isVowelMatch => this == vowelMatch || isToddlerMatch;
+
+  /// Whether this is one of the ages 1–3 missing-vowel word levels —
+  /// [toddlerWords] and its two fixed-list siblings.
+  bool get isToddlerWordLevel => this == toddlerWords || isFixedWords;
+
+  /// Whether this level plays a fixed word list — the same words every
+  /// game ([toddlerFiveWords] in a fixed order, [toddlerTenWords] shuffled)
+  /// — rather than drawing words at random from a pool.
+  bool get isFixedWords =>
+      this == toddlerFiveWords || this == toddlerTenWords;
+
+  /// Whether this is the short-word (CVC) missing-vowel puzzle whose words
+  /// are drawn from a pool (the local CVC list or Supabase).
+  bool get isShortWords => this == vowelWords || this == toddlerWords;
+
+  /// Whether this is one of the word-count-based multi-vowel levels (5 & 6).
+  bool get isMultiVowel => this == vowelWordsMulti || this == noMistakes;
+
+  /// Whether this level runs against the countdown timer.
+  bool get isTimed => !isToddler && !isMultiVowel;
+
+  /// Returns the main (ages 3+) levels available for the given sign system.
   ///
   /// IAC has Vowel Match, Vowel Words (Welsh CVC/VCC/CCV words), a third
   /// level reusing the `ccvc` slot for the remaining `Geiriau` patterns not
   /// used by Vowel Words, and the two multi-vowel word levels (using the
   /// Welsh multi-vowel word list). Only the CVCC level is BSL/English-only.
+  /// The Learn BSL trail indexes into this list by level number.
   static List<VowelHandLevel> forSignSystem(SignSystem signSystem) {
     return signSystem == SignSystem.iac
         ? const [
@@ -291,6 +458,72 @@ enum VowelHandLevel {
             VowelHandLevel.vowelWordsMulti,
             VowelHandLevel.noMistakes,
           ]
-        : VowelHandLevel.values;
+        : const [
+            VowelHandLevel.vowelMatch,
+            VowelHandLevel.vowelWords,
+            VowelHandLevel.ccvc,
+            VowelHandLevel.cvcc,
+            VowelHandLevel.vowelWordsMulti,
+            VowelHandLevel.noMistakes,
+          ];
+  }
+
+  /// Returns the levels offered on level select for [ageGroup].
+  ///
+  /// - 1–3 years: the seven untimed toddler levels — letter levels, the
+  ///   three Small Words variants (fixed five words in a fixed order, the
+  ///   ten words shuffled, then fully random) — then the timed CCVC word
+  ///   level as an eighth step up.
+  /// - 3–5 years: a warm-up [toddlerVowels] level, then [toddlerAll]
+  ///   (15 vowel calls, no hints), then up to the consonant-cluster word
+  ///   levels.
+  /// - 5+ years: the same tutorial, then the timed Vowel Match and short
+  ///   words, then the cluster levels through to No Mistakes.
+  /// - All ages: the same tutorial, then every main level.
+  ///
+  /// Levels other than the toddler ones are drawn from [forSignSystem], so
+  /// IAC still never gets the CVCC level.
+  static List<VowelHandLevel> forAgeGroup(
+    SignSystem signSystem,
+    AgeGroup ageGroup,
+  ) {
+    if (ageGroup == AgeGroup.years1to3) {
+      return const [
+        toddlerAei,
+        toddlerVowels,
+        toddlerChallenge,
+        toddlerAll,
+        toddlerFiveWords,
+        toddlerTenWords,
+        toddlerWords,
+        ccvc,
+      ];
+    }
+    final levels = forSignSystem(signSystem);
+    final allowed = switch (ageGroup) {
+      AgeGroup.years3to5 => const {vowelMatch, vowelWords, ccvc, cvcc},
+      AgeGroup.years5plus => const {
+          vowelMatch,
+          vowelWords,
+          ccvc,
+          cvcc,
+          vowelWordsMulti,
+          noMistakes,
+        },
+      _ => levels.toSet(),
+    };
+    return [
+      // Every list except the ages 1–3 one leads with the tutorial level
+      // (named "Tutorial" on level select — see the warm-up naming in the
+      // screen).
+      if (ageGroup == AgeGroup.years3to5 ||
+          ageGroup == AgeGroup.years5plus ||
+          ageGroup == AgeGroup.all)
+        toddlerVowels,
+      // Ages 3–5 Level 2: 15 vowel calls with no hints — the same gameplay
+      // as the ages 1–3 Level 4.
+      if (ageGroup == AgeGroup.years3to5) toddlerAll,
+      ...levels.where(allowed.contains),
+    ];
   }
 }

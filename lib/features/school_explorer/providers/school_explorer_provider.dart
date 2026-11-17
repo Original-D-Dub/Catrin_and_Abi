@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
-import '../../../core/constants/game_filters.dart';
 import '../../../shared/services/audio_service.dart';
 import '../../../shared/services/game_stats_service.dart';
 import '../models/school_layouts.dart';
@@ -17,17 +16,12 @@ enum FindFeedback { none, correct, wrong }
 /// State for School Explorer: which area is showing, what's selected, and
 /// the "Can you find...?" rounds.
 ///
-/// Takes [locale] (UI text/speech) and [signSystem] (which fingerspelling
-/// alphabet the info card spells names in) as independent axes.
+/// [locale] sets the UI text and speech language.
 class SchoolExplorerProvider extends ChangeNotifier {
   final String locale;
-  final SignSystem signSystem;
 
-  SchoolExplorerProvider({
-    this.locale = 'en',
-    this.signSystem = SignSystem.bsl,
-    math.Random? random,
-  }) : _random = random ?? math.Random();
+  SchoolExplorerProvider({this.locale = 'en', math.Random? random})
+    : _random = random ?? math.Random();
 
   final math.Random _random;
   final GameStatsService _statsService = GameStatsService();

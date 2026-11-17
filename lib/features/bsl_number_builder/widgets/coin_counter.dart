@@ -2,7 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-/// Pill showing a gold coin and the running coin total.
+/// A gold coin and the running coin total, with no background of its own
+/// (it sits in the game header's score box).
 ///
 /// When [coins] goes up, the total counts up in ones. Each number fades and
 /// slides up out of the way as the next fades in from below, overlapping it,
@@ -11,7 +12,7 @@ import 'package:flutter/material.dart';
 class CoinCounter extends StatefulWidget {
   final int coins;
 
-  /// Attached to the pill's coin, so flying coins can aim at it.
+  /// Attached to the coin, so flying coins can aim at it.
   final Key? coinKey;
 
   const CoinCounter({super.key, required this.coins, this.coinKey});
@@ -90,23 +91,15 @@ class _CoinCounterState extends State<CoinCounter>
           final counting = _count.isAnimating;
           return Transform.scale(
             scale: counting ? 1 + 0.08 * sin(pi * _count.value) : 1,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(6, 6, 16, 6),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: const Color(0xFFFFC73A), width: 2),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GoldCoin(key: widget.coinKey, size: 34),
-                  const SizedBox(width: 10),
-                  counting
-                      ? _rollingTotal()
-                      : Text('${widget.coins}', style: _style),
-                ],
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GoldCoin(key: widget.coinKey, size: 34),
+                const SizedBox(width: 10),
+                counting
+                    ? _rollingTotal()
+                    : Text('${widget.coins}', style: _style),
+              ],
             ),
           );
         },
@@ -133,7 +126,7 @@ class _CoinCounterState extends State<CoinCounter>
       alignment: Alignment.centerLeft,
       clipBehavior: Clip.none,
       children: [
-        // Sizes the stack to the final total so the pill doesn't jitter.
+        // Sizes the stack to the final total so the row doesn't jitter.
         Opacity(opacity: 0, child: Text('${widget.coins}', style: _style)),
         if (current > _from)
           number(current - 1, (1 - f) * 0.3, -_slide * (1 + f)),

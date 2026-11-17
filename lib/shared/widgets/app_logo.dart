@@ -26,18 +26,14 @@ class AppLogo extends StatelessWidget {
   /// If null, maintains aspect ratio based on width.
   final double? height;
 
-  const AppLogo({
-    super.key,
-    this.isWelsh = false,
-    this.width,
-    this.height,
-  });
+  const AppLogo({super.key, this.isWelsh = false, this.width, this.height});
 
   @override
   Widget build(BuildContext context) {
     final localizer = AppLocalizations.of(context);
-    final logoPath =
-        isWelsh ? AssetPaths.logoWelshColour : AssetPaths.logoEnglishColour;
+    final logoPath = isWelsh
+        ? AssetPaths.logoWelshColour
+        : AssetPaths.logoEnglishColour;
 
     return Image.asset(
       logoPath,
@@ -52,7 +48,9 @@ class AppLogo extends StatelessWidget {
           child: Center(
             child: Text(
               localizer('app.title'),
-              style: AppTheme.title.copyWith(fontSize: AppSizes.fontSizeHeading),
+              style: AppTheme.title.copyWith(
+                fontSize: AppSizes.fontSizeHeading,
+              ),
             ),
           ),
         );

@@ -2,28 +2,32 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/app_colors.dart';
 import 'conveyor_belt.dart';
 
 /// Backdrop for the Number Builder scene: a dark wall that runs down to the
 /// belt's front rail (forming the belt bed), a skewed diamond-plate panel in
-/// the top-right corner, and a red floor below.
+/// the top-right corner, and a navy floor below.
 ///
 /// [beltTop] and [beltBottom] are fractions of the height where the
 /// conveyor belt sits, so the wall/floor split and the belt's shadow line up.
+/// [railDrop] matches the belt's rail being drawn that many pixels lower.
 class FactoryBackground extends StatelessWidget {
   final double beltTop;
   final double beltBottom;
+  final double railDrop;
 
   const FactoryBackground({
     super.key,
     required this.beltTop,
     required this.beltBottom,
+    this.railDrop = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _FactoryBackgroundPainter(beltTop, beltBottom),
+      painter: _FactoryBackgroundPainter(beltTop, beltBottom, railDrop),
       child: const SizedBox.expand(),
     );
   }
@@ -32,8 +36,9 @@ class FactoryBackground extends StatelessWidget {
 class _FactoryBackgroundPainter extends CustomPainter {
   final double beltTop;
   final double beltBottom;
+  final double railDrop;
 
-  const _FactoryBackgroundPainter(this.beltTop, this.beltBottom);
+  const _FactoryBackgroundPainter(this.beltTop, this.beltBottom, this.railDrop);
 
   /// How far the diamond plate's bottom edge sits right of its top edge.
   static const double _plateSkew = 30;
@@ -43,10 +48,12 @@ class _FactoryBackgroundPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
     final railTop =
-        h * (beltTop + (beltBottom - beltTop) * ConveyorBelt.railTop);
+        h * (beltTop + (beltBottom - beltTop) * ConveyorBelt.railTop) +
+        railDrop;
+    final floorTop = h * beltBottom + railDrop;
 
     // Runs behind the belt down to the floor, so it shows as the belt bed.
-    final wall = Rect.fromLTWH(0, 0, w, h * beltBottom);
+    final wall = Rect.fromLTWH(0, 0, w, floorTop);
     canvas.drawRect(
       wall,
       Paint()
@@ -59,19 +66,19 @@ class _FactoryBackgroundPainter extends CustomPainter {
 
     _paintDiamondPlate(canvas, Rect.fromLTRB(w * 0.58, 0, w, railTop));
 
-    final floor = Rect.fromLTRB(0, h * beltBottom, w, h);
+    final floor = Rect.fromLTRB(0, floorTop, w, h);
     canvas.drawRect(
       floor,
       Paint()
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFC4121A), Color(0xFF8E0A10)],
+          colors: [AppColors.accentNavyBlue, Color(0xFF0D47A1)],
         ).createShader(floor),
     );
 
     // Shadow cast by the belt onto the floor.
-    final shadow = Rect.fromLTWH(0, h * beltBottom, w, h * 0.06);
+    final shadow = Rect.fromLTWH(0, floorTop, w, h * 0.06);
     canvas.drawRect(
       shadow,
       Paint()
@@ -121,5 +128,7 @@ class _FactoryBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FactoryBackgroundPainter oldDelegate) =>
-      oldDelegate.beltTop != beltTop || oldDelegate.beltBottom != beltBottom;
+      oldDelegate.beltTop != beltTop ||
+      oldDelegate.beltBottom != beltBottom ||
+      oldDelegate.railDrop != railDrop;
 }

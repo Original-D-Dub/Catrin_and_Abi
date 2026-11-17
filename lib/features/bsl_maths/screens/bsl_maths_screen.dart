@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -15,9 +13,11 @@ import '../../../shared/widgets/level_select_screen.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../models/maths_question.dart';
 import '../providers/bsl_maths_provider.dart';
+import '../widgets/bsl_key_tile.dart';
 import '../widgets/bsl_keyboard.dart';
 import '../widgets/bsl_number_display.dart';
-import '../widgets/champion_mode_toggle.dart';
+import '../../../shared/widgets/champion_rosette.dart';
+import '../widgets/champion_mode_explainer.dart';
 import '../widgets/champion_mode_unlocked_banner.dart';
 
 /// Main screen for the BSL Maths addition game.
@@ -40,6 +40,9 @@ class BslMathsScreen extends StatefulWidget {
 }
 
 class _BslMathsScreenState extends State<BslMathsScreen> {
+  /// Corner radius of the question card.
+  static const double _questionCardRadius = 16;
+
   // Sized up from 80 (and the keyboard's key-relative SVG size trimmed
   // down slightly) so the BSL signs read as similarly sized in both areas.
   static const double _questionSvgSize = 96.0;
@@ -99,9 +102,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
           body: Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(
-                  'assets/backgrounds/math-background-1080x1920.jpg',
-                ),
+                image: AssetImage('assets/backgrounds/felt-background.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
@@ -173,8 +174,16 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                   Positioned.fill(
                     child: ChampionModeUnlockedBanner(
                       locale: widget.locale,
-                      onDismiss: () =>
-                          provider.dismissChampionModeUnlockedBanner(),
+                      onContinue: () {
+                        provider.dismissChampionModeUnlockedBanner();
+                        provider.showLevelSelection();
+                        showChampionModeExplainer(
+                          context,
+                          locale: widget.locale,
+                          bodyKey: 'bsl_maths.champion_mode.explainer',
+                          demo: const AnswerDigitsFadeDemo(),
+                        );
+                      },
                     ),
                   ),
               ],
@@ -193,17 +202,18 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
   ) {
     return LevelSelectScreen(
       subtitle: localizer('bsl_maths.subtitle'),
-      aboveSubtitle: provider.isChampionModeUnlocked
-          ? ChampionModeToggle(
+      titleBadge: provider.isChampionModeUnlocked
+          ? ChampionRosette(
               value: provider.championMode,
-              onChanged: (value) => provider.setChampionMode(value),
+              onChanged: provider.setChampionMode,
               localizer: localizer,
             )
           : null,
       locale: widget.locale,
       sectionBreaks: {
-        BslMathsLevel.all.indexWhere((l) => l.isSubtraction):
-            localizer('bsl_maths.subtraction_subtitle'),
+        BslMathsLevel.all.indexWhere((l) => l.isSubtraction): localizer(
+          'bsl_maths.subtraction_subtitle',
+        ),
       },
       levels: BslMathsLevel.all.map((level) {
         return LevelSelectItem(
@@ -241,12 +251,23 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
                     _fixedChromeHeight -
                     _minQuestionCardHeight * scale)
                 .clamp(0.0, double.infinity);
+        // The question card matches the keyboard's row of keys, outer edge
+        // to outer edge. The keyboard gets the full column width and
+        // maxKeyboardHeight (the Column passes non-flex children an
+        // unbounded height, so the ConstrainedBox cap is what it sees).
+        final questionCardWidth = BslKeyboard.rowWidthFor(
+          availableWidth: constraints.maxWidth,
+          maxHeight: maxKeyboardHeight,
+          showTeenKeys: provider.useTeenKeys,
+          scale: scale,
+        );
         return _buildGameColumn(
           context,
           provider,
           localizer,
           scale,
           maxKeyboardHeight,
+          questionCardWidth,
         );
       },
     );
@@ -258,6 +279,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
     AppLocalizations localizer,
     double scale,
     double maxKeyboardHeight,
+    double questionCardWidth,
   ) {
     return Column(
       children: [
@@ -289,47 +311,42 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
         ),
         const SizedBox(height: 12),
 
-        // Question + feedback in glass container. Padding here is kept
-        // tight so as much room as possible goes to the actual question
-        // display — see _questionSvgSize/_answerSlotSize.
+        // Question + feedback on a white card (no bevel) with the same
+        // inset shadows as the keyboard keys' dished faces.
+        // Padding here is kept tight so as much room as possible goes to the
+        // actual question display — see _questionSvgSize/_answerSlotSize.
         Expanded(
           //flex: 2,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.spacingXSmall,
+          child: Container(
+            width: questionCardWidth,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(_questionCardRadius),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppSizes.spacingXSmall,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      width: 2,
+            child: CustomPaint(
+              painter: BslInnerShadowPainter(
+                radius: _questionCardRadius,
+                shadows: BslKeyTile.faceInnerShadows,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSizes.spacingXSmall,
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: AppSizes.spacingXSmall),
+
+                    // Question display area (BSL SVG operands + answer slot(s))
+                    Expanded(child: _buildQuestionDisplay(provider, scale)),
+
+                    // Feedback area (correct/wrong message)
+                    SizedBox(
+                      height: 44 * scale,
+                      child: _buildFeedback(provider, scale, localizer),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: AppSizes.spacingXSmall),
 
-                      // Question display area (BSL SVG operands + answer slot(s))
-                      Expanded(child: _buildQuestionDisplay(provider, scale)),
-
-                      // Feedback area (correct/wrong message)
-                      SizedBox(
-                        height: 44 * scale,
-                        child: _buildFeedback(provider, scale, localizer),
-                      ),
-
-                      const SizedBox(height: AppSizes.spacingXSmall),
-                    ],
-                  ),
+                    const SizedBox(height: AppSizes.spacingXSmall),
+                  ],
                 ),
               ),
             ),
@@ -350,7 +367,7 @@ class _BslMathsScreenState extends State<BslMathsScreen> {
             isDisabled: provider.isInputLocked,
             enteredAnswer: provider.enteredAnswer,
             showTeenKeys: provider.useTeenKeys,
-            showNumbers: !provider.isCompetitionLevel && !provider.championMode,
+            showNumbers: !provider.championMode,
           ),
         ),
 

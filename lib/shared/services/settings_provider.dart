@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -20,6 +22,11 @@ class SettingsProvider extends ChangeNotifier {
   static const _zooCharacterKey = 'zoo_last_character';
   static const _soundEffectsEnabledKey = 'sound_effects_enabled';
   static const _instructionsEnabledKey = 'instructions_enabled';
+  static const _hideListedGamesKey = 'hide_listed_games';
+
+  /// Asset listing the game tiles hidden by the "hide selected games"
+  /// master toggle (see [hiddenGameIds]).
+  static const _hiddenGamesAssetPath = 'assets/data/hidden_games.json';
 
   String _language = 'en';
   GameCategory _gameCategory = GameCategory.all;
@@ -28,6 +35,8 @@ class SettingsProvider extends ChangeNotifier {
   String? _lastZooCharacter;
   bool _soundEffectsEnabled = true;
   bool _instructionsEnabled = true;
+  bool _hideListedGames = false;
+  Set<String> _hiddenGameIds = {};
 
   /// Active language code — 'en' (English) or 'cy' (Welsh/Cymraeg).
   String get language => _language;
@@ -51,6 +60,16 @@ class SettingsProvider extends ChangeNotifier {
   /// Whether spoken/audio game instructions play.
   bool get instructionsEnabled => _instructionsEnabled;
 
+  /// Whether the "hide selected games" master toggle is on. When true, the
+  /// tiles whose ids appear in [hiddenGameIds] are removed from the home
+  /// screens no matter what the game-type/age-group filters would show.
+  bool get hideListedGames => _hideListedGames;
+
+  /// Game ids listed in [assets/data/hidden_games.json] — the tiles hidden
+  /// when [hideListedGames] is on. Loaded from the asset so the list can be
+  /// updated without touching code.
+  Set<String> get hiddenGameIds => _hiddenGameIds;
+
   late final StreamSubscription<AuthState> _authSubscription;
 
   SettingsProvider() {
@@ -71,6 +90,11 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
 
+    // The hidden-games list lives in an asset (not user data), so it is
+    // loaded the same way regardless of who is signed in. rootBundle caches
+    // asset reads, making this cheap across reloads.
+    await _loadHiddenGameIds();
+
     // For logged-in non-anonymous users Supabase metadata is the source of truth.
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null && !user.isAnonymous) {
@@ -88,6 +112,7 @@ class SettingsProvider extends ChangeNotifier {
         _lastZooCharacter = meta[_zooCharacterKey] as String?;
         _soundEffectsEnabled = meta[_soundEffectsEnabledKey] as bool? ?? true;
         _instructionsEnabled = meta[_instructionsEnabledKey] as bool? ?? true;
+        _hideListedGames = meta[_hideListedGamesKey] as bool? ?? false;
 
         // Mirror to local prefs for offline access.
         await prefs.setString(_langKey, _language);
@@ -99,6 +124,7 @@ class SettingsProvider extends ChangeNotifier {
         }
         await prefs.setBool(_soundEffectsEnabledKey, _soundEffectsEnabled);
         await prefs.setBool(_instructionsEnabledKey, _instructionsEnabled);
+        await prefs.setBool(_hideListedGamesKey, _hideListedGames);
 
         _applyToAudioService();
         notifyListeners();
@@ -113,8 +139,35 @@ class SettingsProvider extends ChangeNotifier {
     _signSystem = SignSystem.fromPrefsString(prefs.getString(_signSystemKey));
     _soundEffectsEnabled = prefs.getBool(_soundEffectsEnabledKey) ?? true;
     _instructionsEnabled = prefs.getBool(_instructionsEnabledKey) ?? true;
+    _hideListedGames = prefs.getBool(_hideListedGamesKey) ?? false;
     _applyToAudioService();
     notifyListeners();
+  }
+
+  /// Parses the raw contents of [assets/data/hidden_games.json] into the
+  /// set of hideable game ids. Accepts either an object with a
+  /// `hidden_games` array (the shipped format) or a bare JSON array.
+  /// Malformed contents yield an empty set — a broken file must never stop
+  /// the app from showing games.
+  static Set<String> parseHiddenGamesJson(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      final list =
+          decoded is List ? decoded : decoded is Map ? decoded['hidden_games'] : null;
+      return list is List ? list.whereType<String>().toSet() : {};
+    } on FormatException {
+      return {};
+    }
+  }
+
+  Future<void> _loadHiddenGameIds() async {
+    try {
+      final raw = await rootBundle.loadString(_hiddenGamesAssetPath);
+      _hiddenGameIds = parseHiddenGamesJson(raw);
+    } catch (_) {
+      // Missing or malformed asset — keep whatever was loaded before
+      // (initially nothing hidden) rather than crashing.
+    }
   }
 
   void _applyToAudioService() {
@@ -166,6 +219,13 @@ class SettingsProvider extends ChangeNotifier {
     await _persist();
   }
 
+  Future<void> setHideListedGames(bool value) async {
+    if (_hideListedGames == value) return;
+    _hideListedGames = value;
+    notifyListeners();
+    await _persist();
+  }
+
   /// Remembers [characterId] as the last zoo character picked, for
   /// signed-in (non-anonymous) users only. Anonymous users get no default
   /// next time — the pick-a-player grid is shown as normal.
@@ -196,6 +256,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setString(_signSystemKey, _signSystem.toPrefsString());
     await prefs.setBool(_soundEffectsEnabledKey, _soundEffectsEnabled);
     await prefs.setBool(_instructionsEnabledKey, _instructionsEnabled);
+    await prefs.setBool(_hideListedGamesKey, _hideListedGames);
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null && !user.isAnonymous) {
@@ -209,6 +270,7 @@ class SettingsProvider extends ChangeNotifier {
               _signSystemKey: _signSystem.toPrefsString(),
               _soundEffectsEnabledKey: _soundEffectsEnabled,
               _instructionsEnabledKey: _instructionsEnabled,
+              _hideListedGamesKey: _hideListedGames,
             },
           ),
         );

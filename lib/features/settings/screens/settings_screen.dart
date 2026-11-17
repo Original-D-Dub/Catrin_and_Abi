@@ -15,6 +15,8 @@ import '../../../shared/widgets/settings_selection_tile.dart';
 ///   • Language — switches between English and Welsh home screens.
 ///   • Game Type — filters tiles by category (alphabet, numeracy, vocabulary).
 ///   • Age Group — filters tiles by school-year band.
+///   • Hidden Games — master switch that hides the tiles listed in
+///     assets/data/hidden_games.json, overriding the filters above.
 ///
 /// Add new [SettingsSection] widgets at the bottom of the ListView
 /// body to extend the settings page.
@@ -141,6 +143,28 @@ class SettingsScreen extends StatelessWidget {
                 sublabel: t('settings.years5plus_sub'),
                 isSelected: settings.ageGroup == AgeGroup.years5plus,
                 onTap: () => context.read<SettingsProvider>().setAgeGroup(AgeGroup.years5plus),
+              ),
+            ],
+          ),
+
+          // ── Hidden Games ─────────────────────────────────────────────────
+          // Master switch: when on, the tiles listed in
+          // assets/data/hidden_games.json disappear from the home screens
+          // regardless of the Game Type / Age Group selections above.
+          SettingsSection(
+            title: t('settings.hidden_games_section'),
+            children: [
+              SettingsToggleTile(
+                leading: const Icon(
+                  Icons.visibility_off_outlined,
+                  color: Colors.white70,
+                  size: 28,
+                ),
+                label: t('settings.hide_games'),
+                sublabel: t('settings.hide_games_sub'),
+                value: settings.hideListedGames,
+                onChanged: (value) =>
+                    context.read<SettingsProvider>().setHideListedGames(value),
               ),
             ],
           ),

@@ -46,9 +46,7 @@ class CardGameService {
         value: letter,
         pairId: pairId,
         pairColor: color,
-        imagePath: isIac
-            ? AssetPaths.welshLetterSvg(letter)
-            : AssetPaths.bslLetterSvg(letter),
+        imagePath: AssetPaths.signLetterPng(letter),
       ));
 
       // Create letter card

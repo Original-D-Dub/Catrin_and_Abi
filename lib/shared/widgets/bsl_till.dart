@@ -75,7 +75,7 @@ class BslTillLayout {
     tickRect: Rect.fromLTWH(1061, 280, 116, 116),
     opaqueFromX: 47,
     bodyRight: 1770,
-    keyholeY: 1644,
+    keyholeY: 1619,
   );
 }
 

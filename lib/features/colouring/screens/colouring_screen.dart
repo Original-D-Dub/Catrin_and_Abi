@@ -155,7 +155,7 @@ class _ColouringScreenState extends State<ColouringScreen> {
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+            image: AssetImage('assets/backgrounds/felt-background.jpg'),
             fit: BoxFit.cover,
           ),
         ),
@@ -187,7 +187,7 @@ class _ColouringScreenState extends State<ColouringScreen> {
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+            image: AssetImage('assets/backgrounds/felt-background.jpg'),
             fit: BoxFit.cover,
           ),
         ),
@@ -310,7 +310,7 @@ class _ColouringScreenState extends State<ColouringScreen> {
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+            image: AssetImage('assets/backgrounds/felt-background.jpg'),
             fit: BoxFit.cover,
           ),
         ),
@@ -348,7 +348,7 @@ class _ColouringScreenState extends State<ColouringScreen> {
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/backgrounds/math-background-1080x1920.jpg'),
+            image: AssetImage('assets/backgrounds/felt-background.jpg'),
             fit: BoxFit.cover,
           ),
         ),

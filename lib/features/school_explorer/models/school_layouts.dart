@@ -35,6 +35,10 @@ class SchoolLayouts {
   static const _cork = Color(0xFFD9A869);
   static const _chalk = Color(0xFF2F5D46);
   static const _pianoBlack = Color(0xFF2B2B2B);
+  static const _classroomWall = Color(0xFFF6EBCF);
+  static const _hallWall = Color(0xFFE8EEF3);
+  static const _canteenWall = Color(0xFFDDF0E4);
+  static const _brick = Color(0xFFB5563E);
 
   static const _chairColours = [_red, _blue, _green, _yellow];
 
@@ -60,25 +64,25 @@ class SchoolLayouts {
     ];
   }
 
-  /// A child-size chair. [backAtY] puts the backrest on the far (low-y)
-  /// side; otherwise it's on the far (low-x) side.
+  /// A child-size chair with its backrest on the [back] side, so it faces
+  /// the opposite way.
   static List<IsoPart> _chair(
     double x,
     double y,
     Color colour, {
-    bool backAtY = true,
+    _ChairBack back = _ChairBack.lowY,
   }) {
     return [
       IsoPart(x + 0.05, y + 0.05, 0, 0.35, 0.35, 0.35, _grey),
       IsoPart(x, y, 0.35, 0.45, 0.45, 0.07, colour),
-      if (backAtY)
-        IsoPart(x, y, 0.42, 0.45, 0.07, 0.4, colour)
-      else
-        IsoPart(x, y, 0.42, 0.07, 0.45, 0.4, colour),
+      switch (back) {
+        _ChairBack.lowY => IsoPart(x, y, 0.42, 0.45, 0.07, 0.4, colour),
+        _ChairBack.highY => IsoPart(x, y + 0.38, 0.42, 0.45, 0.07, 0.4, colour),
+      },
     ];
   }
 
-  /// A pupils' table with chairs along both long (x) sides.
+  /// A pupils' table with chairs along both long (x) sides, all facing it.
   static List<IsoPart> _tableGroup(double x, double y, int colourOffset) {
     return [
       for (var i = 0; i < 3; i++)
@@ -93,32 +97,71 @@ class SchoolLayouts {
           x + 0.2 + i * 0.75,
           y + 1.25,
           _chairColours[(i + colourOffset + 2) % 4],
+          back: _ChairBack.highY,
         ),
     ];
   }
 
-  /// A door against the y == 0 wall.
-  static List<IsoPart> _doorOnBackWall(double x, {Color colour = _doorBlue}) =>
-      [
-        IsoPart(x - 0.1, 0, 0, 1.4, 0.08, 2.35, _white),
-        IsoPart(x, 0, 0, 1.2, 0.14, 2.2, colour),
-        IsoPart(x + 0.2, 0.14, 1.4, 0.3, 0.05, 0.5, _glass),
-        IsoPart(x + 1.0, 0.14, 1.0, 0.1, 0.06, 0.06, _yellow),
-      ];
-
-  /// A door against the x == 0 wall.
-  static List<IsoPart> _doorOnSideWall(double y, {Color colour = _doorBlue}) =>
-      [
-        IsoPart(0, y - 0.1, 0, 0.08, 1.4, 2.35, _white),
-        IsoPart(0, y, 0, 0.14, 1.2, 2.2, colour),
-        IsoPart(0.14, y + 0.2, 1.4, 0.05, 0.3, 0.5, _glass),
-        IsoPart(0.14, y + 1.0, 1.0, 0.06, 0.1, 0.06, _yellow),
-      ];
-
-  static List<IsoPart> _windowOnSideWall(double y, double length) => [
-    IsoPart(0, y - 0.08, 1.05, 0.1, length + 0.16, 1.6, _white),
-    IsoPart(0, y, 1.15, 0.14, length, 1.4, _glass, decal: IsoDecal.window),
+  /// A door set into the y == 0 wall. The part is the doorway itself and
+  /// takes the [wall] colour, for the inside of the opening; the door
+  /// stands at the back of it.
+  static List<IsoPart> _doorOnBackWall(
+    double x,
+    Color wall, {
+    Color colour = _doorBlue,
+    double width = 1.2,
+    double height = 2.2,
+  }) => [
+    IsoPart(
+      x,
+      -0.3,
+      0,
+      width,
+      0.3,
+      height,
+      wall,
+      decal: IsoDecal.door,
+      recessed: true,
+      insetColor: colour,
+    ),
   ];
+
+  /// A door set into the x == 0 wall; see [_doorOnBackWall].
+  static List<IsoPart> _doorOnSideWall(
+    double y,
+    Color wall, {
+    Color colour = _doorBlue,
+  }) => [
+    IsoPart(
+      -0.3,
+      y,
+      0,
+      0.3,
+      1.2,
+      2.2,
+      wall,
+      decal: IsoDecal.door,
+      recessed: true,
+      insetColor: colour,
+    ),
+  ];
+
+  /// A window set into the x == 0 wall. The part is the hole itself and
+  /// takes the room's [wall] colour, for the inside of the opening.
+  static List<IsoPart> _windowOnSideWall(double y, double length, Color wall) =>
+      [
+        IsoPart(
+          -0.3,
+          y,
+          1.15,
+          0.3,
+          length,
+          1.4,
+          wall,
+          decal: IsoDecal.window,
+          recessed: true,
+        ),
+      ];
 
   static List<IsoPart> _clockOnBackWall(double x, double z) => [
     IsoPart(x, 0, z, 0.6, 0.1, 0.6, _white, decal: IsoDecal.clock),
@@ -156,7 +199,7 @@ class SchoolLayouts {
     depth: 8,
     floorColor: const Color(0xFFBFD7EA),
     floorLineColor: const Color(0xFFA9C5DC),
-    wallColor: const Color(0xFFF6EBCF),
+    wallColor: _classroomWall,
     objects: [
       SchoolObject(
         id: 'display_board',
@@ -181,14 +224,13 @@ class SchoolLayouts {
       SchoolObject(
         id: 'door_hall',
         nameKey: 'school_explorer.object.door_to_hall',
-        spellKey: 'school_explorer.object.door',
         leadsTo: SchoolArea.hall,
-        parts: _doorOnBackWall(8.3),
+        parts: _doorOnBackWall(8.3, _classroomWall),
       ),
       SchoolObject(
         id: 'window',
         nameKey: 'school_explorer.object.window',
-        parts: _windowOnSideWall(1.2, 2.6),
+        parts: _windowOnSideWall(1.2, 2.6, _classroomWall),
       ),
       SchoolObject(
         id: 'plant',
@@ -332,15 +374,14 @@ class SchoolLayouts {
     depth: 10,
     floorColor: const Color(0xFFD9B77E),
     floorLineColor: const Color(0xFFC9A46A),
-    wallColor: const Color(0xFFE8EEF3),
+    wallColor: _hallWall,
     wallHeight: 3.6,
     objects: [
       SchoolObject(
         id: 'door_classroom',
         nameKey: 'school_explorer.object.door_to_classroom',
-        spellKey: 'school_explorer.object.door',
         leadsTo: SchoolArea.classroom,
-        parts: _doorOnBackWall(0.5),
+        parts: _doorOnBackWall(0.5, _hallWall),
       ),
       SchoolObject(
         id: 'screen',
@@ -369,9 +410,8 @@ class SchoolLayouts {
       SchoolObject(
         id: 'door_canteen',
         nameKey: 'school_explorer.object.door_to_canteen',
-        spellKey: 'school_explorer.object.door',
         leadsTo: SchoolArea.canteen,
-        parts: _doorOnBackWall(10.2, colour: _green),
+        parts: _doorOnBackWall(10.2, _hallWall, colour: _green),
       ),
       SchoolObject(
         id: 'wall_bars',
@@ -383,7 +423,7 @@ class SchoolLayouts {
       SchoolObject(
         id: 'window',
         nameKey: 'school_explorer.object.window',
-        parts: _windowOnSideWall(4.6, 1.8),
+        parts: _windowOnSideWall(4.6, 1.8, _hallWall),
       ),
       SchoolObject(
         id: 'stacked_chairs',
@@ -396,9 +436,8 @@ class SchoolLayouts {
       SchoolObject(
         id: 'door_playground',
         nameKey: 'school_explorer.object.door_to_playground',
-        spellKey: 'school_explorer.object.door',
         leadsTo: SchoolArea.playground,
-        parts: _doorOnSideWall(8.2, colour: _orange),
+        parts: _doorOnSideWall(8.2, _hallWall, colour: _orange),
       ),
       SchoolObject(
         id: 'piano',
@@ -507,29 +546,21 @@ class SchoolLayouts {
         id: 'school_building',
         nameKey: 'school_explorer.object.school_building',
         parts: const [
-          IsoPart(
-            0,
-            -1.2,
-            0,
-            14,
-            1.2,
-            3.4,
-            Color(0xFFB5563E),
-            decal: IsoDecal.window,
-          ),
+          IsoPart(0, -1.2, 0, 14, 1.2, 3.4, _brick, decal: IsoDecal.window),
           IsoPart(0, -1.2, 3.4, 14, 1.2, 0.3, Color(0xFF5C5C5C)),
         ],
       ),
       SchoolObject(
         id: 'door_hall',
         nameKey: 'school_explorer.object.door_to_hall',
-        spellKey: 'school_explorer.object.door',
         leadsTo: SchoolArea.hall,
-        parts: const [
-          IsoPart(6.2, 0, 0, 1.6, 0.1, 2.5, _white),
-          IsoPart(6.3, 0, 0, 1.4, 0.16, 2.35, _orange),
-          IsoPart(6.95, 0.16, 1.0, 0.1, 0.05, 0.1, _yellow),
-        ],
+        parts: _doorOnBackWall(
+          6.3,
+          _brick,
+          colour: _orange,
+          width: 1.4,
+          height: 2.35,
+        ),
       ),
       SchoolObject(
         id: 'grass',
@@ -686,12 +717,12 @@ class SchoolLayouts {
     depth: 8,
     floorColor: const Color(0xFFE9E1D3),
     floorLineColor: const Color(0xFFD6CCBA),
-    wallColor: const Color(0xFFDDF0E4),
+    wallColor: _canteenWall,
     objects: [
       SchoolObject(
         id: 'window',
         nameKey: 'school_explorer.object.window',
-        parts: _windowOnSideWall(1.0, 1.6),
+        parts: _windowOnSideWall(1.0, 1.6, _canteenWall),
       ),
       SchoolObject(
         id: 'trays',
@@ -749,9 +780,8 @@ class SchoolLayouts {
       SchoolObject(
         id: 'door_hall',
         nameKey: 'school_explorer.object.door_to_hall',
-        spellKey: 'school_explorer.object.door',
         leadsTo: SchoolArea.hall,
-        parts: _doorOnBackWall(8.4, colour: _green),
+        parts: _doorOnBackWall(8.4, _canteenWall, colour: _green),
       ),
       SchoolObject(
         id: 'water_fountain',
@@ -854,3 +884,6 @@ class SchoolLayouts {
     ],
   );
 }
+
+/// Which side of a chair its backrest is on; the chair faces the other way.
+enum _ChairBack { lowY, highY }

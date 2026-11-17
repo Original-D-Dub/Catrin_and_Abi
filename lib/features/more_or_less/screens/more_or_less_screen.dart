@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,8 +12,13 @@ import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_header_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../shared/widgets/level_select_screen.dart';
+import '../../../shared/widgets/button.dart';
+import '../../../shared/widgets/game_level_map.dart';
+import '../../bubble_shooter/services/bubble_shooter_map_prefs.dart';
+import '../../bubble_shooter/widgets/map_dialogs.dart';
 import '../providers/more_or_less_provider.dart';
+import '../services/more_or_less_map_prefs.dart';
+import '../widgets/symbol_card.dart';
 
 class MoreOrLessScreen extends StatefulWidget {
   final String locale;
@@ -24,18 +30,61 @@ class MoreOrLessScreen extends StatefulWidget {
 }
 
 class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
+  /// Felt meadow green behind the level map, matching [GameLevelMap].
+  static const Color _meadowGreen = Color(0xFF65A94F);
+
   /// Level whose BSL signs include teen numbers (11-19), so it retriggers
   /// the Rive teen-number animations periodically as a hint.
-  static const int _hintLevelNumber = 4;
+  static const int _hintLevelNumber = 13;
   static const Duration _hintInterval = Duration(seconds: 3);
 
   bool _locked = false;
   final ValueNotifier<int> _hintCounter = ValueNotifier(0);
   Timer? _hintTimer;
 
+  final _mapPrefs = MoreOrLessMapPrefs();
+  MapCharacter _character = MapCharacter.abi;
+
+  /// Highest level finished, as on Bubble Shooter's map: levels up to it
+  /// show as done, the character stands on the next one and later levels
+  /// are locked.
+  int _highestCompleted = 0;
+
+  /// The level just finished, when it moved the player on to a new level —
+  /// the map then shows the character walking from it to the next one.
+  int? _movedFromLevel;
+
+  /// Chest levels whose chest this player has already opened.
+  Set<int> _openedChests = {};
+
   @override
   void initState() {
     super.initState();
+    _mapPrefs.character().then((c) {
+      if (mounted) setState(() => _character = c);
+    });
+    _mapPrefs.highestCompleted().then((level) {
+      if (!mounted) return;
+      setState(() => _highestCompleted = max(_highestCompleted, level));
+    });
+    _mapPrefs.openedChests().then((opened) {
+      if (!mounted) return;
+      setState(() => _openedChests = {..._openedChests, ...opened});
+    });
+    context.read<MoreOrLessProvider>().onLevelFinished = _onLevelFinished;
+  }
+
+  /// Finishing a level unlocks the next one. Finishing a level past the
+  /// furthest one so far sets up the walk to the next.
+  void _onLevelFinished(int level) {
+    _mapPrefs.recordCompleted(level);
+    if (!mounted) return;
+    setState(() {
+      if (level > _highestCompleted && level < molLevels.length) {
+        _movedFromLevel = level;
+      }
+      _highestCompleted = max(_highestCompleted, level);
+    });
   }
 
   @override
@@ -45,9 +94,10 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
     super.dispose();
   }
 
-  /// Keeps the periodic hint timer running only while playing level 4.
+  /// Keeps the periodic hint timer running only while playing level 13.
   void _syncHintTimer(MoreOrLessProvider provider) {
-    final shouldRun = !provider.showLevelSelect &&
+    final shouldRun =
+        !provider.showLevelSelect &&
         provider.levelNumber == _hintLevelNumber &&
         provider.state == MolGameState.playing;
     if (shouldRun) {
@@ -91,13 +141,17 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
                 )
               : null,
           body: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage(
-                    'assets/backgrounds/math-background-1080x1920.jpg'),
-                fit: BoxFit.cover,
-              ),
-            ),
+            // The level map paints its own felt meadow.
+            decoration: provider.showLevelSelect
+                ? const BoxDecoration(color: _meadowGreen)
+                : const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(
+                        'assets/backgrounds/felt-background.jpg',
+                      ),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
             child: Stack(
               children: [
                 SafeArea(
@@ -117,9 +171,11 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
                           provider.lastResult?.isNewPersonalBest ?? false,
                       personalBest: provider.lastResult?.personalBest,
                       onPlayAgain: () =>
-                          provider.startGame(provider.levelNumber - 1),
+                          _startLevel(provider, provider.levelNumber),
+                      // Back to the level map, where the character walks
+                      // on to the next level (see _onLevelFinished).
                       onNextLevel: provider.levelNumber < molLevels.length
-                          ? () => provider.startGame(provider.levelNumber)
+                          ? provider.showLevelSelection
                           : null,
                       onChangeLevel: () => provider.showLevelSelection(),
                     ),
@@ -133,28 +189,122 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
   }
 
   Widget _buildLevelSelect(
-      BuildContext context, MoreOrLessProvider provider, AppLocalizations localizer) {
-    return LevelSelectScreen(
-      subtitle: localizer('more_or_less.subtitle'),
-      locale: localizer.locale,
-      levels: [
-        for (var i = 0; i < molLevels.length; i++)
-          if (molLevels[i].number != 5)
-            LevelSelectItem(
-              number: molLevels[i].number,
-              name: localizer(molLevels[i].name),
-              color: levelColor(i),
-              onTap: () {
-                provider.startGame(i);
-                AudioService.playIntro('more_or_less');
-              },
+    BuildContext context,
+    MoreOrLessProvider provider,
+    AppLocalizations localizer,
+  ) {
+    final nextLevel = min(_highestCompleted + 1, molLevels.length);
+    String playLabel(int level) =>
+        localizer('more_or_less.play_level').replaceAll('{n}', '$level');
+    String levelLabel(int level) =>
+        '${playLabel(level)}: ${localizer(molLevels[level - 1].name)}';
+
+    // The map is split into three patches of meadow — "more than" (1–4),
+    // "less than" (5–8) and mixed (9–13) — each signposted between its
+    // second and third levels.
+    // The timed levels (4, 8 and 12) are treasure chests. Finishing one
+    // makes its chest ready; opening it wins that level's symbol card.
+    return Stack(
+      children: [
+        GameLevelMap(
+          levelCount: molLevels.length,
+          highestCompleted: _highestCompleted,
+          characterThumb: _character.thumbAsset,
+          characterLabel: _character.name,
+          isChestLevel: SymbolCard.isChestLevel,
+          chestState: _chestState,
+          onLevelSelected: (level) => _startLevel(provider, level),
+          onChestTapped: (level) => _onChestTapped(provider, level, localizer),
+          onCharacterTapped: () => _chooseCharacter(localizer),
+          levelLabel: levelLabel,
+          movedFromLevel: _movedFromLevel,
+          chestLabel: (level) =>
+              '${levelLabel(level)}, ${localizer('bubble_shooter.chest_title')}',
+          sections: [
+            MapSection(
+              firstLevel: 1,
+              lastLevel: 4,
+              grassColour: const Color(0xFF65A94F),
+              label: localizer('more_or_less.section.more_than'),
             ),
+            MapSection(
+              firstLevel: 5,
+              lastLevel: 8,
+              grassColour: const Color(0xFF3F8E6A),
+              groundPattern: MapGroundPattern.mownStripes,
+              label: localizer('more_or_less.section.less_than'),
+            ),
+            MapSection(
+              firstLevel: 9,
+              lastLevel: 13,
+              grassColour: const Color(0xFF9DB843),
+              groundPattern: MapGroundPattern.flowers,
+              label: localizer('more_or_less.section.mixed'),
+            ),
+          ],
+        ),
+        Positioned(
+          left: AppSizes.paddingMedium,
+          right: AppSizes.paddingMedium,
+          bottom: AppSizes.paddingMedium,
+          child: PrimaryButton(
+            label: playLabel(nextLevel),
+            icon: Icons.play_arrow,
+            expanded: true,
+            onPressed: () => _startLevel(provider, nextLevel),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildGame(BuildContext context, MoreOrLessProvider provider,
-      AppLocalizations localizer) {
+  ChestState _chestState(int level) {
+    if (_openedChests.contains(level)) return ChestState.opened;
+    return _highestCompleted >= level ? ChestState.ready : ChestState.locked;
+  }
+
+  void _startLevel(MoreOrLessProvider provider, int level) {
+    // The walk has been seen; don't replay it on the next visit to the map.
+    _movedFromLevel = null;
+    provider.startGame(level - 1);
+    AudioService.playIntro('more_or_less');
+  }
+
+  /// A chest level: once the level is finished and its chest not yet
+  /// opened, opens the chest and awards that level's symbol card;
+  /// otherwise plays the level, like any other level.
+  Future<void> _onChestTapped(
+    MoreOrLessProvider provider,
+    int level,
+    AppLocalizations localizer,
+  ) async {
+    final card = SymbolCard.forLevel(level);
+    if (card == null || _chestState(level) != ChestState.ready) {
+      _startLevel(provider, level);
+      return;
+    }
+    setState(() => _openedChests = {..._openedChests, level});
+    _mapPrefs.recordChestOpened(level);
+    AudioService.playCorrect('more_or_less');
+    await showSymbolCardWon(context, card: card, localizer: localizer);
+  }
+
+  Future<void> _chooseCharacter(AppLocalizations localizer) async {
+    final chosen = await showCharacterPicker(
+      context,
+      current: _character,
+      localizer: localizer,
+    );
+    if (chosen == null || !mounted) return;
+    setState(() => _character = chosen);
+    _mapPrefs.setCharacter(chosen);
+  }
+
+  Widget _buildGame(
+    BuildContext context,
+    MoreOrLessProvider provider,
+    AppLocalizations localizer,
+  ) {
     return OrientationBuilder(
       builder: (context, orientation) {
         final isLandscape = orientation == Orientation.landscape;
@@ -167,16 +317,22 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
               scoreValue: '${provider.score}',
               levelNumber: provider.levelNumber,
               centerContent: Center(
-                child: Text(
-                  '${localizer('more_or_less.round_label')} ${provider.roundNumber} '
-                  '${localizer('more_or_less.of_label')} ${MoreOrLessProvider.totalRounds}',
-                  style: const TextStyle(
-                    fontFamily: 'Quicksand',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
+                child: provider.currentLevel.isTimed
+                    ? GameTimerDisplay(
+                        formattedTime: GameTimerDisplay.format(
+                          Duration(seconds: provider.secondsLeft),
+                        ),
+                      )
+                    : Text(
+                        '${localizer('more_or_less.round_label')} ${provider.roundNumber} '
+                        '${localizer('more_or_less.of_label')} ${provider.totalRounds}',
+                        style: const TextStyle(
+                          fontFamily: 'Quicksand',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
 
@@ -185,7 +341,8 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingLarge),
+                  horizontal: AppSizes.paddingLarge,
+                ),
                 child: _styledContainer(
                   child: _buildQuestion(context, provider, localizer),
                 ),
@@ -195,8 +352,9 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
             SizedBox(height: isLandscape ? 8 : 16),
 
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: AppSizes.paddingLarge),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.paddingLarge,
+              ),
               child: isLandscape
                   ? Row(
                       children: [
@@ -241,8 +399,11 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
     );
   }
 
-  Widget _buildQuestion(BuildContext context, MoreOrLessProvider provider,
-      AppLocalizations localizer) {
+  Widget _buildQuestion(
+    BuildContext context,
+    MoreOrLessProvider provider,
+    AppLocalizations localizer,
+  ) {
     final scale = MediaQuery.of(context).size.width >= 600 ? 2.0 : 1.0;
     final symbolSize = 72.0 * scale;
     final questionWordKey = provider.isHigherQuestion
@@ -304,7 +465,6 @@ class _MoreOrLessScreenState extends State<MoreOrLessScreen> {
     );
   }
 }
-
 
 class _YesNoButton extends StatelessWidget {
   final String label;

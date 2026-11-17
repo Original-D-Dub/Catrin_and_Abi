@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:rive/rive.dart' hide Animation, PaintingStyle;
-import 'package:video_player/video_player.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
@@ -13,6 +12,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/game_app_bar.dart';
 import '../../../shared/widgets/game_success_overlay.dart';
 import '../../../shared/widgets/level_select_screen.dart';
+import '../../../shared/widgets/sign_question_video.dart';
 import '../models/clothes_line_models.dart';
 import '../providers/clothes_line_provider.dart';
 import '../widgets/clothing_svg_widget.dart';
@@ -351,7 +351,7 @@ class _ClothesLineViewState extends State<_ClothesLineView>
                                       child: Center(
                                         child: AspectRatio(
                                           aspectRatio: 4 / 3,
-                                          child: _ClothesLineVideo(
+                                          child: SignQuestionVideo(
                                             key: ValueKey(provider.currentIndex),
                                             videoAssetPath:
                                                 provider.currentItem.videoAssetPath,
@@ -747,112 +747,6 @@ class _ClothingItemWidget extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Looping video of the current question's clothing item
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ClothesLineVideo extends StatefulWidget {
-  final String? videoAssetPath;
-  final VoidCallback? onPlayedOnce;
-
-  const _ClothesLineVideo({
-    super.key,
-    required this.videoAssetPath,
-    this.onPlayedOnce,
-  });
-
-  @override
-  State<_ClothesLineVideo> createState() => _ClothesLineVideoState();
-}
-
-class _ClothesLineVideoState extends State<_ClothesLineVideo> {
-  VideoPlayerController? _controller;
-  bool _hasPlayedOnce = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _init();
-  }
-
-  @override
-  void dispose() {
-    _controller?.removeListener(_onVideoTick);
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  Future<void> _init() async {
-    final path = widget.videoAssetPath;
-    if (path == null) {
-      // No video for this item — nothing to wait for, so unlock immediately.
-      _hasPlayedOnce = true;
-      widget.onPlayedOnce?.call();
-      return;
-    }
-
-    final controller = VideoPlayerController.asset(path);
-    try {
-      await controller.initialize();
-      if (!mounted) {
-        controller.dispose();
-        return;
-      }
-      // Play once, unlooped, so completion can be detected — then switch
-      // to looping once the caller has been notified of the first playthrough.
-      controller.addListener(_onVideoTick);
-      await controller.play();
-      setState(() => _controller = controller);
-    } catch (_) {
-      controller.dispose();
-      // Playback failed — don't strand the player behind hidden buttons.
-      _hasPlayedOnce = true;
-      widget.onPlayedOnce?.call();
-    }
-  }
-
-  void _onVideoTick() {
-    if (_hasPlayedOnce) return;
-    final value = _controller?.value;
-    if (value == null || !value.isInitialized) return;
-    if (value.duration > Duration.zero && value.position >= value.duration) {
-      _hasPlayedOnce = true;
-      widget.onPlayedOnce?.call();
-      _controller?.setLooping(true);
-      _controller?.seekTo(Duration.zero);
-      _controller?.play();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = _controller;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.circular(AppSizes.borderRadiusLarge),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: controller != null && controller.value.isInitialized
-          ? FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: controller.value.size.width,
-                height: controller.value.size.height,
-                child: VideoPlayer(controller),
-              ),
-            )
-          : const Center(
-              child: Icon(Icons.videocam_off_outlined,
-                  color: Colors.white30, size: 32),
-            ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Vertical slider controlling the level 3 conveyor-belt scroll speed
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1055,6 +949,7 @@ class _BslColourRiveButton extends StatefulWidget {
 
 class _BslColourRiveButtonState extends State<_BslColourRiveButton> {
   late final FileLoader _fileLoader;
+  ViewModelInstanceTrigger? _vmTrigger;
   TriggerInput? _playTrigger;
   Timer? _timer;
 
@@ -1075,9 +970,15 @@ class _BslColourRiveButtonState extends State<_BslColourRiveButton> {
   }
 
   void _onLoaded(RiveLoaded state) {
-    // ignore: deprecated_member_use
-    _playTrigger = state.controller.stateMachine
-        .trigger('play_${widget.colourName}');
+    // Updated .riv files (e.g. green) expose the trigger via a view model;
+    // the rest still use the deprecated state machine input.
+    _vmTrigger =
+        state.viewModelInstance?.trigger('play_${widget.colourName}');
+    if (_vmTrigger == null) {
+      _playTrigger = state.controller.stateMachine
+          // ignore: deprecated_member_use
+          .trigger('play_${widget.colourName}');
+    }
     _triggerAnimation();
     _timer = Timer.periodic(
       const Duration(seconds: 6),
@@ -1086,16 +987,21 @@ class _BslColourRiveButtonState extends State<_BslColourRiveButton> {
   }
 
   void _triggerAnimation() {
-    _playTrigger?.fire();
+    if (_vmTrigger != null) {
+      _vmTrigger!.trigger();
+    } else {
+      _playTrigger?.fire();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return RiveWidgetBuilder(
       fileLoader: _fileLoader,
-      artboardSelector: ArtboardSelector.byDefault(),
+      artboardSelector: ArtboardSelector.byName(widget.colourName),
       stateMachineSelector: StateMachineSelector.byName(
           '${widget.colourName}_state_machine'),
+      dataBind: const AutoBind(),
       onLoaded: _onLoaded,
       builder: (context, state) => switch (state) {
         RiveLoading() => const SizedBox.shrink(),

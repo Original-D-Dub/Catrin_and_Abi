@@ -1,9 +1,10 @@
-import 'package:flame/flame.dart';
-import 'package:flame/game.dart';
-import 'package:flame_svg/flame_svg.dart';
+import 'dart:ui' as ui;
 
+import 'package:flame/cache.dart';
+import 'package:flame/game.dart';
+
+import '../../../core/constants/asset_paths.dart';
 import '../../../core/constants/game_filters.dart';
-import '../../../shared/services/sign_svg_styler.dart';
 import '../providers/letter_quest_provider.dart';
 
 /// Abstract base class shared by all Letter Quest levels.
@@ -25,9 +26,9 @@ abstract class BaseLetterQuestGame extends FlameGame
   /// Character scale — independent of map zoom.
   double get characterScale => isLargeScreen ? 1.0 : 1.0;
 
-  /// Pre-loaded sign-language alphabet SVGs keyed by lowercase letter
+  /// Pre-loaded sign-language alphabet images keyed by lowercase letter
   /// (or digraph for IAC, e.g. 'ch', 'dd').
-  final Map<String, Svg> signSvgs = {};
+  final Map<String, ui.Image> signImages = {};
 
   /// BSL single-letter keys (a–z).
   static const _bslKeys = [
@@ -42,32 +43,24 @@ abstract class BaseLetterQuestGame extends FlameGame
     'u','w','y',
   ];
 
-  /// Loads sign-language alphabet SVGs into [signSvgs].
+  /// Loads sign-language alphabet PNGs into [signImages].
   ///
-  /// Reads each SVG as a raw string, replaces CSS class selectors with
-  /// inline fill/stroke attributes (flutter_svg doesn't reliably resolve
-  /// CSS class rules), then creates the flame Svg from the modified string.
-  ///
-  /// Uses BSL (`bsl_alphabet_svg/`) or IAC (`wyddor_iac_svg/`) directory
-  /// based on [provider.signSystem].
-  Future<void> loadSignSvgs() async {
-    final isIac = provider.signSystem == SignSystem.iac;
-    final dir = isIac ? 'wyddor_iac_svg' : 'bsl_alphabet_svg';
-    final keys = isIac ? _iacKeys : _bslKeys;
-
-    // Read all SVG strings first (fast I/O), then compile in parallel
-    // to avoid blocking the UI thread with 26 sequential compilations.
-    final strings = <String, String>{};
-    for (final key in keys) {
-      var svgString = await Flame.assets.readFile('$dir/$key.svg');
-      strings[key] = SignSvgStyler.apply(svgString);
-    }
-    final entries = await Future.wait(
-      strings.entries.map((e) async =>
-          MapEntry(e.key, await Svg.loadFromString(e.value))),
-    );
+  /// BSL and IAC share one image folder (`bsl_alphabet_png/`); the sign
+  /// system only decides which letters are needed. A missing image is
+  /// skipped so one absent letter doesn't stop the level loading.
+  Future<void> loadSignImages() async {
+    final keys =
+        provider.signSystem == SignSystem.iac ? _iacKeys : _bslKeys;
+    final loader = Images(prefix: '');
+    final entries = await Future.wait(keys.map((key) async {
+      try {
+        return MapEntry(key, await loader.load(AssetPaths.signLetterPng(key)));
+      } catch (_) {
+        return null;
+      }
+    }));
     for (final entry in entries) {
-      signSvgs[entry.key] = entry.value;
+      if (entry != null) signImages[entry.key] = entry.value;
     }
   }
 }

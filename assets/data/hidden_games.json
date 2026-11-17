@@ -1,0 +1,16 @@
+{
+  "_comment": "Game tiles listed here are hidden from the home screens while the 'Hide selected games' toggle at the bottom of the Settings screen is switched on. IDs match each tile's gameId (the prefix of its titleKey, or the explicit gameId where one is set).",
+  "hidden_games": [
+    "bsl_number_builder",
+    "bsl_sprint",
+    "character_id",
+    "clothes_line",
+    "colouring",
+    "letter_quest",
+    "more_or_less",
+    "school_explorer",
+    "sudoku",
+    "word_whirl",
+    "zoo"
+  ]
+}

@@ -171,6 +171,9 @@ class AppColors {
   static const Color headerBackground = Color(0xFFDA16E1);
   static const Color headerBackgroundLight = Color(0xFFFB7DFF);
   static const Color headerBorderDark = Color(0xFF8F0693);
+  /// Bottom of the header's felt gradient (between [headerBackground] and
+  /// [headerBorderDark]), matching the darker lower edge of the buttons.
+  static const Color headerGradEnd = Color(0xFFB30EB9);
   static const Color timeContainer = Color(0xFF8F0693);
 
   
@@ -219,16 +222,23 @@ class AppColors {
   /// Button primary color
   static const Color buttonPrimary = abiPink;
 
-  /// Primary button background - green
-  static const Color buttonPrimaryGreen = Color(0xFF00B01D);
+  /// Button fills: vertical gradients running start (top) → middle (10% to
+  /// 90% of the height) → end (bottom).
+  static const Color buttonPrimaryGradStart = Color(0xFF00D423);
+  static const Color buttonPrimaryGrad1 = Color(0xFF00B01D);
+  static const Color buttonPrimaryGradEnd = Color(0xFF008C17);
 
-  /// Primary button gradient stroke (light → dark green)
-  static const Color buttonPrimaryStrokeStart = Color(0xFF12E557);
-  static const Color buttonPrimaryStrokeEnd = Color(0xFF0A7F30);
+  /// Secondary fill; its middle is [abiPink].
+  static const Color buttonSecondaryGradStart = Color(0xFFFF62A1);
+  static const Color buttonSecondaryGradEnd = Color(0xFFBD0745);
 
-  /// Secondary button gradient stroke (dark → light pink)
-  static const Color buttonSecondaryStrokeStart = Color(0xFFFF297E);
-  static const Color buttonSecondaryStrokeEnd = Color(0xFFC6004F);
+  static const Color buttonTertiaryGradStart = Color(0xFF5FBBE1);
+  static const Color buttonTertiaryGrad1 = Color(0xFF3979A7);
+  static const Color buttonTertiaryGradEnd = Color(0xFF185B8D);
+
+  /// Warning fill; its middle is [accentRed].
+  static const Color buttonWarningGradStart = Color(0xFFFF6B6B);
+  static const Color buttonWarningGradEnd = Color(0xFFB71C1C);
 
   /// Primary button label text stroke/drop-shadow colour
   static const Color buttonPrimaryTextStroke = Color(0xFF0D4720);
@@ -236,16 +246,8 @@ class AppColors {
   /// Secondary button label text stroke/drop-shadow colour
   static const Color buttonSecondaryTextStroke = Color(0xFF890137);
 
-  /// Tertiary button gradient stroke (light blue → Catrin blue)
-  static const Color buttonTertiaryStrokeStart = catrinBlue;
-  static const Color buttonTertiaryStrokeEnd = bslBlueOutline;
-
   /// Tertiary button label text stroke/drop-shadow colour
   static const Color buttonTertiaryTextStroke = Color(0xFF063A98);
-
-  /// Warning button gradient stroke (light → dark red)
-  static const Color buttonWarningStrokeStart = Color(0xFFFF6B6B);
-  static const Color buttonWarningStrokeEnd = Color(0xFFB71C1C);
 
   /// Warning button label text stroke/drop-shadow colour
   static const Color buttonWarningTextStroke = Color(0xFF7F0000);
@@ -285,6 +287,44 @@ class AppColors {
     static const Color bslSilverOutline = Color(0xFF555599);
     static const Color bslWhiteOutline = Color(0xFF453123);
     static const Color bslYellowOutline = Color(0xFF554a23);
+
+    /// Main fabric colour for a clothing colour name (white if unknown).
+    static Color bslFabricFor(String name) => switch (name) {
+          'red'    => bslRed,
+          'blue'   => bslBlue,
+          'green'  => bslGreen,
+          'yellow' => bslYellow,
+          'orange' => bslOrange,
+          'purple' => bslPurple,
+          'pink'   => bslPink,
+          'brown'  => bslBrown,
+          'black'  => bslBlack,
+          'white'  => bslWhite,
+          _        => bslWhite,
+        };
+
+    /// Outline colour paired with [bslFabricFor].
+    static Color bslOutlineFor(String name) => switch (name) {
+          'red'    => bslRedOutline,
+          'blue'   => bslBlueOutline,
+          'green'  => bslGreenOutline,
+          'yellow' => bslYellowOutline,
+          'orange' => bslOrangeOutline,
+          'purple' => bslPurpleOutline,
+          'pink'   => bslPinkOutline,
+          'brown'  => bslBrownOutline,
+          'black'  => bslBlackOutline,
+          'white'  => bslWhiteOutline,
+          _        => bslWhiteOutline,
+        };
+
+    /// `#rrggbb` hex string for inline SVG attributes.
+    static String toSvgHex(Color c) {
+      int ch(double v) => (v * 255.0).round().clamp(0, 255);
+      return '#${ch(c.r).toRadixString(16).padLeft(2, '0')}'
+          '${ch(c.g).toRadixString(16).padLeft(2, '0')}'
+          '${ch(c.b).toRadixString(16).padLeft(2, '0')}';
+    }
 
   // -------------------------
   // Alphabet/Number Sign SVG Colors

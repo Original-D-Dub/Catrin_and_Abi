@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/theme/digraph_letter_spacing.dart';
 
 /// A floating bubble widget with a letter inside.
 ///
@@ -70,27 +71,14 @@ class _BubbleWidgetState extends State<BubbleWidget>
 
     // Scale up then down for pop effect
     _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.3),
-        weight: 40,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.3, end: 0.0),
-        weight: 60,
-      ),
-    ]).animate(CurvedAnimation(
-      parent: _popController,
-      curve: Curves.easeOut,
-    ));
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.3), weight: 40),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.3, end: 0.0), weight: 60),
+    ]).animate(CurvedAnimation(parent: _popController, curve: Curves.easeOut));
 
     // Fade out during pop
-    _opacityAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _popController,
-      curve: const Interval(0.5, 1.0),
-    ));
+    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _popController, curve: const Interval(0.5, 1.0)),
+    );
   }
 
   @override
@@ -162,19 +150,23 @@ class _BubbleWidgetState extends State<BubbleWidget>
                 child: Center(
                   child: Text(
                     widget.letter.toLowerCase(),
-                    style: TextStyle(
-                      fontFamily: 'ComicRelief',
-                      fontSize:
-                          widget.size * (widget.letter.length > 1 ? 0.35 : 0.5),
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          offset: const Offset(1, 1),
-                          blurRadius: 2,
-                        ),
-                      ],
+                    style: digraphAwareStyle(
+                      widget.letter.toLowerCase(),
+                      TextStyle(
+                        fontFamily: 'OpenDyslexic',
+                        fontSize:
+                            widget.size *
+                            (widget.letter.length > 1 ? 0.35 : 0.5),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            offset: const Offset(1, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

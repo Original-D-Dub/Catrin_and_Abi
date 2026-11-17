@@ -34,9 +34,9 @@
   <rect x="275" y="1440" width="1520" height="350" rx="34" fill="url(#drawerBody)"/>
   <rect x="300" y="1478" width="1470" height="24" fill="#15181a"/>
   <rect x="355" y="1515" width="1360" height="220" rx="18" fill="url(#drawerFront)" stroke="#16191b" stroke-width="6"/>
-  <circle cx="1035" cy="1644" r="50" fill="url(#lock)" stroke="#55595d" stroke-width="4"/>
-  <circle cx="1035" cy="1634" r="11" fill="#2a2d30"/>
-  <rect x="1030" y="1638" width="10" height="28" rx="4" fill="#2a2d30"/>
+  <circle cx="1035" cy="1619" r="50" fill="url(#lock)" stroke="#55595d" stroke-width="4"/>
+  <circle cx="1035" cy="1609" r="11" fill="#2a2d30"/>
+  <rect x="1030" y="1613" width="10" height="28" rx="4" fill="#2a2d30"/>
 
   <!-- front lip + top deck -->
   <path d="M 300,1390 L 1770,1390 L 1770,1455 Q 1770,1484 1740,1484 L 330,1484 Q 300,1484 300,1455 Z" fill="url(#lip)"/>

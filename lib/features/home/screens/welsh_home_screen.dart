@@ -11,6 +11,8 @@ import '../../../shared/services/settings_provider.dart';
 import '../../../shared/widgets/learn_sign_system_tile.dart';
 import '../../../shared/widgets/sign_system_toggle.dart';
 import '../models/home_game_entry.dart';
+import '../widgets/profile_dot.dart';
+import '../../profile/providers/profile_provider.dart';
 
 /// Welsh-language home screen showing Welsh games.
 class WelshHomeScreen extends StatelessWidget {
@@ -49,10 +51,21 @@ class WelshHomeScreen extends StatelessWidget {
               tooltip: auth.isAnonymous
                   ? localizer('profile.save_scores_heading')
                   : localizer('profile.title'),
-              icon: Icon(
-                auth.isAnonymous ? Icons.person_outline : Icons.person,
-                color: Colors.white,
-                size: 28,
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    auth.isAnonymous ? Icons.person_outline : Icons.person,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  if (context.watch<ProfileProvider>().hasUnseenBadges)
+                    const Positioned(
+                      top: -1,
+                      right: -1,
+                      child: ProfileDot(),
+                    ),
+                ],
               ),
               onPressed: () => Navigator.pushNamed(
                 context,
@@ -92,7 +105,7 @@ class WelshHomeScreen extends StatelessWidget {
                           ? 'assets/images/home_screen/llafariaid-iac.jpg'
                           : 'assets/images/home_screen/llafariaid-bsl.jpg',
                       category: GameCategory.alphabet,
-                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5, AgeGroup.years5plus},
                       arguments: 'cy',
                     ),
                     homeGameEntry(
@@ -100,7 +113,7 @@ class WelshHomeScreen extends StatelessWidget {
                       titleKey: 'card_matching.title',
                       imagePath: 'assets/images/home_screen/paru-cardiau.jpg',
                       category: GameCategory.alphabet,
-                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
+                      ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5, AgeGroup.years5plus},
                       arguments: 'cy',
                     ),
                     homeGameEntry(
@@ -129,7 +142,7 @@ class WelshHomeScreen extends StatelessWidget {
                     ),
                     homeGameEntry(
                       route: AppRoutes.countingGame,
-                      titleKey: 'counting.title',
+                      titleKey: 'counting_game.title',
                       imagePath: 'assets/images/home_screen/counting-game.jpg',
                       category: GameCategory.numeracy,
                       ageGroups: const {AgeGroup.years1to3, AgeGroup.years3to5},
@@ -191,6 +204,18 @@ class WelshHomeScreen extends StatelessWidget {
                       icon: Icons.point_of_sale,
                       category: GameCategory.numeracy,
                       ageGroups: const {AgeGroup.years3to5, AgeGroup.years5plus},
+                      arguments: 'cy',
+                    ),
+                    homeGameEntry(
+                      route: AppRoutes.bubbleShooter,
+                      titleKey: 'bubble_shooter.title',
+                      imagePath: 'assets/images/home_screen/bubble-shoot.jpg',
+                      category: GameCategory.vocabulary,
+                      ageGroups: const {
+                        AgeGroup.years1to3,
+                        AgeGroup.years3to5,
+                        AgeGroup.years5plus,
+                      },
                       arguments: 'cy',
                     ),
                     homeGameEntry(

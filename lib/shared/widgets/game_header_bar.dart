@@ -3,6 +3,7 @@ import '../../core/localization/app_localizations.dart';
 import '../../core/constants/app_colors.dart';
 import '../services/audio_service.dart';
 import 'back_arrow_icon.dart';
+import 'button.dart';
 
 /// In-game header bar: back arrow (inside rectangle, far left), score circle
 /// (overlapping the rectangle just after the arrow), optional centre content,
@@ -46,6 +47,10 @@ class GameHeaderBar extends StatelessWidget {
   /// When false the level column on the right is hidden.
   final bool showLevel;
 
+  /// Shown under [scoreLabel] in place of the [scoreValue] text, e.g. an
+  /// animated counter. Scaled down if too wide for the score box.
+  final Widget? scoreChild;
+
   const GameHeaderBar({
     super.key,
     required this.onBack,
@@ -57,9 +62,13 @@ class GameHeaderBar extends StatelessWidget {
     this.centerContent,
     this.showScore = true,
     this.showLevel = true,
+    this.scoreChild,
   });
 
-  // Width reserved for the back arrow inside the rectangle row.
+  // Back arrow icon size, and the width reserved for it inside the rectangle
+  // row (icon plus 11px either side). Both double on devices wider than
+  // 600px.
+  static const double _arrowIconSize = 26;
   static const double _arrowWidth = 48;
   // Width reserved in the row for the score box at its minimum width.
   static const double _scoreRowReservation = 52;
@@ -70,6 +79,27 @@ class GameHeaderBar extends StatelessWidget {
   static const double _scoreBoxRadius = _scoreBoxSize / 2;
   // Horizontal breathing room around the score text inside the box.
   static const double _scoreTextPadding = 14;
+  // Corner radius of the header rectangle.
+  static const double _barRadius = 18;
+
+  /// Felt gradient shared by the bar and the score box: the header colour
+  /// with a lighter top edge and darker bottom edge, like the buttons.
+  static const _fill = ButtonFill(
+    AppColors.headerBackgroundLight,
+    AppColors.headerBackground,
+    AppColors.headerGradEnd,
+  );
+
+  /// Felt backdrop (gradient, fuzz texture, button stitching) for the bar
+  /// and the score box, with [child] on top.
+  static Widget _felt({required double radius, required Widget child}) {
+    return FeltPanel(
+      gradient: _fill.gradient,
+      stitchColour: AppColors.headerBorderDark,
+      radius: radius,
+      child: child,
+    );
+  }
 
   /// Width of the score box: [_scoreBoxSize] unless the label or value text
   /// is too wide to fit, in which case it grows to fit.
@@ -97,7 +127,7 @@ class GameHeaderBar extends StatelessWidget {
       measure(label, scoreLabelFontSize),
       measure(scoreValue, scoreValueFontSize),
     ].reduce((a, b) => a > b ? a : b);
-    // Outer padding (2) + inner border (2) on each side, plus text padding.
+    // Room for the stitching (8px inset) on each side, plus text padding.
     final needed = textWidth + 2 * (4 + _scoreTextPadding);
     return needed > _scoreBoxSize ? needed : _scoreBoxSize;
   }
@@ -105,10 +135,15 @@ class GameHeaderBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localizer = AppLocalizations.of(context);
-    final scoreLabelText =
-        scoreLabel.isEmpty ? localizer('general.score') : scoreLabel;
-    final scoreBoxWidth =
-        showScore ? _scoreBoxWidth(context, scoreLabelText) : _scoreBoxSize;
+    final scoreLabelText = scoreLabel.isEmpty
+        ? localizer('general.score')
+        : scoreLabel;
+    final scoreBoxWidth = showScore
+        ? _scoreBoxWidth(context, scoreLabelText)
+        : _scoreBoxSize;
+    final arrowScale = MediaQuery.sizeOf(context).width > 600 ? 2.0 : 1.0;
+    final arrowIconSize = _arrowIconSize * arrowScale;
+    final arrowWidth = _arrowWidth + _arrowIconSize * (arrowScale - 1);
     return Padding(
       padding: const EdgeInsets.only(left: 16, right: 16),
       child: SizedBox(
@@ -122,86 +157,74 @@ class GameHeaderBar extends StatelessWidget {
               right: 0,
               top: 8,
               bottom: 8,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: AppColors.headerBackgroundLight,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: AppColors.headerBorderDark,
-                    width: 2,
-                  ),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.headerBackground,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.headerBorderDark,
-                      width: 2,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      // Back arrow
-                      GestureDetector(
-                        onTap: () {
-                          AudioService.stopAll();
-                          onBack();
-                        },
-                        child: const SizedBox(
-                          width: _arrowWidth,
-                          child: Center(
-                            child: BackArrowIcon(size: 26),
-                          ),
+              child: _felt(
+                radius: _barRadius,
+                child: Row(
+                  children: [
+                    // Back arrow
+                    GestureDetector(
+                      onTap: () {
+                        AudioService.stopAll();
+                        onBack();
+                      },
+                      child: SizedBox(
+                        width: arrowWidth,
+                        child: Center(
+                          child: BackArrowIcon(size: arrowIconSize),
                         ),
                       ),
+                    ),
 
-                      // Spacer for the score box that overlaps this area;
-                      // grows with the box so wide scores don't cover the
-                      // centre content.
-                      if (showScore)
-                        SizedBox(
-                          width: _scoreRowReservation +
-                              (scoreBoxWidth - _scoreBoxSize),
-                        ),
+                    // Spacer for the score box that overlaps this area;
+                    // grows with the box so wide scores don't cover the
+                    // centre content.
+                    if (showScore)
+                      SizedBox(
+                        width:
+                            _scoreRowReservation +
+                            (scoreBoxWidth - _scoreBoxSize),
+                      ),
 
-                      // Centre content
-                      if (centerContent != null)
-                        Expanded(child: centerContent!)
-                      else
-                        const Spacer(),
+                    // Centre content
+                    if (centerContent != null)
+                      Expanded(child: centerContent!)
+                    else
+                      const Spacer(),
 
-                      // Level number (right)
-                      if (showLevel)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 16),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                localizer('level_select.level_prefix'),
-                                style: TextStyle(
-                                  fontFamily: 'Quicksand',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
+                    // Level number (right)
+                    if (showLevel)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        // Label and number as one tight block (line height
+                        // 1.0, 4px gap) centred vertically in the bar.
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              localizer('level_select.level_prefix'),
+                              style: TextStyle(
+                                fontFamily: 'Quicksand',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                height: 1.0,
                               ),
-                              Text(
-                                '$levelNumber',
-                                style: const TextStyle(
-                                  fontFamily: 'Quicksand',
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$levelNumber',
+                              style: const TextStyle(
+                                fontFamily: 'Quicksand',
+                                fontSize: 28,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                height: 1.0,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -210,60 +233,55 @@ class GameHeaderBar extends StatelessWidget {
             // overlapping the rectangle vertically (104 px box vs 72 px bar
             // inner height). Widens to fit long scores.
             if (showScore)
-            Positioned(
-              left: _arrowWidth - 4,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Container(
-                  width: scoreBoxWidth,
-                  height: _scoreBoxSize,
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(_scoreBoxRadius),
-                    color: AppColors.headerBackgroundLight,
-                    border: Border.all(
-                      color: AppColors.headerBorderDark,
-                      width: 2,
-                    ),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(_scoreBoxRadius - 2),
-                      color: AppColors.headerBackground,
-                      border: Border.all(
-                        color: AppColors.headerBorderDark,
-                        width: 2,
+              Positioned(
+                left: arrowWidth - 4,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: SizedBox(
+                    width: scoreBoxWidth,
+                    height: _scoreBoxSize,
+                    child: _felt(
+                      radius: _scoreBoxRadius,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            scoreLabelText,
+                            style: TextStyle(
+                              fontFamily: 'Quicksand',
+                              fontSize: scoreLabelFontSize,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (scoreChild != null)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: scoreChild,
+                              ),
+                            )
+                          else
+                            Text(
+                              scoreValue,
+                              style: TextStyle(
+                                fontFamily: 'Quicksand',
+                                fontSize: scoreValueFontSize,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                height: 1.0,
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          scoreLabelText,
-                          style: TextStyle(
-                            fontFamily: 'Quicksand',
-                            fontSize: scoreLabelFontSize,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          scoreValue,
-                          style: TextStyle(
-                            fontFamily: 'Quicksand',
-                            fontSize: scoreValueFontSize,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            height: 1.0,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

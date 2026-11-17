@@ -68,17 +68,22 @@ class GameLevel {
     pairColors: AppColors.letterPairColors,
   );
 
-  /// Level 6: Full Alphabet — 10 letters drawn at random each game.
-  static GameLevel bslLevel6() {
+  /// Level 6: Full Alphabet — [count] letters (10 by default) drawn at
+  /// random each game, as level [levelNumber] named [name].
+  static GameLevel bslLevel6({
+    int count = 10,
+    int levelNumber = 6,
+    String name = 'card_matching.bsl.level6.name',
+  }) {
     const fullAlphabet = [
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
       'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
     ];
     final letters = [...fullAlphabet]..shuffle(Random());
     return GameLevel(
-      levelNumber: 6,
-      name: 'card_matching.bsl.level6.name',
-      letters: letters.take(10).toList(),
+      levelNumber: levelNumber,
+      name: name,
+      letters: letters.take(count).toList(),
       pairColors: AppColors.letterPairColors,
     );
   }
@@ -142,8 +147,13 @@ class GameLevel {
     },
   );
 
-  /// Level 6: Full Welsh alphabet — 10 random letters each game.
-  static GameLevel iacLevel6() {
+  /// Level 6: Full Welsh alphabet — [count] random letters (10 by default)
+  /// each game, as level [levelNumber] named [name].
+  static GameLevel iacLevel6({
+    int count = 10,
+    int levelNumber = 6,
+    String name = 'card_matching.iac.level6.name',
+  }) {
     const fullWelsh = [
       'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g',
       'h', 'i', 'j', 'l', 'll', 'm', 'n', 'ng', 'o', 'p',
@@ -155,10 +165,10 @@ class GameLevel {
       ...AppColors.letterPairColors,
     };
     final letters = [...fullWelsh]..shuffle(Random());
-    final chosen = letters.take(10).toList();
+    final chosen = letters.take(count).toList();
     return GameLevel(
-      levelNumber: 6,
-      name: 'card_matching.iac.level6.name',
+      levelNumber: levelNumber,
+      name: name,
       letters: chosen,
       pairColors: {for (final l in chosen) l: allColors[l] ?? Colors.grey},
     );
@@ -170,4 +180,111 @@ class GameLevel {
   /// Returns the level list for the given sign system.
   static List<GameLevel> forSignSystem(SignSystem signSystem) =>
       signSystem == SignSystem.iac ? iacLevels : bslLevels;
+
+  // ─────────────────────────────────────────
+  // Two-player tablet levels
+  // ─────────────────────────────────────────
+  //
+  // A tablet has room for bigger boards, so two players sharing one get
+  // larger later levels, ending with a random full-alphabet level (BSL also
+  // drops its vowels level). Numbered 1–5 on their own.
+
+  /// Two-player tablet levels for the given sign system.
+  static List<GameLevel> twoPlayerTabletForSignSystem(SignSystem signSystem) =>
+      signSystem == SignSystem.iac
+          ? _iacTwoPlayerTabletLevels()
+          : _bslTwoPlayerTabletLevels();
+
+  static List<GameLevel> _bslTwoPlayerTabletLevels() => [
+        const GameLevel(
+          levelNumber: 1,
+          name: 'card_matching_2player.bsl.level1.name',
+          letters: GameConstants.level2Letters,
+          pairColors: AppColors.letterPairColors,
+        ),
+        const GameLevel(
+          levelNumber: 2,
+          name: 'card_matching_2player.bsl.level2.name',
+          letters: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
+          pairColors: AppColors.letterPairColors,
+        ),
+        const GameLevel(
+          levelNumber: 3,
+          name: 'card_matching_2player.bsl.level3.name',
+          letters: [
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+            'i', 'j', 'k', 'l', 'm', 'n', 'o',
+          ],
+          pairColors: AppColors.letterPairColors,
+        ),
+        const GameLevel(
+          levelNumber: 4,
+          name: 'card_matching_2player.bsl.level4.name',
+          letters: [
+            'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+            'o', 'p', 'q', 'r', 's', 't', 'u',
+          ],
+          pairColors: AppColors.letterPairColors,
+        ),
+        bslLevel6(
+          count: 16,
+          levelNumber: 5,
+          name: 'card_matching_2player.bsl.level5.name',
+        ),
+      ];
+
+  static List<GameLevel> _iacTwoPlayerTabletLevels() => [
+        const GameLevel(
+          levelNumber: 1,
+          name: 'card_matching_2player.iac.level1.name',
+          letters: [
+            'a', 'b', 'c', 'ch', 'd', 'dd', 'e',
+          ],
+          pairColors: {
+            ...AppColors.letterPairColors,
+            ...AppColors.welshDigraphPairColors,
+          },
+        ),
+        const GameLevel(
+          levelNumber: 2,
+          name: 'card_matching_2player.iac.level2.name',
+          letters: [
+            'a', 'b', 'c', 'ch', 'd', 'dd', 'e',
+            'f', 'ff', 'g', 'ng', 'h', 'i',
+          ],
+          pairColors: {
+            ...AppColors.letterPairColors,
+            ...AppColors.welshDigraphPairColors,
+          },
+        ),
+        const GameLevel(
+          levelNumber: 3,
+          name: 'card_matching_2player.iac.level3.name',
+          letters: [
+            'a', 'b', 'c', 'ch', 'd', 'dd', 'e', 'f', 'ff', 'g',
+            'ng', 'h', 'i', 'j', 'l', 'll', 'm', 'n', 'o',
+          ],
+          pairColors: {
+            ...AppColors.letterPairColors,
+            ...AppColors.welshDigraphPairColors,
+          },
+        ),
+        const GameLevel(
+          levelNumber: 4,
+          name: 'card_matching_2player.iac.level4.name',
+          letters: [
+            'g', 'ng', 'h', 'i', 'j', 'l', 'll', 'm', 'n',
+            'o', 'p', 'ph', 'r', 'rh', 's', 't', 'th', 'u',
+          ],
+          pairColors: {
+            ...AppColors.letterPairColors,
+            ...AppColors.welshDigraphPairColors,
+          },
+        ),
+        iacLevel6(
+          count: 16,
+          levelNumber: 5,
+          name: 'card_matching_2player.iac.level5.name',
+        ),
+      ];
 }

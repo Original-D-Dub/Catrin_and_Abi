@@ -36,7 +36,7 @@ class WordWhirlScreen extends StatelessWidget {
                 ? const BoxDecoration(
                     image: DecorationImage(
                       image: AssetImage(
-                          'assets/backgrounds/math-background-1080x1920.jpg'),
+                          'assets/backgrounds/felt-background.jpg'),
                       fit: BoxFit.cover,
                     ),
                   )
@@ -342,7 +342,7 @@ class _AttemptStrip extends StatelessWidget {
             : Text(
                 letters.join(' '),
                 style: TextStyle(
-                  fontFamily: 'ComicRelief',
+                  fontFamily: 'OpenDyslexic',
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: provider.flashWrong
@@ -578,7 +578,7 @@ class _LetterTile extends StatelessWidget {
             child: Text(
               letter,
               style: TextStyle(
-                fontFamily: 'ComicRelief',
+                fontFamily: 'OpenDyslexic',
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: textColor,

@@ -414,9 +414,6 @@ class OutdoorMapGenerator {
     for (int i = 0; i < lakeBridgeCount; i++) {
       final angle = (2 * pi * i) / lakeBridgeCount +
           (rng.nextDouble() - 0.5) * 0.3;
-      final x = lakeCx + cos(angle) * (_lakeRadiusX * 0.9);
-      final y = lakeCy + sin(angle) * (_lakeRadiusY * 0.9);
-
       // Determine orientation based on angle (perpendicular to lake edge)
       final isHorizontal = (cos(angle).abs() < sin(angle).abs());
 

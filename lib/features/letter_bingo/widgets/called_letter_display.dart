@@ -5,7 +5,8 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/game_filters.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/services/audio_service.dart';
-
+import '../../../shared/widgets/button.dart';
+import '../../../core/theme/digraph_letter_spacing.dart';
 
 /// Displays the currently called letter at the bottom of the screen.
 ///
@@ -24,6 +25,11 @@ import '../../../shared/services/audio_service.dart';
 ///   display is hidden and its audio held until this future completes
 ///   (e.g. after the intro instructions finish), then the display fades
 ///   in and the letter is spoken.
+/// - [onNext]: When provided, the display fills the height it's given:
+///   the letter (and [belowLetter]) centred in the space, with a tertiary
+///   "Next" button pinned to the bottom edge — so it lines up with the
+///   bottom of whatever sits beside it. Tapping it calls the next letter.
+///   The button fades in with the letter, after the intro.
 /// - [secondCallGateFuture]: When provided, the *second* called letter's
 ///   sound is held until this future completes (e.g. letter_bingo's
 ///   tap_second instruction bubble finishing its spoken clip). Letters
@@ -44,6 +50,14 @@ class CalledLetterDisplay extends StatefulWidget {
   /// UI locale ('en' or 'cy') used for the "Find the letter" label.
   final String locale;
 
+  /// When set, a tertiary Next button below the "Find the letter" label
+  /// calls this to move on to another letter.
+  final VoidCallback? onNext;
+
+  /// With [onNext]: shown under the "Find the letter" label (e.g. the
+  /// wrong-tap feedback), above the Next button.
+  final Widget? belowLetter;
+
   const CalledLetterDisplay({
     super.key,
     required this.letter,
@@ -51,6 +65,8 @@ class CalledLetterDisplay extends StatefulWidget {
     this.introFuture,
     this.secondCallGateFuture,
     this.locale = 'en',
+    this.onNext,
+    this.belowLetter,
   });
 
   @override
@@ -89,7 +105,10 @@ class _CalledLetterDisplayState extends State<CalledLetterDisplay> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.letter != widget.letter) {
       if (_calledCount == 1 && widget.secondCallGateFuture != null) {
-        _waitForSecondGateThenSpeak(widget.letter, widget.secondCallGateFuture!);
+        _waitForSecondGateThenSpeak(
+          widget.letter,
+          widget.secondCallGateFuture!,
+        );
       } else {
         _speakLetter(widget.letter);
       }
@@ -102,7 +121,9 @@ class _CalledLetterDisplayState extends State<CalledLetterDisplay> {
   /// if it's still the current letter (guards against a rapid further
   /// change while waiting).
   Future<void> _waitForSecondGateThenSpeak(
-      String letter, Future<void> gate) async {
+    String letter,
+    Future<void> gate,
+  ) async {
     await gate;
     if (!mounted) return;
     if (widget.letter == letter) _speakLetter(letter);
@@ -114,73 +135,119 @@ class _CalledLetterDisplayState extends State<CalledLetterDisplay> {
 
   @override
   Widget build(BuildContext context) {
-    final isWideDevice = MediaQuery.of(context).size.width > 600;
+    // Shortest side, not width: in landscape every phone is wider than 600.
+    final isWideDevice = MediaQuery.sizeOf(context).shortestSide > 600;
     final letterScale = isWideDevice ? 1.5 : 1.0;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSizes.spacingMedium),
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) => FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(scale: animation, child: child),
-        ),
-        child: _introComplete
-            ? Column(
-                key: ValueKey(widget.letter),
-                mainAxisSize: MainAxisSize.min,
-                children: [
-            // Letter in white bordered box (mirrors BSL sign box in Bubble Pop)
-            Container(
-              width: 120 * letterScale,
-              height: 100 * letterScale,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.headerBorderDark,
-                  width: 4,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  widget.letter.toLowerCase(),
-                  style: TextStyle(
-                    fontFamily: 'ComicRelief',
-                    fontWeight: FontWeight.w900,
-                    fontSize: (widget.letter.length > 1
-                            ? AppSizes.fontSizeTitle * 0.7
-                            : AppSizes.fontSizeTitle) *
-                        letterScale,
-                    color: AppColors.accentNavyBlue,
+    final letterBlock = AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(scale: animation, child: child),
+      ),
+      child: _introComplete
+          ? Column(
+              key: ValueKey(widget.letter),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Letter in white bordered box (mirrors BSL sign box in Bubble Pop)
+                Container(
+                  width: 120 * letterScale,
+                  height: 100 * letterScale,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.headerBorderDark,
+                      width: 4,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      widget.letter.toLowerCase(),
+                      style: digraphAwareStyle(
+                        widget.letter.toLowerCase(),
+                        TextStyle(
+                          fontFamily: 'OpenDyslexic',
+                          fontWeight: FontWeight.w900,
+                          fontSize:
+                              (widget.letter.length > 1
+                                  ? AppSizes.fontSizeTitle * 0.7
+                                  : AppSizes.fontSizeTitle) *
+                              letterScale,
+                          color: AppColors.accentNavyBlue,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
 
-            const SizedBox(height: 4),
+                const SizedBox(height: 4),
 
-            // "Find the letter" purple pill label
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.accentPurple,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                AppLocalizations(locale: widget.locale)('letter_bingo.find_letter'),
-                style: const TextStyle(
-                  fontFamily: 'Quicksand',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                // "Find the letter" purple pill label
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentPurple,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    AppLocalizations(locale: widget.locale)(
+                      'letter_bingo.find_letter',
+                    ),
+                    style: const TextStyle(
+                      fontFamily: 'Quicksand',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
+              ],
+            )
+          : const SizedBox.shrink(key: ValueKey('intro-waiting')),
+    );
+
+    if (widget.onNext == null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: AppSizes.spacingMedium),
+        child: letterBlock,
+      );
+    }
+
+    // Fills the given height: letter centred (shrinking rather than
+    // overflowing on short phones), Next pinned to the bottom edge.
+    return Column(
+      children: [
+        Expanded(
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [letterBlock, ?widget.belowLetter],
               ),
             ),
-          ],
-        )
-            : const SizedBox.shrink(key: ValueKey('intro-waiting')),
-      ),
+          ),
+        ),
+        const SizedBox(height: AppSizes.spacingSmall),
+        // Next: skip to another letter (e.g. one not on the board). Space is
+        // reserved during the intro so nothing shifts when it fades in.
+        IgnorePointer(
+          ignoring: !_introComplete,
+          child: AnimatedOpacity(
+            opacity: _introComplete ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: TertiaryButton(
+              label: AppLocalizations(locale: widget.locale)('general.next'),
+              onPressed: widget.onNext,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

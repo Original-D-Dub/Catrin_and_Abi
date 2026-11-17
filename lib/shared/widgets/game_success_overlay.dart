@@ -15,6 +15,7 @@ import '../services/auth_provider.dart';
 import 'back_arrow_icon.dart';
 import 'button.dart';
 import 'falling_confetti_layer.dart';
+import 'paper_texture_overlay.dart';
 import 'sign_in_banner_button.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,7 +30,7 @@ enum SuccessScoreStyle {
   /// "You matched {{score}}" – used by card_matching
   youMatched,
 
-  /// "You got 10 correct" – used by bsl_maths L1-4, character_id
+  /// "You got 10 correct" – used by bsl_maths L1-4
   got10Correct,
 
   /// Custom string passed directly via [customScoreLine]
@@ -391,8 +392,9 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay>
   /// [_headingText] uses for "Well Done!") speaks `'congratulations'`; a low
   /// score (which shows "Play Again" instead) speaks `'well_done'`.
   String _successAudioName() {
-    if (widget.successAudioNameOverride != null)
+    if (widget.successAudioNameOverride != null) {
       return widget.successAudioNameOverride!;
+    }
     if (_celebratePersonalBest) return 'personal_best';
     if (widget.score != null && widget.score! < 3) return 'well_done';
     return 'congratulations';
@@ -467,22 +469,24 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay>
             Text(
               text,
               textAlign: TextAlign.center,
-              style: AppTheme.celebrationAt(AppSizes.fontSizeLarge * 1.5).copyWith(
-                fontWeight: FontWeight.bold,
-                foreground: Paint()
-                  ..style = PaintingStyle.stroke
-                  ..strokeWidth = 6
-                  ..color = _orange,
-                shadows: const [Shadow(color: _darkBlue, offset: Offset(5, 7))],
-              ),
+              style: AppTheme.celebrationAt(AppSizes.fontSizeLarge * 1.5)
+                  .copyWith(
+                    fontWeight: FontWeight.bold,
+                    foreground: Paint()
+                      ..style = PaintingStyle.stroke
+                      ..strokeWidth = 6
+                      ..color = _orange,
+                    shadows: const [
+                      Shadow(color: _darkBlue, offset: Offset(5, 7)),
+                    ],
+                  ),
             ),
             Text(
               text,
               textAlign: TextAlign.center,
-              style: AppTheme.celebrationAt(AppSizes.fontSizeLarge * 1.3).copyWith(
-                fontWeight: FontWeight.bold,
-                color: _gold,
-              ),
+              style: AppTheme.celebrationAt(
+                AppSizes.fontSizeLarge * 1.5,
+              ).copyWith(fontWeight: FontWeight.bold, color: _gold),
             ),
           ],
         ),
@@ -546,315 +550,333 @@ class _GameSuccessOverlayState extends State<GameSuccessOverlay>
                 ],
               ),
             ),
-      child: SafeArea(
-        child: Stack(
-          children: [
-            const FallingConfettiLayer(),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          const Positioned.fill(child: PaperTextureOverlay()),
+          SafeArea(
+            child: Stack(
               children: [
-                // ── Heading row: back arrow | "Well Done!" | balance spacer ──
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSizes.paddingLarge),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: widget.onChangeLevel,
-                        child: const SizedBox(
-                          width: 72,
-                          height: 72,
-                          child: Center(child: BackArrowIcon(size: 48)),
-                        ),
+                const FallingConfettiLayer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // ── Heading row: back arrow | "Well Done!" | balance spacer ──
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: AppSizes.paddingLarge,
                       ),
-                      Expanded(
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Dark-blue 2 px stroke + solid drop shadow
-                            // (2 px right, 4 px down) behind the white fill.
-                            Text(
-                              headingText,
-                              textAlign: TextAlign.center,
-                              style: AppTheme.celebrationAt(_headingFontSize).copyWith(
-                                fontWeight: FontWeight.bold,
-                                foreground: Paint()
-                                  ..style = PaintingStyle.stroke
-                                  ..strokeWidth = 2
-                                  ..color = _darkBlue,
-                                shadows: const [
-                                  Shadow(
-                                    color: _darkBlue,
-                                    offset: Offset(2, 4),
-                                  ),
-                                ],
-                              ),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: widget.onChangeLevel,
+                            child: const SizedBox(
+                              width: 72,
+                              height: 72,
+                              child: Center(child: BackArrowIcon(size: 48)),
                             ),
-                            Text(
-                              headingText,
-                              textAlign: TextAlign.center,
-                              style: AppTheme.celebrationAt(_headingFontSize).copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 72),
-                    ],
-                  ),
-                ),
-
-                // ── Score sub-line ──────────────────────────────────────────
-                if (scoreLine != null) ...[
-                  const SizedBox(height: AppSizes.spacingMedium),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Stroke + white drop shadow, behind the solid fill.
-                      Text(
-                        scoreLine,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Quicksand',
-                          fontSize: AppSizes.fontSizeTitle,
-                          fontWeight: FontWeight.w600,
-                          foreground: Paint()
-                            ..style = PaintingStyle.stroke
-                            ..strokeWidth = 1
-                            ..color = _darkBlue,
-                          shadows: [
-                            Shadow(
-                              color: Colors.white.withValues(alpha: 0.25),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        scoreLine,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: 'Quicksand',
-                          fontSize: AppSizes.fontSizeTitle,
-                          fontWeight: FontWeight.w600,
-                          color: _darkBlue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-
-                // ── Sign-in link (backgroundImage mode only, below score) ───
-                if (widget.backgroundImage != null &&
-                    context.watch<AuthProvider>().isAnonymous) ...[
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      AppRoutes.profile,
-                      arguments: widget.locale,
-                    ),
-                    child: ScaleTransition(
-                      scale:
-                          _signInPulseAnimation ??
-                          const AlwaysStoppedAnimation<double>(1.0),
-                      child: Text(
-                        localizer('general.sign_in_to_save'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: 'Quicksand',
-                          fontSize: 14,
-                          color: _darkBlue,
-                          decoration: TextDecoration.underline,
-                          decorationColor: _darkBlue,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-
-                // ── Centre slot — image, or extraContent when backgroundImage
-                // is set (pins buttons to bottom of screen)
-                Expanded(
-                  child: widget.backgroundImage != null
-                      ? (widget.extraContent != null
-                            ? AnimatedOpacity(
-                                opacity: _showExtraContent ? 1.0 : 0.0,
-                                duration: const Duration(milliseconds: 600),
-                                // Full-area tap detector — tapping outside the box dismisses it
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      setState(() => _showExtraContent = false),
-                                  behavior: HitTestBehavior.opaque,
-                                  child: Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSizes.paddingLarge,
-                                        vertical: AppSizes.spacingMedium,
-                                      ),
-                                      child: Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          // Box content — absorbs taps so they don't reach the outer dismisser
-                                          GestureDetector(
-                                            onTap: () {},
-                                            child: widget.extraContent!,
-                                          ),
-                                          // Close button — top-right corner of the box
-                                          Positioned(
-                                            top: -14,
-                                            right: -14,
-                                            child: GestureDetector(
-                                              onTap: () => setState(
-                                                () => _showExtraContent = false,
-                                              ),
-                                              child: Container(
-                                                width: 28,
-                                                height: 28,
-                                                decoration: const BoxDecoration(
-                                                  color: _darkBlue,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: const Icon(
-                                                  Icons.close,
-                                                  color: Colors.white,
-                                                  size: 18,
-                                                ),
-                                              ),
-                                            ),
+                          ),
+                          Expanded(
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Dark-blue 2 px stroke + solid drop shadow
+                                // (2 px right, 4 px down) behind the white fill.
+                                Text(
+                                  headingText,
+                                  textAlign: TextAlign.center,
+                                  style:
+                                      AppTheme.celebrationAt(
+                                        _headingFontSize,
+                                      ).copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        foreground: Paint()
+                                          ..style = PaintingStyle.stroke
+                                          ..strokeWidth = 2
+                                          ..color = _darkBlue,
+                                        shadows: const [
+                                          Shadow(
+                                            color: _darkBlue,
+                                            offset: Offset(2, 4),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                  ),
                                 ),
-                              )
-                            : const SizedBox.shrink())
-                      : (widget.imageAsset != null
-                            ? Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSizes.paddingLarge,
-                                  vertical: AppSizes.spacingMedium,
-                                ),
-                                child: Image.asset(
-                                  widget.imageAsset!,
-                                  fit: BoxFit.contain,
-                                ),
-                              )
-                            : (widget.centerExtraContent &&
-                                      widget.extraContent != null
-                                  ? Center(
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: AppSizes.paddingLarge,
-                                          vertical: AppSizes.spacingMedium,
-                                        ),
-                                        child: widget.extraContent!,
+                                Text(
+                                  headingText,
+                                  textAlign: TextAlign.center,
+                                  style:
+                                      AppTheme.celebrationAt(
+                                        _headingFontSize,
+                                      ).copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
                                       ),
-                                    )
-                                  : const SizedBox.shrink())),
-                ),
-
-                // ── Bottom elements ─────────────────────────────────────────
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 680),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.paddingLarge,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Personal best badge — double border like GameHeaderBar,
-                          // pulsing 10% in size when it's a new personal best.
-                          //
-                          // Taken out of the stretched Column flow: a hidden
-                          // same-size placeholder reserves the layout space, while
-                          // the real badge is absolutely positioned over it via
-                          // Align/Positioned so ScaleTransition can freely pulse
-                          // without the CrossAxisAlignment.stretch width lock or
-                          // any clipping restricting it.
-                          if (widget.showPersonalBest &&
-                              widget.isNewPersonalBest) ...[
-                            Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Visibility(
-                                  maintainSize: true,
-                                  maintainAnimation: true,
-                                  maintainState: true,
-                                  visible: false,
-                                  child: _personalBestBadge(localizer),
-                                ),
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: ScaleTransition(
-                                      scale:
-                                          _pbPulseAnimation ??
-                                          const AlwaysStoppedAnimation<double>(
-                                            1.0,
-                                          ),
-                                      child: _personalBestBadge(localizer),
-                                    ),
-                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: AppSizes.spacingMedium),
-                          ],
-
-                          // Extra content — only here when no backgroundImage and
-                          // not already shown in the Expanded centre slot above.
-                          if (widget.extraContent != null &&
-                              widget.backgroundImage == null &&
-                              !widget.centerExtraContent) ...[
-                            widget.extraContent!,
-                            const SizedBox(height: AppSizes.spacingMedium),
-                          ],
-
-                          // Sign-in banner — 14 px label; pulses itself.
-                          if (context.watch<AuthProvider>().isAnonymous &&
-                              widget.backgroundImage == null)
-                            SignInBannerButton(
-                              locale: widget.locale,
-                              textShadowOffset: Offset(1, 2),
-                            ),
-                          if (context.watch<AuthProvider>().isAnonymous)
-                            const SizedBox(height: AppSizes.spacingMedium),
-
-                          // Buttons — same layout as the Letter Bingo
-                          // celebration: Play Again full width, then Next
-                          // Level full width below it. The header's back
-                          // arrow is the way back to the level select.
-                          if (widget.onPlayAgain != null) ...[
-                            PrimaryButton(
-                              label: localizer('general.play_again'),
-                              icon: Icons.replay,
-                              expanded: true,
-                              onPressed: widget.onPlayAgain,
-                            ),
-                            const SizedBox(height: AppSizes.spacingMedium),
-                          ],
-                          if (widget.onNextLevel != null)
-                            SecondaryButton(
-                              label: localizer('general.next_level'),
-                              expanded: true,
-                              onPressed: widget.onNextLevel,
-                            ),
-                          const SizedBox(height: AppSizes.spacingSmall),
+                          ),
+                          const SizedBox(width: 72),
                         ],
                       ),
                     ),
-                  ),
+
+                    // ── Score sub-line ──────────────────────────────────────────
+                    if (scoreLine != null) ...[
+                      const SizedBox(height: AppSizes.spacingMedium),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Stroke + white drop shadow, behind the solid fill.
+                          Text(
+                            scoreLine,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Quicksand',
+                              fontSize: AppSizes.fontSizeTitle,
+                              fontWeight: FontWeight.w600,
+                              foreground: Paint()
+                                ..style = PaintingStyle.stroke
+                                ..strokeWidth = 1
+                                ..color = _darkBlue,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            scoreLine,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'Quicksand',
+                              fontSize: AppSizes.fontSizeTitle,
+                              fontWeight: FontWeight.w600,
+                              color: _darkBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+
+                    // ── Sign-in link (backgroundImage mode only, below score) ───
+                    if (widget.backgroundImage != null &&
+                        context.watch<AuthProvider>().isAnonymous) ...[
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.profile,
+                          arguments: widget.locale,
+                        ),
+                        child: ScaleTransition(
+                          scale:
+                              _signInPulseAnimation ??
+                              const AlwaysStoppedAnimation<double>(1.0),
+                          child: Text(
+                            localizer('general.sign_in_to_save'),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'Quicksand',
+                              fontSize: 14,
+                              color: _darkBlue,
+                              decoration: TextDecoration.underline,
+                              decorationColor: _darkBlue,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    // ── Centre slot — image, or extraContent when backgroundImage
+                    // is set (pins buttons to bottom of screen)
+                    Expanded(
+                      child: widget.backgroundImage != null
+                          ? (widget.extraContent != null
+                                ? AnimatedOpacity(
+                                    opacity: _showExtraContent ? 1.0 : 0.0,
+                                    duration: const Duration(milliseconds: 600),
+                                    // Full-area tap detector — tapping outside the box dismisses it
+                                    child: GestureDetector(
+                                      onTap: () => setState(
+                                        () => _showExtraContent = false,
+                                      ),
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: AppSizes.paddingLarge,
+                                            vertical: AppSizes.spacingMedium,
+                                          ),
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              // Box content — absorbs taps so they don't reach the outer dismisser
+                                              GestureDetector(
+                                                onTap: () {},
+                                                child: widget.extraContent!,
+                                              ),
+                                              // Close button — top-right corner of the box
+                                              Positioned(
+                                                top: -14,
+                                                right: -14,
+                                                child: GestureDetector(
+                                                  onTap: () => setState(
+                                                    () => _showExtraContent =
+                                                        false,
+                                                  ),
+                                                  child: Container(
+                                                    width: 28,
+                                                    height: 28,
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                          color: _darkBlue,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                    child: const Icon(
+                                                      Icons.close,
+                                                      color: Colors.white,
+                                                      size: 18,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : const SizedBox.shrink())
+                          : (widget.imageAsset != null
+                                ? Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSizes.paddingLarge,
+                                      vertical: AppSizes.spacingMedium,
+                                    ),
+                                    child: Image.asset(
+                                      widget.imageAsset!,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  )
+                                : (widget.centerExtraContent &&
+                                          widget.extraContent != null
+                                      ? Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: AppSizes.paddingLarge,
+                                              vertical: AppSizes.spacingMedium,
+                                            ),
+                                            child: widget.extraContent!,
+                                          ),
+                                        )
+                                      : const SizedBox.shrink())),
+                    ),
+
+                    // ── Bottom elements ─────────────────────────────────────────
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 680),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.paddingLarge,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Personal best badge — double border like GameHeaderBar,
+                              // pulsing 10% in size when it's a new personal best.
+                              //
+                              // Taken out of the stretched Column flow: a hidden
+                              // same-size placeholder reserves the layout space, while
+                              // the real badge is absolutely positioned over it via
+                              // Align/Positioned so ScaleTransition can freely pulse
+                              // without the CrossAxisAlignment.stretch width lock or
+                              // any clipping restricting it.
+                              if (widget.showPersonalBest &&
+                                  widget.isNewPersonalBest) ...[
+                                Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Visibility(
+                                      maintainSize: true,
+                                      maintainAnimation: true,
+                                      maintainState: true,
+                                      visible: false,
+                                      child: _personalBestBadge(localizer),
+                                    ),
+                                    Positioned.fill(
+                                      child: Align(
+                                        alignment: Alignment.center,
+                                        child: ScaleTransition(
+                                          scale:
+                                              _pbPulseAnimation ??
+                                              const AlwaysStoppedAnimation<
+                                                double
+                                              >(1.0),
+                                          child: _personalBestBadge(localizer),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSizes.spacingMedium),
+                              ],
+
+                              // Extra content — only here when no backgroundImage and
+                              // not already shown in the Expanded centre slot above.
+                              if (widget.extraContent != null &&
+                                  widget.backgroundImage == null &&
+                                  !widget.centerExtraContent) ...[
+                                widget.extraContent!,
+                                const SizedBox(height: AppSizes.spacingMedium),
+                              ],
+
+                              // Sign-in banner — 14 px label; pulses itself.
+                              if (context.watch<AuthProvider>().isAnonymous &&
+                                  widget.backgroundImage == null)
+                                SignInBannerButton(
+                                  locale: widget.locale,
+                                  textShadowOffset: Offset(1, 2),
+                                ),
+                              if (context.watch<AuthProvider>().isAnonymous)
+                                const SizedBox(height: AppSizes.spacingMedium),
+
+                              // Buttons — same layout as the Letter Bingo
+                              // celebration: Play Again full width, then Next
+                              // Level full width below it. The header's back
+                              // arrow is the way back to the level select.
+                              if (widget.onPlayAgain != null) ...[
+                                Primary2Button(
+                                  label: localizer('general.play_again'),
+                                  icon: Icons.replay,
+                                  expanded: true,
+                                  onPressed: widget.onPlayAgain,
+                                ),
+                                const SizedBox(height: AppSizes.spacingMedium),
+                              ],
+                              if (widget.onNextLevel != null)
+                                SecondaryButton(
+                                  label: localizer('general.next_level'),
+                                  expanded: true,
+                                  onPressed: widget.onNextLevel,
+                                ),
+                              const SizedBox(height: AppSizes.spacingSmall),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
 
@@ -1006,134 +1028,149 @@ class _BingoSuccessOverlayState extends State<BingoSuccessOverlay>
     final localizer = AppLocalizations(locale: widget.locale);
     return Container(
       color: const Color(0xFF002D97).withValues(alpha: 0.88),
-      child: SafeArea(
-        child: Stack(
-          children: [
-            // ── flashing gold stars ──────────────────────────────────────
-            ..._stars.map((s) {
-              return AnimatedBuilder(
-                animation: _starController,
-                builder: (_, child) {
-                  final t = ((_starController.value + s.phase) % 1.0);
-                  final opacity = (0.4 + 0.6 * (t < 0.5 ? t * 2 : 2 - t * 2))
-                      .clamp(0.2, 1.0);
-                  return Positioned(
-                    left: s.x * size.width - s.size / 2,
-                    top: s.y * size.height * 0.6,
-                    child: Opacity(
-                      opacity: opacity,
-                      child: Icon(
-                        Icons.star,
-                        color: const Color(0xFFFFC73A),
-                        size: s.size,
-                      ),
-                    ),
-                  );
-                },
-              );
-            }),
-
-            // ── BINGO text + buttons ─────────────────────────────────────
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          const Positioned.fill(child: PaperTextureOverlay()),
+          SafeArea(
+            child: Stack(
               children: [
-                // Pulsing BINGO
-                ScaleTransition(
-                  scale: _pulseAnimation,
-                  child: const _BingoText(),
-                ),
-                const SizedBox(height: 32),
-
-                // Buttons
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 680),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.paddingLarge,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (context.watch<AuthProvider>().isAnonymous) ...[
-                            SignInBannerButton(
-                              locale: widget.locale,
-                              textShadowOffset: Offset(1, 2),
-                            ),
-                            const SizedBox(height: AppSizes.spacingMedium),
-                          ],
-
-                          Builder(
-                            builder: (context) {
-                              final isLandscape =
-                                  MediaQuery.of(context).orientation ==
-                                  Orientation.landscape;
-
-                              final playAgainBtn = PrimaryButton(
-                                label: localizer('general.play_again'),
-                                icon: Icons.replay,
-                                expanded: true,
-                                onPressed: widget.onPlayAgain,
-                              );
-
-                              final nextLevelBtn = widget.onNextLevel != null
-                                  ? SecondaryButton(
-                                      label: localizer('general.next_level'),
-                                      icon: Icons.arrow_forward,
-                                      expanded: true,
-                                      onPressed: widget.onNextLevel,
-                                    )
-                                  : null;
-
-                              if (nextLevelBtn != null && isLandscape) {
-                                return Row(
-                                  children: [
-                                    Expanded(child: playAgainBtn),
-                                    const SizedBox(
-                                      width: AppSizes.spacingMedium,
-                                    ),
-                                    Expanded(child: nextLevelBtn),
-                                  ],
-                                );
-                              }
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  playAgainBtn,
-                                  if (nextLevelBtn != null) ...[
-                                    const SizedBox(
-                                      height: AppSizes.spacingMedium,
-                                    ),
-                                    nextLevelBtn,
-                                  ],
-                                ],
-                              );
-                            },
+                // ── flashing gold stars ──────────────────────────────────────
+                ..._stars.map((s) {
+                  return AnimatedBuilder(
+                    animation: _starController,
+                    builder: (_, child) {
+                      final t = ((_starController.value + s.phase) % 1.0);
+                      final opacity =
+                          (0.4 + 0.6 * (t < 0.5 ? t * 2 : 2 - t * 2)).clamp(
+                            0.2,
+                            1.0,
+                          );
+                      return Positioned(
+                        left: s.x * size.width - s.size / 2,
+                        top: s.y * size.height * 0.6,
+                        child: Opacity(
+                          opacity: opacity,
+                          child: Icon(
+                            Icons.star,
+                            color: const Color(0xFFFFC73A),
+                            size: s.size,
                           ),
+                        ),
+                      );
+                    },
+                  );
+                }),
 
-                          const SizedBox(height: AppSizes.spacingMedium),
-                          Center(
-                            child: TertiaryButton(
-                              label: localizer('general.change_level'),
-                              icon: Icons.grid_view,
-                              onPressed: widget.onChangeLevel,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSizes.paddingLarge,
-                                vertical: AppSizes.paddingSmall,
+                // ── BINGO text + buttons ─────────────────────────────────────
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Pulsing BINGO
+                    ScaleTransition(
+                      scale: _pulseAnimation,
+                      child: const _BingoText(),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Buttons
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 680),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.paddingLarge,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (context
+                                  .watch<AuthProvider>()
+                                  .isAnonymous) ...[
+                                SignInBannerButton(
+                                  locale: widget.locale,
+                                  textShadowOffset: Offset(1, 2),
+                                ),
+                                const SizedBox(height: AppSizes.spacingMedium),
+                              ],
+
+                              Builder(
+                                builder: (context) {
+                                  final isLandscape =
+                                      MediaQuery.of(context).orientation ==
+                                      Orientation.landscape;
+
+                                  final playAgainBtn = Primary2Button(
+                                    label: localizer('general.play_again'),
+                                    icon: Icons.replay,
+                                    expanded: true,
+                                    onPressed: widget.onPlayAgain,
+                                  );
+
+                                  final nextLevelBtn =
+                                      widget.onNextLevel != null
+                                      ? SecondaryButton(
+                                          label: localizer(
+                                            'general.next_level',
+                                          ),
+                                          icon: Icons.arrow_forward,
+                                          expanded: true,
+                                          onPressed: widget.onNextLevel,
+                                        )
+                                      : null;
+
+                                  if (nextLevelBtn != null && isLandscape) {
+                                    return Row(
+                                      children: [
+                                        Expanded(child: playAgainBtn),
+                                        const SizedBox(
+                                          width: AppSizes.spacingMedium,
+                                        ),
+                                        Expanded(child: nextLevelBtn),
+                                      ],
+                                    );
+                                  }
+
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      playAgainBtn,
+                                      if (nextLevelBtn != null) ...[
+                                        const SizedBox(
+                                          height: AppSizes.spacingMedium,
+                                        ),
+                                        nextLevelBtn,
+                                      ],
+                                    ],
+                                  );
+                                },
                               ),
-                            ),
+
+                              const SizedBox(height: AppSizes.spacingMedium),
+                              Center(
+                                child: TertiaryButton(
+                                  label: localizer('general.change_level'),
+                                  icon: Icons.grid_view,
+                                  onPressed: widget.onChangeLevel,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSizes.paddingLarge,
+                                    vertical: AppSizes.paddingSmall,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

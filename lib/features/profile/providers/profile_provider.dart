@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../shared/services/game_stats_service.dart';
+import '../models/profile_catalog.dart';
 
 /// Loads and edits the current player's `profiles` row (screen name +
 /// chosen avatar) and their `player_stats` rows (used to work out which
@@ -37,6 +39,19 @@ class ProfileProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _stats = const [];
   List<Map<String, dynamic>> get stats => _stats;
 
+  /// Prefix for the local "badges already seen on the profile screen"
+  /// store — completed with the player id, so a device shared between
+  /// players keeps separate seen-sets.
+  static const _seenBadgesKeyPrefix = 'profile_seen_badges';
+
+  /// Badge ids that are earned but haven't been seen on the profile screen
+  /// yet — the cue for the red dot on the home screen's profile icon.
+  Set<String> _unseenBadgeIds = const {};
+  Set<String> get unseenBadgeIds => _unseenBadgeIds;
+
+  /// Whether at least one earned badge hasn't been seen yet.
+  bool get hasUnseenBadges => _unseenBadgeIds.isNotEmpty;
+
   bool _isLoading = true;
   bool get isLoading => _isLoading;
 
@@ -58,6 +73,7 @@ class ProfileProvider extends ChangeNotifier {
     final userId = _db.auth.currentUser?.id;
     if (userId == null) {
       _isLoading = false;
+      _unseenBadgeIds = const {};
       notifyListeners();
       return;
     }
@@ -71,12 +87,50 @@ class ProfileProvider extends ChangeNotifier {
       _screenName = row?['screen_name'] as String?;
       _avatarId = row?['avatar'] as String?;
       _stats = await _statsService.getPlayerStats(userId);
+      _unseenBadgeIds = await _computeUnseenBadges(userId);
     } catch (e) {
       debugPrint('ProfileProvider: failed to load profile: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Earned badge ids the player hasn't seen on the profile screen yet:
+  /// everything earned minus everything previously marked seen (persisted
+  /// locally per player).
+  Future<Set<String>> _computeUnseenBadges(String userId) async {
+    final earned = profileBadges
+        .where((b) => b.isEarned(_stats))
+        .map((b) => b.id)
+        .toSet();
+    final prefs = await SharedPreferences.getInstance();
+    final seen = (prefs.getString('$_seenBadgesKeyPrefix.$userId') ?? '')
+        .split(',')
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    return earned.difference(seen);
+  }
+
+  /// Records every currently earned badge as seen — the profile screen
+  /// calls this once it has shown them, clearing the home screen's red
+  /// dot. Callers that want to animate the just-earned badges should
+  /// capture [unseenBadgeIds] before calling this.
+  Future<void> markBadgesSeen() async {
+    final userId = _db.auth.currentUser?.id;
+    if (userId == null || _unseenBadgeIds.isEmpty) return;
+    _unseenBadgeIds = const {};
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    final seen = (prefs.getString('$_seenBadgesKeyPrefix.$userId') ?? '')
+        .split(',')
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    seen.addAll(profileBadges
+        .where((b) => b.isEarned(_stats))
+        .map((b) => b.id));
+    await prefs.setString(
+        '$_seenBadgesKeyPrefix.$userId', seen.join(','));
   }
 
   /// Re-fetches the profile and stats. Normally unnecessary — the provider

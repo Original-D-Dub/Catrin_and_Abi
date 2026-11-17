@@ -1,7 +1,5 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
-
 import 'welsh_letters.dart';
 
 /// Represents a single-missing-vowel word puzzle for the Vowel Words level
@@ -114,38 +112,38 @@ class WordPuzzleConstants {
   /// Maximum number of recent words to track for repeat avoidance
   static const int maxRecentWords = 10;
 
-  /// CVC words containing the vowel 'a' (15 words)
+  /// CVC words containing the vowel 'a' (12 words)
   static const List<String> wordsWithA = [
-    'cat', 'bat', 'hat', 'mat', 'man',
-    'bag', 'tag', 'wag', 'map', 'cap',
-    'can', 'fan', 'pan', 'van', 'jam',
+    'cat', 'bat', 'hat', 'mat', 
+    'map', 'cap', 'jam', 'man',
+    'can', 'fan', 'pan', 'van', 
   ];
 
-  /// CVC words containing the vowel 'e' (11 words)
+  /// CVC words containing the vowel 'e' (8 words)
   static const List<String> wordsWithE = [
-    'bed', 'red', 
-    'hen', 'pen', 'ten', 'men',
-    'jet', 'net', 'pet', 'wet',
+    'bed', 'red', 'men',
+    'hen', 'pen', 'ten', 
+    'jet', 'net', 
   ];
 
-  /// CVC words containing the vowel 'i' (13 words)
+  /// CVC words containing the vowel 'i' (10 words)
   static const List<String> wordsWithI = [
-    'pig', 'big', 'bib', 'wig',
-    'bin', 'fin', 'pin', 'tin', 'win',
-    'fit', 'hit', 'sit',
+    'pig', 'bib', 'wig',
+    'bin', 'fin', 'pin', 'tin', 
+    'fit', 'sit', 'win',
   ];
 
-  /// CVC words containing the vowel 'o' (14 words)
+  /// CVC words containing the vowel 'o' (9 words)
   static const List<String> wordsWithO = [
-    'dog', 'fog', 'jog', 'log',
-    'dot', 'got', 'hot', 'pot',
-    'box', 'fox', 'hop', 'top',
+    'dog', 'fog', 'log',
+    'dot', 'pot', 'top',
+    'box', 'fox', 'hop', 
   ];
 
-  /// CVC words containing the vowel 'u' (15 words)
+  /// CVC words containing the vowel 'u' (10 words)
   static const List<String> wordsWithU = [
-    'hug', 'jug', 'mug',
-    'bus', 'nut', 'cut', 'cup',
+    'hug', 'jug', 'mug', 'cut',
+    'bus', 'nut', 'cup',
     'bun', 'fun', 'run', 'sun',
   ];
 

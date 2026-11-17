@@ -9,7 +9,11 @@ class SettingsSection extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const SettingsSection({super.key, required this.title, required this.children});
+  const SettingsSection({
+    super.key,
+    required this.title,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -98,9 +102,17 @@ class SettingsSelectionTile extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle_rounded, color: Color(0xFF69F0AE), size: 26)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF69F0AE),
+                size: 26,
+              )
             else
-              const Icon(Icons.radio_button_unchecked, color: Colors.white30, size: 26),
+              const Icon(
+                Icons.radio_button_unchecked,
+                color: Colors.white30,
+                size: 26,
+              ),
           ],
         ),
       ),
@@ -113,6 +125,74 @@ class SettingsDivider extends StatelessWidget {
   const SettingsDivider({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      const Divider(color: Colors.white12, height: 1, indent: 16, endIndent: 16);
+  Widget build(BuildContext context) => const Divider(
+    color: Colors.white12,
+    height: 1,
+    indent: 16,
+    endIndent: 16,
+  );
+}
+
+/// A single row with a leading icon, label, sublabel and a [Switch] — used
+/// for on/off settings such as the "hide selected games" master toggle on
+/// the app settings screen. Styled to sit alongside
+/// [SettingsSelectionTile] within a [SettingsSection].
+class SettingsToggleTile extends StatelessWidget {
+  final Widget leading;
+  final String label;
+  final String sublabel;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const SettingsToggleTile({
+    super.key,
+    required this.leading,
+    required this.label,
+    required this.sublabel,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(width: 36, child: Center(child: leading)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: 'Quicksand',
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  sublabel,
+                  style: const TextStyle(
+                    fontFamily: 'Quicksand',
+                    fontSize: 13,
+                    color: Colors.white60,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: const Color(0xFF69F0AE),
+            activeTrackColor: const Color(0xFF69F0AE).withValues(alpha: 0.5),
+          ),
+        ],
+      ),
+    );
+  }
 }

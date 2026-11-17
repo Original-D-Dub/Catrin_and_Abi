@@ -326,8 +326,8 @@ class _RoomShell extends Component {
       Paint()..color = IsoPainter.darken(skirtColour, 0.08),
     );
 
-    // Wall tops (thickness caps).
-    const t = 0.25;
+    // Wall tops (thickness caps) — thick enough to hold a recessed window.
+    const t = 0.35;
     final cap = Paint()..color = IsoPainter.darken(scene.wallColor, 0.2);
     canvas.drawPath(
       Path()

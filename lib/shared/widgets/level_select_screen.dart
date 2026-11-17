@@ -1,9 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
+import 'button.dart';
+import 'champion_rosette.dart';
+import 'paper_texture_overlay.dart';
 
 /// Data for a single level button in [LevelSelectScreen].
 class LevelSelectItem {
@@ -55,14 +60,139 @@ const List<Color> kLevelSelectColors = [
 Color levelColor(int index) =>
     kLevelSelectColors[index % kLevelSelectColors.length];
 
+/// Shows [text] centred on a single line (shrunk to fit if it's too wide),
+/// with a game's [ChampionRosette] as [badge] perched on its last letter:
+/// the top of that letter (e.g. the "l" of "Choose a Level") touches the
+/// rosette's main circle at [kChampionRosetteTouchPoint], and the ribbon
+/// hangs down to the right of it.
+///
+/// The badge is absolutely positioned and never moves the text: it's drawn
+/// in the nearest [Overlay] (see [OverlayPortal]), pinned to the text with
+/// a [CompositedTransformFollower], so it takes up no layout space yet
+/// still receives taps and long presses wherever it's drawn. Wrap the
+/// screen in [Overlay.wrap] (with [Clip.none], so the badge is never cut
+/// off) so the badge stays under anything stacked above that screen, like
+/// a level transition fade.
+///
+/// Shows [text] alone when [badge] is null.
+class TitleWithBadge extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+  final Widget? badge;
+
+  const TitleWithBadge({
+    super.key,
+    required this.text,
+    required this.style,
+    required this.badge,
+  });
+
+  @override
+  State<TitleWithBadge> createState() => _TitleWithBadgeState();
+}
+
+class _TitleWithBadgeState extends State<TitleWithBadge> {
+  /// Height of a lowercase ascender (the top of an "l") as a fraction of
+  /// the font size — approximate for Quicksand, the title font.
+  static const double _ascenderHeight = 0.72;
+
+  final _link = LayerLink();
+  final _portal = OverlayPortalController()..show();
+
+  @override
+  Widget build(BuildContext context) {
+    final text = widget.text;
+    final style = widget.style;
+    final textWidget = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        text,
+        style: style,
+        maxLines: 1,
+        softWrap: false,
+        textAlign: TextAlign.center,
+      ),
+    );
+    final badge = widget.badge;
+    if (badge == null || text.isEmpty) return textWidget;
+
+    // Bounding box of the badge once tilted.
+    const rotation = kChampionRosetteRotation;
+    final w = kChampionRosetteSize.width;
+    final h = kChampionRosetteSize.height;
+    final sinA = math.sin(rotation.abs());
+    final cosA = math.cos(rotation.abs());
+    final boxW = w * cosA + h * sinA;
+    final boxH = w * sinA + h * cosA;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scaler = MediaQuery.textScalerOf(context);
+        final painter = TextPainter(
+          text: TextSpan(text: text, style: style),
+          maxLines: 1,
+          textDirection: TextDirection.ltr,
+          textScaler: scaler,
+        )..layout();
+        final lastBox = painter
+            .getBoxesForSelection(
+              TextSelection(
+                baseOffset: text.length - 1,
+                extentOffset: text.length,
+              ),
+            )
+            .last;
+        final baseline = painter.computeLineMetrics().last.baseline;
+        final fontSize = scaler.scale(style.fontSize ?? 14);
+        final textWidth = painter.width;
+        painter.dispose();
+
+        // Matches the FittedBox's shrink when the text is too wide.
+        final scale = math.min(1.0, constraints.maxWidth / textWidth);
+        final letterTop = (baseline - fontSize * _ascenderHeight) * scale;
+        final letterCentre = (lastBox.left + lastBox.right) / 2 * scale;
+
+        return OverlayPortal(
+          controller: _portal,
+          overlayChildBuilder: (context) => Positioned(
+            left: 0,
+            top: 0,
+            child: CompositedTransformFollower(
+              link: _link,
+              showWhenUnlinked: false,
+              offset: Offset(
+                letterCentre - boxW / 2 - kChampionRosetteTouchPoint.dx,
+                letterTop - boxH / 2 - kChampionRosetteTouchPoint.dy,
+              ),
+              child: SizedBox(
+                width: boxW,
+                height: boxH,
+                child: Center(
+                  child: Transform.rotate(
+                    angle: rotation,
+                    child: SizedBox(width: w, height: h, child: badge),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          child: CompositedTransformTarget(link: _link, child: textWidget),
+        );
+      },
+    );
+  }
+}
+
 /// Shared level-selection screen used by all games.
 ///
 /// Renders:
 /// - Optional [aboveTitle] widget (e.g. one/two-player tabs)
-/// - "Choose a Level" title
+/// - "Choose a Level" title on one line, with an optional [titleBadge] on
+///   its last letter
 /// - Optional [aboveSubtitle] widget (e.g. a mode toggle)
 /// - Optional [subtitle] line
-/// - 2-column grid of coloured [LevelSelectItem] buttons
+/// - Responsive grid (2–3 columns, or [tabletLandscapeColumns] on a
+///   landscape tablet) of coloured [LevelSelectItem] buttons
 ///
 /// Each button shows "Level N", the level name, and an optional description.
 class LevelSelectScreen extends StatelessWidget {
@@ -74,6 +204,11 @@ class LevelSelectScreen extends StatelessWidget {
 
   /// Optional widget shown at the very top, above the title.
   final Widget? aboveTitle;
+
+  /// Optional badge perched on the title's last letter (e.g. the game's
+  /// [ChampionRosette] once Champion Mode is unlocked) — see
+  /// [TitleWithBadge].
+  final Widget? titleBadge;
 
   /// Ordered list of levels to display.
   final List<LevelSelectItem> levels;
@@ -90,20 +225,44 @@ class LevelSelectScreen extends StatelessWidget {
   /// UI language for the title and "Level" prefix ('en' or 'cy').
   final String locale;
 
+  /// When set, overrides the grid's column count on tablets (shortest side
+  /// ≥ 600) held in landscape. Null keeps the default 2/3-column layout.
+  final int? tabletLandscapeColumns;
+
+  /// When set, always uses this many columns (on every device), with each
+  /// column capped at [kFixedColumnMaxWidth] so a short row — e.g. two
+  /// tiles side by side — doesn't stretch across a wide tablet. Takes
+  /// priority over [tabletLandscapeColumns].
+  final int? fixedColumns;
+
+  static const double kFixedColumnMaxWidth = 300;
+
   const LevelSelectScreen({
     super.key,
     this.subtitle,
     this.aboveSubtitle,
     this.aboveTitle,
+    this.titleBadge,
     required this.levels,
     this.sectionBreaks = const {},
     this.locale = 'en',
+    this.tabletLandscapeColumns,
+    this.fixedColumns,
   });
 
   @override
   Widget build(BuildContext context) {
     final localizer = AppLocalizations(locale: locale);
 
+    // Overlay.wrap gives [titleBadge] an overlay of this screen's own to
+    // draw in — see [TitleWithBadge].
+    return Overlay.wrap(
+      clipBehavior: Clip.none,
+      child: _buildContent(localizer),
+    );
+  }
+
+  Widget _buildContent(AppLocalizations localizer) {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSizes.paddingLarge),
@@ -112,12 +271,20 @@ class LevelSelectScreen extends StatelessWidget {
           children: [
             if (aboveTitle != null) ...[
               aboveTitle!,
-              const SizedBox(height: AppSizes.spacingMedium),
+              // The badge rises about 58px above the title text without
+              // taking layout space, so leave room for it to clear the
+              // widget above.
+              SizedBox(
+                height: titleBadge != null
+                    ? kChampionRosetteWidth - AppSizes.spacingSmall
+                    : AppSizes.spacingMedium,
+              ),
             ],
 
             // Title
-            Text(
-              localizer('level_select.title'),
+            TitleWithBadge(
+              badge: titleBadge,
+              text: localizer('level_select.title'),
               style: AppTheme.title.copyWith(
                 fontSize: AppSizes.fontSizeTitle,
                 color: AppColors.textPrimary,
@@ -194,7 +361,15 @@ class LevelSelectScreen extends StatelessWidget {
   ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth < 400 ? 2 : 3;
+        final mq = MediaQuery.of(context);
+        final isTabletLandscape = mq.size.shortestSide >= 600 &&
+            mq.orientation == Orientation.landscape;
+        final crossAxisCount = fixedColumns ??
+            (isTabletLandscape && tabletLandscapeColumns != null
+                ? tabletLandscapeColumns!
+                : constraints.maxWidth < 400
+                    ? 2
+                    : 3);
         final List<Widget> children = groupLevels
             .map((item) => _buildButton(item, localizer))
             .toList();
@@ -209,7 +384,7 @@ class LevelSelectScreen extends StatelessWidget {
             ),
           );
         }
-        return GridView.count(
+        final grid = GridView.count(
           crossAxisCount: crossAxisCount,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -218,24 +393,53 @@ class LevelSelectScreen extends StatelessWidget {
           childAspectRatio: 1.3,
           children: children,
         );
+        if (fixedColumns == null) return grid;
+        return Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: fixedColumns! * kFixedColumnMaxWidth +
+                  (fixedColumns! - 1) * AppSizes.spacingMedium,
+            ),
+            child: grid,
+          ),
+        );
       },
     );
   }
 
+  /// Spreads tiles' texture windows across the paper image: golden-ratio
+  /// steps give each index a distinct, well-separated (x, y) fraction.
+  static Offset _textureOffsetFor(int index) {
+    const phi = 0.6180339887;
+    const phi2 = 0.7548776662;
+    return Offset((0.31 + index * phi) % 1.0, (0.57 + index * phi2) % 1.0);
+  }
+
   Widget _buildButton(LevelSelectItem item, AppLocalizations localizer) {
     final color = item.isLocked ? AppColors.textSecondary : item.color;
+    final radius = BorderRadius.circular(AppSizes.borderRadiusMedium);
+    final textureOffset = _textureOffsetFor(levels.indexOf(item));
     return ElevatedButton(
       onPressed: item.isLocked ? null : item.onTap,
       style: ElevatedButton.styleFrom(
-        backgroundColor: color,
+        // The gradient fill is painted in backgroundBuilder instead.
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
-        disabledBackgroundColor: color,
+        disabledBackgroundColor: Colors.transparent,
         disabledForegroundColor: Colors.white,
         padding: const EdgeInsets.all(AppSizes.paddingMedium),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.borderRadiusMedium),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: radius),
         elevation: item.isLocked ? 0 : 2,
+        // Felt-button look: gradient fill from the tile colour, paper
+        // texture (native size, a different patch per tile) and stitched
+        // edge, all beneath the label.
+        backgroundBuilder: (context, states, child) => FeltPanel(
+          gradient: ButtonFill.fromColour(color).gradient,
+          stitchColour: ButtonFill.strokeFor(color),
+          radius: AppSizes.borderRadiusMedium,
+          texture: PaperTextureOverlay(textureOffset: textureOffset),
+          child: child,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

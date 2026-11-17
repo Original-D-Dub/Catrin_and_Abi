@@ -9,11 +9,25 @@ import '../../letter_bingo/services/animal_collection_service.dart';
 /// One level's score within a [GameScoreEntry]. [level] is null for games
 /// with no per-level tracking (e.g. bsl_sprint, letter_quest) — those rows
 /// are stored under the plain game id, with no numeric suffix.
+///
+/// [isChampion] is true when [score] came from the game's Champion Mode
+/// (see [_championGameIds]) rather than normal play.
+///
+/// [hints] is how many hints the run that set [score] used (card matching's
+/// Champion Mode hints, stored as `best_hints`); 0 when none or the game
+/// has no hints.
 class LevelScore {
   final int? level;
   final int score;
+  final bool isChampion;
+  final int hints;
 
-  const LevelScore({required this.level, required this.score});
+  const LevelScore({
+    required this.level,
+    required this.score,
+    this.isChampion = false,
+    this.hints = 0,
+  });
 }
 
 /// One row on the scores screen: a game's personal-best score(s), one per
@@ -71,7 +85,8 @@ const Map<String, String> _gameTitleKeys = {
   GameIds.bubblePop: 'bubble_pop.title',
   GameIds.welshBubblePop: 'bubble_pop.title',
   GameIds.numberRace: 'number_race.title',
-  GameIds.countingGame: 'counting.title',
+  GameIds.bubbleShooter: 'bubble_shooter.title',
+  GameIds.countingGame: 'counting_game.title',
   GameIds.countingBackGame: 'counting_back.title',
   GameIds.numberLineGame: 'number_line.title',
   GameIds.moreLessGame: 'more_or_less.title',
@@ -104,13 +119,22 @@ const Map<String, SignSystem> _gameSignSystem = {
 /// game's `recordGameResult` call site). Games not listed here show every
 /// level that has a non-zero score.
 ///
-/// - Counting: only levels 4, 8 and 12 are the timed variants (see
-///   `CircleColourPair.isTimed` in counting_game_provider.dart) — the ones
+/// - Counting: only levels 4, 10 and 17 are the timed variants (see
+///   `DotColourPair.isTimed` in counting_game_provider.dart) — the ones
 ///   worth comparing over time.
 /// - BSL Maths: only level 5 is shown.
 const Map<String, Set<int>> _levelFilters = {
-  GameIds.countingGame: {4, 8, 12},
+  GameIds.countingGame: {4, 10, 17},
   GameIds.bslMaths: {5},
+};
+
+/// Games whose Champion Mode scores are stored under a separate id (e.g.
+/// 'bubble_pop_champion_3'). They share the normal game's row: each level
+/// shows whichever of the normal or Champion Mode best is higher, flagged
+/// via [LevelScore.isChampion] when it's the Champion Mode one.
+const Map<String, String> _championGameIds = {
+  GameIds.bubblePop: GameIds.bubblePopChampion,
+  GameIds.welshBubblePop: GameIds.welshBubblePopChampion,
 };
 
 /// Per-game unit appended right after the score number (e.g. "8 moves").
@@ -208,32 +232,48 @@ class ScoresProvider extends ChangeNotifier {
       if (relatedIds.isEmpty) continue;
       final allowedLevels = _levelFilters[gameId];
 
-      final byLevel = <int?, int>{};
+      final championIds = relatedIds
+          .map((id) => _championGameIds[id])
+          .whereType<String>()
+          .toSet();
+
+      final byLevel = <int?, LevelScore>{};
       for (final row in _rawStats) {
         final rowGameId = row['game_id'] as String? ?? '';
         final highScore = row['high_score'] as int? ?? 0;
         if (highScore <= 0) continue;
 
-        final matchedId = _matchGameId(rowGameId, relatedIds);
+        // Champion ids are checked first: 'bubble_pop_champion_3' also
+        // starts with 'bubble_pop_'.
+        final championId = _matchGameId(rowGameId, championIds);
+        final isChampion = championId != null;
+        final matchedId = championId ?? _matchGameId(rowGameId, relatedIds);
         if (matchedId == null) continue;
 
         final int? level = rowGameId == matchedId
             ? null
             : int.tryParse(rowGameId.substring(matchedId.length + 1));
+        // Skip rows with an unrecognised non-numeric suffix.
+        if (rowGameId != matchedId && level == null) continue;
         if (allowedLevels != null &&
             (level == null || !allowedLevels.contains(level))) {
           continue;
         }
 
-        final prevBest = byLevel[level] ?? 0;
-        if (highScore > prevBest) byLevel[level] = highScore;
+        final prevBest = byLevel[level]?.score ?? 0;
+        if (highScore > prevBest) {
+          byLevel[level] = LevelScore(
+            level: level,
+            score: highScore,
+            isChampion: isChampion,
+            hints: row['best_hints'] as int? ?? 0,
+          );
+        }
       }
 
       if (byLevel.isEmpty) continue;
 
-      final levels = byLevel.entries
-          .map((e) => LevelScore(level: e.key, score: e.value))
-          .toList()
+      final levels = byLevel.values.toList()
         ..sort((a, b) => (a.level ?? -1).compareTo(b.level ?? -1));
 
       result.add(GameScoreEntry(

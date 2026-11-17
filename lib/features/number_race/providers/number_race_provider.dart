@@ -16,51 +16,39 @@ import '../models/number_race_models.dart';
 /// racers simply catch up (and stop at the finish line).
 ///
 /// Independently of the player's answers, every [opponentTickInterval] one
-/// or both opponents also creep forward by one space, adding time pressure.
+/// or both opponents also creep forward by one space, adding time pressure
+/// — except on level 1, a gentle warm-up where opponents only move when the
+/// player answers wrongly.
 ///
 /// After picking a racer, the player chooses a level (1-[totalLevels]) from
-/// a map screen. Levels are grouped into sections of [levelsPerSection]:
-/// within each section [opponentTickInterval] shortens (7s, 5s, 3s, 3s)
-/// and the last level times the player, recording how long the race took
-/// instead of their number of attempts. The dot grid is a plain 3x2 grid
-/// for levels 1-[levelsPerSection]; from there on dots are arranged like a
-/// die face in a 3x3 grid, shown as a single grid (dots 1-6) for the next
-/// section and as two grids side by side, domino-style (dots 1-10), for
-/// the last.
+/// a map screen. After the level 1 warm-up, levels are grouped into
+/// sections of [levelsPerSection]: within each section
+/// [opponentTickInterval] shortens (7s, 5s, 3s, 3s) and the last level
+/// times the player, recording how long the race took instead of their
+/// number of attempts. Dots are shown in the counting
+/// game's near-equal "five" patterns: a die face for 1-5, and two rows
+/// split by a dividing line for 6-10 (3 over 3, 3 over 4, ... 5 over 5).
+/// Levels 1-2 ask about 1-5 dots, level 3 about 1-6, levels 4-5 about 1-8
+/// and levels 6-13 about 1-10.
 class NumberRaceProvider extends ChangeNotifier {
   NumberRaceProvider({this.locale = 'en'});
 
   /// UI locale ('en' or 'cy').
   final String locale;
 
-  /// Number of correct answers needed to win the race.
-  static const int raceLength = 5;
+  /// Number of correct answers needed to win the race at [level].
+  int get raceLength => level == 5 ? 10 : 5;
 
   /// Number of levels in each of the first two sections.
   static const int levelsPerSection = 4;
 
-  /// Total number of playable levels across all three sections.
-  /// Section 1 (levels 1-4): plain 3×2 grid, dots 1-6.
-  /// Section 2 (levels 5-8): single 3×3 die-face grid, dots 1-6.
-  /// Section 3 (levels 9-12): two 3×3 die-face grids side by side
-  /// (domino-style), dots 1-10.
-  static const int totalLevels = 12;
-
-  /// Row-major dot positions within a 3×3 grid for each die/domino face
-  /// value 0-6 — the standard six-sided-die pip layout (1 in the centre, 2
-  /// on the diagonal, and so on up to 6 as two columns of three).
-  static const Map<int, List<int>> _diePipPositions = {
-    0: [],
-    1: [4],
-    2: [2, 6],
-    3: [2, 4, 6],
-    4: [0, 2, 6, 8],
-    5: [0, 2, 4, 6, 8],
-    6: [0, 2, 3, 5, 6, 8],
-  };
+  /// Total number of playable levels: the level 1 warm-up plus three
+  /// sections.
+  /// Dot ranges are set per level in [maxQuestionValue].
+  static const int totalLevels = 13;
 
   /// Returns true when [lvl] is the last (timed) level of its section.
-  static bool isSectionEnd(int lvl) => lvl == 4 || lvl == 8 || lvl == 12;
+  static bool isSectionEnd(int lvl) => lvl == 5 || lvl == 9 || lvl == 13;
 
   final Random _random = Random();
   final GameStatsService _statsService = GameStatsService();
@@ -77,6 +65,10 @@ class NumberRaceProvider extends ChangeNotifier {
   /// Selected level (1-[totalLevels]), chosen on the level map.
   int level = 1;
 
+  /// Called with the level number when the player's race finishes — the
+  /// screen uses it to move the player on along the level map.
+  ValueChanged<int>? onRaceFinished;
+
   RaceCharacter? _playerCharacter;
   RaceCharacter? get playerCharacter => _playerCharacter;
 
@@ -91,14 +83,9 @@ class NumberRaceProvider extends ChangeNotifier {
   /// Total number of answers (correct + incorrect) given this game.
   int attempts = 0;
 
-  /// The number of dots shown in the current round (0..[maxQuestionValue]).
+  /// The number of dots shown in the current round (1..[maxQuestionValue]),
+  /// or -1 before the first round.
   int currentDotCount = -1;
-
-  /// Which cells of each board currently show a dot — one board normally,
-  /// two side by side (domino-style) for levels 9-12. Resized by
-  /// [_nextRound] to [boardCount] boards of [gridColumns] * [gridRows]
-  /// cells each for the current level.
-  List<List<bool>> dotCells = [List.filled(6, false)];
 
   /// The 3 BSL number options shown to the player this round.
   List<int> answerOptions = const [];
@@ -111,26 +98,35 @@ class NumberRaceProvider extends ChangeNotifier {
 
   bool get isWon => score >= raceLength;
 
+  /// 1-based number of the question being asked, for the header's
+  /// "Question N of [raceLength]". Only correct answers move it on, and it
+  /// stays at [raceLength] once the race is won.
+  int get questionNumber => (score + 1).clamp(1, raceLength);
+
   /// Position of [level] within its section (1-indexed).
   int get _sectionLevel {
-    if (level <= 4) return level;
-    if (level <= 8) return level - 4;
-    return level - 8; // section 3: levels 9-12 → 1-4
+    if (level <= 1) return 1; // level 1 warm-up
+    if (level <= 5) return level - 1; // section 1: levels 2-5 → 1-4
+    if (level <= 9) return level - 5; // section 2: levels 6-9 → 1-4
+    return level - 9; // section 3: levels 10-13 → 1-4
   }
 
-  /// Number of columns in each dot board — always 3.
-  int get gridColumns => 3;
-
-  /// Number of rows in each dot board: 2 for the plain grid of levels 1-4,
-  /// 3 (a die face) from level 5 onward.
-  int get gridRows => level <= 4 ? 2 : 3;
-
-  /// Number of separate dot boards shown for [level] — a single board,
-  /// except levels 9-12 which show two side by side, domino-style.
-  int get boardCount => level > 8 ? 2 : 1;
-
   /// Highest number a question can ask for at [level].
-  int get maxQuestionValue => level > 8 ? 10 : 6;
+  int get maxQuestionValue => switch (level) {
+    1 || 2 => 5,
+    3 => 6,
+    4 || 5 => 8,
+    _ => 10,
+  };
+
+  /// Whether the answer buttons show the digit under each BSL sign. Levels
+  /// 10-13 hide it, so the player has to read the sign alone.
+  bool get showAnswerDigits => level < 10;
+
+  /// Whether opponents creep forward on their own every
+  /// [opponentTickInterval]. Off on the level 1 warm-up, where they only
+  /// move when the player answers wrongly.
+  bool get opponentsMoveOnTimer => level != 1;
 
   /// Whether the current level times the player and records that time
   /// instead of their number of attempts.
@@ -144,13 +140,17 @@ class NumberRaceProvider extends ChangeNotifier {
   Duration get opponentTickInterval {
     switch (_sectionLevel) {
       case 1:
-        return const Duration(seconds: 7);
+        return const Duration(seconds: 15);
       case 2:
-        return const Duration(seconds: 5);
+        return const Duration(seconds: 10);
       case 3:
+        return const Duration(seconds: 7);
+      case 4:
+        return const Duration(seconds: 5);
+      case 5:
         return const Duration(seconds: 3);
       default:
-        return const Duration(seconds: 3);
+        return const Duration(seconds: 7);
     }
   }
 
@@ -162,10 +162,11 @@ class NumberRaceProvider extends ChangeNotifier {
   /// line — racers still short of the finish line are ranked after by
   /// remaining progress.
   List<RaceCharacter> get standings {
-    final remaining = RaceCharacter.values
-        .where((character) => !_finishOrder.contains(character))
-        .toList()
-      ..sort((a, b) => progress[b]!.compareTo(progress[a]!));
+    final remaining =
+        RaceCharacter.values
+            .where((character) => !_finishOrder.contains(character))
+            .toList()
+          ..sort((a, b) => progress[b]!.compareTo(progress[a]!));
     return [..._finishOrder, ...remaining];
   }
 
@@ -194,12 +195,24 @@ class NumberRaceProvider extends ChangeNotifier {
     attempts = 0;
     lastResult = null;
     currentDotCount = -1;
-    dotCells = _emptyBoards();
     answerOptions = const [];
     _finishOrder.clear();
     for (final character in RaceCharacter.values) {
       progress[character] = 0;
     }
+    _stopOpponentTimer();
+    _stopDisplayTimer();
+    _stopwatch
+      ..stop()
+      ..reset();
+    notifyListeners();
+  }
+
+  /// Returns to the level map (e.g. from Next Level), with the race
+  /// stopped.
+  void showLevelMapScreen() {
+    _showCharacterSelect = false;
+    _showLevelMap = true;
     _stopOpponentTimer();
     _stopDisplayTimer();
     _stopwatch
@@ -224,7 +237,7 @@ class NumberRaceProvider extends ChangeNotifier {
   /// [resetForIntro], called before the intro countdown begins.
   void startGame() {
     _nextRound();
-    _startOpponentTimer();
+    if (opponentsMoveOnTimer) _startOpponentTimer();
     if (isTimedLevel) {
       _stopwatch
         ..reset()
@@ -241,8 +254,10 @@ class NumberRaceProvider extends ChangeNotifier {
     attempts++;
     if (answer == currentDotCount) {
       score++;
-      progress[_playerCharacter!] =
-          (progress[_playerCharacter!]! + 1).clamp(0, raceLength);
+      progress[_playerCharacter!] = (progress[_playerCharacter!]! + 1).clamp(
+        0,
+        raceLength,
+      );
       _checkFinish(_playerCharacter!);
     } else {
       for (final opponent in opponents) {
@@ -256,6 +271,7 @@ class NumberRaceProvider extends ChangeNotifier {
       _stopwatch.stop();
       _stopDisplayTimer();
       _recordResult();
+      onRaceFinished?.call(level);
     } else {
       _nextRound();
     }
@@ -266,7 +282,10 @@ class NumberRaceProvider extends ChangeNotifier {
   /// own, independent of the player's answers.
   void _startOpponentTimer() {
     _opponentTimer?.cancel();
-    _opponentTimer = Timer.periodic(opponentTickInterval, (_) => _advanceOpponents());
+    _opponentTimer = Timer.periodic(
+      opponentTickInterval,
+      (_) => _advanceOpponents(),
+    );
   }
 
   void _stopOpponentTimer() {
@@ -294,7 +313,8 @@ class NumberRaceProvider extends ChangeNotifier {
   /// Records [character] as having reached the finish line, the first
   /// time its progress reaches [raceLength].
   void _checkFinish(RaceCharacter character) {
-    if (progress[character] == raceLength && !_finishOrder.contains(character)) {
+    if (progress[character] == raceLength &&
+        !_finishOrder.contains(character)) {
       _finishOrder.add(character);
     }
   }
@@ -302,7 +322,10 @@ class NumberRaceProvider extends ChangeNotifier {
   /// Ticks once a second so a timed level's timer display stays current.
   void _startDisplayTimer() {
     _displayTimer?.cancel();
-    _displayTimer = Timer.periodic(const Duration(seconds: 1), (_) => notifyListeners());
+    _displayTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => notifyListeners(),
+    );
   }
 
   void _stopDisplayTimer() {
@@ -317,10 +340,6 @@ class NumberRaceProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  /// A fresh, all-empty set of [boardCount] boards for the current level.
-  List<List<bool>> _emptyBoards() =>
-      List.generate(boardCount, (_) => List.filled(gridColumns * gridRows, false));
-
   void _nextRound() {
     int next;
     do {
@@ -328,43 +347,7 @@ class NumberRaceProvider extends ChangeNotifier {
     } while (next == currentDotCount);
     currentDotCount = next;
 
-    dotCells = _emptyBoards();
-
-    if (level <= 4) {
-      // Dots fill the grid column by column (top to bottom within each
-      // column, then moving to the next column) rather than row by row.
-      for (int i = 0; i < currentDotCount; i++) {
-        final column = i ~/ gridRows;
-        final row = i % gridRows;
-        dotCells[0][row * gridColumns + column] = true;
-      }
-    } else if (boardCount == 1) {
-      // Single die-face board (levels 5-8).
-      for (final index in _diePipPositions[currentDotCount]!) {
-        dotCells[0][index] = true;
-      }
-    } else {
-      // Two die-face boards side by side, domino-style (levels 9-12).
-      final (left, right) = _splitDominoValue(currentDotCount);
-      for (final index in _diePipPositions[left]!) {
-        dotCells[0][index] = true;
-      }
-      for (final index in _diePipPositions[right]!) {
-        dotCells[1][index] = true;
-      }
-    }
-
     _buildOptions();
-  }
-
-  /// Splits a domino total into two random halves, each 0-6, matching how a
-  /// real double-six domino set represents that total (e.g. 6 could be
-  /// shown as 0-6, 1-5, 2-4 or 3-3).
-  (int, int) _splitDominoValue(int total) {
-    final minLeft = max(0, total - 6);
-    final maxLeft = min(6, total);
-    final left = minLeft + _random.nextInt(maxLeft - minLeft + 1);
-    return (left, total - left);
   }
 
   void _buildOptions() {

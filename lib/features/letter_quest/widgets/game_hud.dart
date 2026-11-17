@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../providers/letter_quest_provider.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/game_header_bar.dart';
+import '../../../core/theme/digraph_letter_spacing.dart';
 
 class GameHud extends StatelessWidget {
   final int levelNumber;
@@ -117,21 +118,21 @@ class _HudLetterTileState extends State<_HudLetterTile>
       decoration: BoxDecoration(
         color: widget.isCollected ? AppColors.success : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.headerBorderDark,
-          width: 2,
-        ),
+        border: Border.all(color: AppColors.headerBorderDark, width: 2),
       ),
       child: Center(
         child: Text(
           widget.letter.toUpperCase(),
-          style: TextStyle(
-            fontFamily: 'ComicRelief',
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: widget.isCollected
-                ? Colors.white
-                : AppColors.textSecondary.withValues(alpha: 0.3),
+          style: digraphAwareStyle(
+            widget.letter.toUpperCase(),
+            TextStyle(
+              fontFamily: 'OpenDyslexic',
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: widget.isCollected
+                  ? Colors.white
+                  : AppColors.textSecondary.withValues(alpha: 0.3),
+            ),
           ),
         ),
       ),

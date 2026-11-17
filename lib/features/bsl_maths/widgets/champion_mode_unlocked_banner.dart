@@ -3,22 +3,29 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/button.dart';
 
 /// Full-screen celebratory banner shown the first time the player scores
 /// enough on the Competition level to unlock Champion Mode.
 ///
 /// Styled to match [GameSuccessOverlay]'s personal-best badge: a thick
 /// coloured stroke + solid fill heading, double-pulsing every 3 seconds.
-/// The padlock icon animates from closed to open once, on entry. Tap
-/// anywhere to dismiss.
+/// The padlock icon animates from closed to open once, on entry. A
+/// Continue button below the heading calls [onContinue] — each game uses it
+/// to open its [ChampionModeExplainer].
 class ChampionModeUnlockedBanner extends StatefulWidget {
   final String locale;
-  final VoidCallback onDismiss;
+  final VoidCallback onContinue;
+
+  /// Translation key for the heading, so other games can reuse the banner
+  /// with their own "… Champion Mode Unlocked!" wording.
+  final String textKey;
 
   const ChampionModeUnlockedBanner({
     super.key,
     required this.locale,
-    required this.onDismiss,
+    required this.onContinue,
+    this.textKey = 'bsl_maths.champion_mode.unlocked_banner',
   });
 
   @override
@@ -26,10 +33,57 @@ class ChampionModeUnlockedBanner extends StatefulWidget {
       _ChampionModeUnlockedBannerState();
 }
 
-class _ChampionModeUnlockedBannerState
-    extends State<ChampionModeUnlockedBanner> with TickerProviderStateMixin {
-  static const Color _gold = Color(0xFFFFC73A);
+/// Champion gold, shared by the banner and [ChampionModeExplainer].
+const Color kChampionGold = Color(0xFFFFC73A);
+
+/// Gold heading with a thick orange stroke behind it — the "… Champion
+/// Mode Unlocked!" look, also used by [ChampionModeExplainer]'s title.
+class ChampionHeadingText extends StatelessWidget {
   static const Color _orange = Color(0xFFFF6F00);
+
+  final String text;
+  final double fontSize;
+
+  const ChampionHeadingText(
+    this.text, {
+    super.key,
+    this.fontSize = AppSizes.fontSizeLarge * 1.3,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Text(
+          text,
+          textAlign: TextAlign.center,
+          style: AppTheme.celebrationAt(fontSize).copyWith(
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.none,
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 6
+              ..color = _orange,
+          ),
+        ),
+        Text(
+          text,
+          textAlign: TextAlign.center,
+          style: AppTheme.celebrationAt(fontSize).copyWith(
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.none,
+            color: kChampionGold,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChampionModeUnlockedBannerState extends State<ChampionModeUnlockedBanner>
+    with TickerProviderStateMixin {
+  static const Color _gold = kChampionGold;
 
   late final AnimationController _lockController;
   late final AnimationController _pulseController;
@@ -96,11 +150,13 @@ class _ChampionModeUnlockedBannerState
   @override
   Widget build(BuildContext context) {
     final localizer = AppLocalizations(locale: widget.locale);
-    final text = localizer('bsl_maths.champion_mode.unlocked_banner');
+    final text = localizer(widget.textKey);
 
+    // Absorbs taps so the overlay underneath can't be pressed through it;
+    // only the Continue button moves on.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: widget.onDismiss,
+      onTap: () {},
       child: Container(
         color: Colors.black.withValues(alpha: 0.6),
         child: Center(
@@ -111,7 +167,12 @@ class _ChampionModeUnlockedBannerState
               const SizedBox(height: AppSizes.spacingMedium),
               ScaleTransition(
                 scale: _pulseAnimation,
-                child: _buildHeading(text),
+                child: ChampionHeadingText(text),
+              ),
+              const SizedBox(height: AppSizes.spacingLarge),
+              PrimaryButton(
+                label: localizer('general.continue'),
+                onPressed: widget.onContinue,
               ),
             ],
           ),
@@ -148,35 +209,6 @@ class _ChampionModeUnlockedBannerState
           ),
         );
       },
-    );
-  }
-
-  /// "Maths Champion Mode / Unlocked!" heading — same stroke-behind-fill
-  /// layering as the "Well Done!" heading and personal-best badge.
-  Widget _buildHeading(String text) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Text(
-          text,
-          textAlign: TextAlign.center,
-          style: AppTheme.celebrationAt(AppSizes.fontSizeLarge * 1.3).copyWith(
-            fontWeight: FontWeight.bold,
-            foreground: Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 6
-              ..color = _orange,
-          ),
-        ),
-        Text(
-          text,
-          textAlign: TextAlign.center,
-          style: AppTheme.celebrationAt(AppSizes.fontSizeLarge * 1.3).copyWith(
-            fontWeight: FontWeight.bold,
-            color: _gold,
-          ),
-        ),
-      ],
     );
   }
 }
